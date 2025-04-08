@@ -367,7 +367,7 @@ rm(carnegieNPSAS)
 #### Make predictions from regressions   ####
 #############################################
 
-processLinearRegression <- function(
+processRegression <- function(
   
   #### List of inputs #### 
   
@@ -375,6 +375,9 @@ processLinearRegression <- function(
   newVariableName, 
   retrievalCode,
   interceptRow, 
+  regressionType, 
+  positiveClass, 
+  negativeClass, 
 
   includeVar1, 
   startLine1, 
@@ -433,6 +436,72 @@ processLinearRegression <- function(
   #### End #### 
   
 ){
+  
+  #### Presets for testing: Linear regression #### 
+
+#   studentListDF <-  studentList
+#   newVariableName <-  "EFC"
+#   retrievalCode <- "gkcfkv"
+#   interceptRow <-  17
+#   regressionType <- "Linear"
+#   positiveClass <- ""
+#   negativeClass <- ""
+# 
+#   includeVar1 <- TRUE
+#   startLine1 <-  20
+#   endLine1 <-  21
+#   linkingVar1 <-  "Control"
+#   varType1 <-  "Categorical"
+# 
+#   includeVar2 <-  TRUE
+#   startLine2 <-  24
+#   endLine2 <-  31
+#   linkingVar2 <- "Region NPSAS"
+#   varType2 <-  "Categorical"
+# 
+#   includeVar3 <-  TRUE
+#   startLine3 <-  34
+#   endLine3 <-  39
+#   linkingVar3 <- "Race"
+#   varType3 <-  "Categorical"
+# 
+#   includeVar4 <-  TRUE
+#   startLine4 <-  42
+#   endLine4 <-  46
+#   linkingVar4 <- "Carnegie NPSAS"
+#   varType4 <-  "Categorical"
+# 
+#   includeVar5 <-  TRUE
+#   startLine5 <-  53
+#   endLine5 <-  53
+#   linkingVar5 <- "Gender"
+#   varType5 <-  "Categorical"
+# 
+#   includeVar6 <-  FALSE
+#   startLine6 <-  ""
+#   endLine6 <-  ""
+#   linkingVar6 <- ""
+#   varType6 <-  ""
+# 
+#   includeVar7 <- FALSE
+#   startLine7 <-  ""
+#   endLine7 <-  ""
+#   linkingVar7 <- ""
+#   varType7 <-  ""
+# 
+#   includeVar8 <- FALSE
+#   startLine8 <-  ""
+#   endLine8 <-  ""
+#   linkingVar8 <- ""
+#   varType8 <- ""
+# 
+#   includeVar9 <- FALSE
+#   startLine9 <-  ""
+#   endLine9 <-  ""
+#   linkingVar9 <- ""
+#   varType9 <- ""
+
+  #### End #### 
   
   #### Obtain intercept #### 
   
@@ -639,21 +708,272 @@ processLinearRegression <- function(
       
       #### Import into dataset ####
       
+      names(tempDF)[1] <- linkingVar
+      names(tempDF)[2] <- paste("Variable ", i, " Coefficient", sep="")
+      names(tempDF)[3] <- paste("Variable ", i, " Standard Error", sep="")
       
+      studentListDF <- left_join(x=studentListDF, y=tempDF, by=linkingVar)
+      rm(tempDF)
       
       #### End #### 
       
-      
     }
-    
   }
   
+  #### Fill out remaining info ####
   
+  coefficientCount <- sum(includeVar1, includeVar2, includeVar3, includeVar4, includeVar5, includeVar6, includeVar7, includeVar8, includeVar9)
   
+  if(coefficientCount < 6){
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 6 Coefficient` = rep(0), 
+      `Variable 6 Standard Error` = rep(NA)
+    )
+  }
+  if(coefficientCount < 7){
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 7 Coefficient` = rep(0), 
+      `Variable 7 Standard Error` = rep(NA)
+    )
+  }
+  if(coefficientCount < 8){
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 8 Coefficient` = rep(0), 
+      `Variable 8 Standard Error` = rep(NA)
+    )
+  }
+  if(coefficientCount < 9){
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 9 Coefficient` = rep(0), 
+      `Variable 9 Standard Error` = rep(NA)
+    )
+  }
   
+  #### End #### 
   
+  #### Create components #### 
   
+  if(varType1=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 1 Coefficient`, 
+      all_of(linkingVar1)
+    )
+    names(tempDF)[3] <- "Variable 1 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 1 Component` = `Variable 1 Coefficient` * `Variable 1 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 1 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 1 Component` = `Variable 1 Coefficient`
+    )
+  }
   
+  if(varType2=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 2 Coefficient`, 
+      all_of(linkingVar2)
+    )
+    names(tempDF)[3] <- "Variable 2 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 2 Component` = `Variable 2 Coefficient` * `Variable 2 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 2 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 2 Component` = `Variable 2 Coefficient`
+    )
+  }
+  
+  if(varType3=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 3 Coefficient`, 
+      all_of(linkingVar3)
+    )
+    names(tempDF)[3] <- "Variable 3 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 3 Component` = `Variable 3 Coefficient` * `Variable 3 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 3 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 3 Component` = `Variable 3 Coefficient`
+    )
+  }
+  
+  if(varType4=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 4 Coefficient`, 
+      all_of(linkingVar4)
+    )
+    names(tempDF)[3] <- "Variable 4 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 4 Component` = `Variable 4 Coefficient` * `Variable 4 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 4 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 4 Component` = `Variable 4 Coefficient`
+    )
+  }
+  
+  if(varType5=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 5 Coefficient`, 
+      all_of(linkingVar5)
+    )
+    names(tempDF)[3] <- "Variable 5 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 5 Component` = `Variable 5 Coefficient` * `Variable 5 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 5 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 5 Component` = `Variable 5 Coefficient`
+    )
+  }
+  
+  if(varType6=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 6 Coefficient`, 
+      all_of(linkingVar6)
+    )
+    names(tempDF)[3] <- "Variable 6 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 6 Component` = `Variable 6 Coefficient` * `Variable 6 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 6 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 6 Component` = `Variable 6 Coefficient`
+    )
+  }
+  
+  if(varType7=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 7 Coefficient`, 
+      all_of(linkingVar7)
+    )
+    names(tempDF)[3] <- "Variable 7 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 7 Component` = `Variable 7 Coefficient` * `Variable 7 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 7 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 7 Component` = `Variable 7 Coefficient`
+    )
+  }
+  
+  if(varType8=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 8 Coefficient`, 
+      all_of(linkingVar8)
+    )
+    names(tempDF)[3] <- "Variable 8 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 8 Component` = `Variable 8 Coefficient` * `Variable 8 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 8 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 8 Component` = `Variable 8 Coefficient`
+    )
+  }
+  
+  if(varType9=="Numeric"){
+    tempDF <- studentListDF %>% select(
+      `Effy-student index`, 
+      `Variable 9 Coefficient`, 
+      all_of(linkingVar9)
+    )
+    names(tempDF)[3] <- "Variable 9 Multiplier"
+    tempDF <- tempDF %>% mutate(
+      `Variable 9 Component` = `Variable 9 Coefficient` * `Variable 9 Multiplier`
+    ) %>% select(
+      `Effy-student index`, 
+      `Variable 9 Component`
+    )
+    studentListDF <- left_join(x=studentListDF, y=tempDF, by="Effy-student index")
+    rm(tempDF)
+  }else{
+    studentListDF <- studentListDF %>% mutate(
+      `Variable 9 Component` = `Variable 9 Coefficient`
+    )
+  }
+  
+  #### End #### 
+
+  #### Run predictions #### 
+  
+  studentListDF <- studentListDF %>% mutate(
+    `New variable` = `Intercept` + `Variable 1 Component` + `Variable 2 Component` + `Variable 3 Component` + `Variable 4 Component` + `Variable 5 Component` + `Variable 6 Component` + `Variable 7 Component` + `Variable 8 Component` + `Variable 9 Component`
+  )
+  if(regressionType=="Logistic"){
+    studentListDF <- studentListDF %>% mutate(
+      `New variable` = 2.718282^(`New variable`) / (1 + (2.718282^(`New variable`)))
+    )
+    studentListDF <- studentListDF %>% mutate(
+      `New variable` = ifelse(`New variable` >= 0.5, posiiveClass, negativeClass)
+    )
+  }
+  names(studentListDF)[ncol(studentListDF)] <- newVariableName
+  
+  studentListDF <- studentListDF %>% select(
+    -(`Intercept`), 
+    -(`Variable 1 Coefficient`), -(`Variable 1 Standard Error`), -(`Variable 1 Component`),
+    -(`Variable 2 Coefficient`), -(`Variable 2 Standard Error`), -(`Variable 2 Component`),
+    -(`Variable 3 Coefficient`), -(`Variable 3 Standard Error`), -(`Variable 3 Component`),
+    -(`Variable 4 Coefficient`), -(`Variable 4 Standard Error`), -(`Variable 4 Component`),
+    -(`Variable 5 Coefficient`), -(`Variable 5 Standard Error`), -(`Variable 5 Component`),
+    -(`Variable 6 Coefficient`), -(`Variable 6 Standard Error`), -(`Variable 6 Component`),
+    -(`Variable 7 Coefficient`), -(`Variable 7 Standard Error`), -(`Variable 7 Component`),
+    -(`Variable 8 Coefficient`), -(`Variable 8 Standard Error`), -(`Variable 8 Component`),
+    -(`Variable 9 Coefficient`), -(`Variable 9 Standard Error`), -(`Variable 9 Component`)
+  )
+  
+  #### End #### 
+
   return(studentListDF)
   
 }
