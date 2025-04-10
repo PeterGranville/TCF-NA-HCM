@@ -158,11 +158,11 @@ effyLabs <- data.frame(
 ) %>% add_row(
   `Total name`="EFYWHITW", `Race`="White", `Gender`="Female"
 ) %>% add_row(
-  `Total name`="EFY2MORT", `Race`="Two or more races", `Gender`="Total"
+  `Total name`="EFY2MORT", `Race`="More than one race", `Gender`="Total"
 ) %>% add_row(
-  `Total name`="EFY2MORM", `Race`="Two or more races", `Gender`="Male"
+  `Total name`="EFY2MORM", `Race`="More than one race", `Gender`="Male"
 ) %>% add_row(
-  `Total name`="EFY2MORW", `Race`="Two or more races", `Gender`="Female"
+  `Total name`="EFY2MORW", `Race`="More than one race", `Gender`="Female"
 ) %>% add_row(
   `Total name`="EFYUNKNT", `Race`="Race/ethnicity unknown", `Gender`="Total"
 ) %>% add_row(
@@ -210,6 +210,9 @@ effy <- effy %>% filter(
 #### End #### 
 
 #### Create student level dataset ####
+
+# Shuffle effy
+effy <- effy[sample(nrow(effy)),]
 
 # Index effy
 effy <- effy %>% mutate(
@@ -300,6 +303,8 @@ hdRegion <- data.frame(
   `OBEREG` = 8, `Region` = "Far West (AK CA HI NV OR WA)"
 ) %>% add_row(
   `OBEREG` = 9, `Region` = "Other U.S. jurisdictions"
+) %>% add_row(
+  `OBEREG` = 0, `Region` = "Other U.S. jurisdictions"
 ) 
 hd <- left_join(x=hd, y=hdRegion, by="OBEREG") %>% select(-(`OBEREG`))
 rm(hdRegion)
@@ -338,7 +343,9 @@ studentList <- studentList %>% mutate(
   `Enrollment intensity NPSAS` = ifelse(`Enrollment intensity`=="Full-time", "Exclusively full-time", "Exclusively part-time")
 ) %>% mutate(
   `Region NPSAS` = ifelse(`Region`=="Other U.S. jurisdictions", "Puerto Rico", `Region`)
-) 
+) %>% mutate(
+  `Race NPSAS` = ifelse(`Race` %in% c("U.S. Nonresident", "Race/ethnicity unknown"), "White", `Race`) # NOTE: This is a placeholder. 
+)
 
 carnegieNPSAS <- data.frame(
   `C18BASIC` = c(-2, (1:33)), 
@@ -364,7 +371,7 @@ rm(carnegieNPSAS)
 #### End #### 
 
 #############################################
-#### Make predictions from regressions   ####
+#### Write function for making preds     ####
 #############################################
 
 processRegression <- function(
@@ -378,6 +385,7 @@ processRegression <- function(
   regressionType, 
   positiveClass, 
   negativeClass, 
+  showWork, 
 
   includeVar1, 
   startLine1, 
@@ -437,72 +445,6 @@ processRegression <- function(
   
 ){
   
-  #### Presets for testing: Linear regression #### 
-
-#   studentListDF <-  studentList
-#   newVariableName <-  "EFC"
-#   retrievalCode <- "gkcfkv"
-#   interceptRow <-  17
-#   regressionType <- "Linear"
-#   positiveClass <- ""
-#   negativeClass <- ""
-# 
-#   includeVar1 <- TRUE
-#   startLine1 <-  20
-#   endLine1 <-  21
-#   linkingVar1 <-  "Control"
-#   varType1 <-  "Categorical"
-# 
-#   includeVar2 <-  TRUE
-#   startLine2 <-  24
-#   endLine2 <-  31
-#   linkingVar2 <- "Region NPSAS"
-#   varType2 <-  "Categorical"
-# 
-#   includeVar3 <-  TRUE
-#   startLine3 <-  34
-#   endLine3 <-  39
-#   linkingVar3 <- "Race"
-#   varType3 <-  "Categorical"
-# 
-#   includeVar4 <-  TRUE
-#   startLine4 <-  42
-#   endLine4 <-  46
-#   linkingVar4 <- "Carnegie NPSAS"
-#   varType4 <-  "Categorical"
-# 
-#   includeVar5 <-  TRUE
-#   startLine5 <-  53
-#   endLine5 <-  53
-#   linkingVar5 <- "Gender"
-#   varType5 <-  "Categorical"
-# 
-#   includeVar6 <-  FALSE
-#   startLine6 <-  ""
-#   endLine6 <-  ""
-#   linkingVar6 <- ""
-#   varType6 <-  ""
-# 
-#   includeVar7 <- FALSE
-#   startLine7 <-  ""
-#   endLine7 <-  ""
-#   linkingVar7 <- ""
-#   varType7 <-  ""
-# 
-#   includeVar8 <- FALSE
-#   startLine8 <-  ""
-#   endLine8 <-  ""
-#   linkingVar8 <- ""
-#   varType8 <- ""
-# 
-#   includeVar9 <- FALSE
-#   startLine9 <-  ""
-#   endLine9 <-  ""
-#   linkingVar9 <- ""
-#   varType9 <- ""
-
-  #### End #### 
-  
   #### Obtain intercept #### 
   
   setwd("/Users/peter_granville/Fed State Modeling/Datalab outputs")
@@ -519,11 +461,35 @@ processRegression <- function(
     `Coefficient` = `V2`, 
     `Standard Error` = `V3`
   )
+  
+  if(regressionType=="Logistic"){
+    interceptDF <- interceptDF %>% mutate(
+      `Coefficient` = log(`Coefficient`), 
+      `Standard Error` = log(`Standard Error`)
+    )
+  }
+  
   studentListDF <- studentListDF %>% mutate(
     `Intercept` = rep(interceptDF$`Coefficient`[1]), 
     `Intercept SE` = rep(interceptDF$`Standard Error`[1])
   )
   rm(interceptDF)
+  
+  #### End #### 
+  
+  #### Add randomness ####
+  
+  studentListDF <- studentListDF %>% mutate(
+    `Random error` = rnorm(
+      nrow(studentListDF), 
+      mean = 0, 
+      sd = 1
+    )
+  ) %>% mutate(
+    `Intercept` = `Intercept` + (`Random error` * `Intercept SE`)
+  ) %>% select(
+    -(`Random error`), -(`Intercept SE`)
+  )
   
   #### End #### 
   
@@ -635,6 +601,19 @@ processRegression <- function(
       
       #### End #### 
       
+      #### Convert odds ratios to log odds for logistic regression ####
+      
+      if(regressionType=="Logistic"){
+        
+        tempDF <- tempDF %>% mutate(
+          `Coefficient` = log(`Coefficient`), 
+          `Standard Error` = log(`Standard Error`)
+        )
+        
+      }
+      
+      #### End #### 
+      
       #### Obtain reference var ####
       
       if(varType=="Categorical"){
@@ -693,7 +672,7 @@ processRegression <- function(
           )
         }
         
-        # In-state status
+        # Tuition jurisdiction
         if(grepl("Out-of-state", tempDF$`Group`[1])){
           tempDF <- tempDF %>% add_row(
             `Group` = "In-state tuition", 
@@ -708,17 +687,34 @@ processRegression <- function(
       
       #### Import into dataset ####
       
-      names(tempDF)[1] <- linkingVar
-      names(tempDF)[2] <- paste("Variable ", i, " Coefficient", sep="")
-      names(tempDF)[3] <- paste("Variable ", i, " Standard Error", sep="")
+      if(varType=="Categorical"){
+        
+        names(tempDF)[1] <- linkingVar
+        names(tempDF)[2] <- paste("Variable ", i, " Coefficient", sep="")
+        names(tempDF)[3] <- paste("Variable ", i, " Standard Error", sep="")
+        
+        studentListDF <- left_join(x=studentListDF, y=tempDF, by=linkingVar)
       
-      studentListDF <- left_join(x=studentListDF, y=tempDF, by=linkingVar)
+      }else{
+        
+        studentListDF <- studentListDF %>% mutate(
+          `Variable i Coefficient` = rep(tempDF$`Coefficient`[1]), 
+          `Variable i Standard Error` = rep(tempDF$`Standard Error`[1])
+        )
+        
+        names(studentListDF)[ncol(studentListDF)-1] <- paste("Variable ", i, " Coefficient", sep="")
+        names(studentListDF)[ncol(studentListDF)] <- paste("Variable ", i, " Standard Error", sep="")
+        
+      }
+      
       rm(tempDF)
       
       #### End #### 
       
     }
+    rm(includeVar, startLine, endLine, linkingVar, varType)
   }
+  rm(i)
   
   #### Fill out remaining info ####
   
@@ -949,28 +945,35 @@ processRegression <- function(
   studentListDF <- studentListDF %>% mutate(
     `New variable` = `Intercept` + `Variable 1 Component` + `Variable 2 Component` + `Variable 3 Component` + `Variable 4 Component` + `Variable 5 Component` + `Variable 6 Component` + `Variable 7 Component` + `Variable 8 Component` + `Variable 9 Component`
   )
+  
+  # Convert log odds back to odds ratio 
   if(regressionType=="Logistic"){
     studentListDF <- studentListDF %>% mutate(
-      `New variable` = 2.718282^(`New variable`) / (1 + (2.718282^(`New variable`)))
+      `New variable` = exp(`New variable`)
     )
     studentListDF <- studentListDF %>% mutate(
-      `New variable` = ifelse(`New variable` >= 0.5, posiiveClass, negativeClass)
+      `New variable` = ifelse(`New variable` >= 1, positiveClass, negativeClass)
     )
   }
+  
   names(studentListDF)[ncol(studentListDF)] <- newVariableName
   
-  studentListDF <- studentListDF %>% select(
-    -(`Intercept`), 
-    -(`Variable 1 Coefficient`), -(`Variable 1 Standard Error`), -(`Variable 1 Component`),
-    -(`Variable 2 Coefficient`), -(`Variable 2 Standard Error`), -(`Variable 2 Component`),
-    -(`Variable 3 Coefficient`), -(`Variable 3 Standard Error`), -(`Variable 3 Component`),
-    -(`Variable 4 Coefficient`), -(`Variable 4 Standard Error`), -(`Variable 4 Component`),
-    -(`Variable 5 Coefficient`), -(`Variable 5 Standard Error`), -(`Variable 5 Component`),
-    -(`Variable 6 Coefficient`), -(`Variable 6 Standard Error`), -(`Variable 6 Component`),
-    -(`Variable 7 Coefficient`), -(`Variable 7 Standard Error`), -(`Variable 7 Component`),
-    -(`Variable 8 Coefficient`), -(`Variable 8 Standard Error`), -(`Variable 8 Component`),
-    -(`Variable 9 Coefficient`), -(`Variable 9 Standard Error`), -(`Variable 9 Component`)
-  )
+  if(showWork==FALSE){
+    
+    studentListDF <- studentListDF %>% select(
+      -(`Intercept`), 
+      -(`Variable 1 Coefficient`), -(`Variable 1 Standard Error`), -(`Variable 1 Component`),
+      -(`Variable 2 Coefficient`), -(`Variable 2 Standard Error`), -(`Variable 2 Component`),
+      -(`Variable 3 Coefficient`), -(`Variable 3 Standard Error`), -(`Variable 3 Component`),
+      -(`Variable 4 Coefficient`), -(`Variable 4 Standard Error`), -(`Variable 4 Component`),
+      -(`Variable 5 Coefficient`), -(`Variable 5 Standard Error`), -(`Variable 5 Component`),
+      -(`Variable 6 Coefficient`), -(`Variable 6 Standard Error`), -(`Variable 6 Component`),
+      -(`Variable 7 Coefficient`), -(`Variable 7 Standard Error`), -(`Variable 7 Component`),
+      -(`Variable 8 Coefficient`), -(`Variable 8 Standard Error`), -(`Variable 8 Component`),
+      -(`Variable 9 Coefficient`), -(`Variable 9 Standard Error`), -(`Variable 9 Component`)
+    )
+    
+  }
   
   #### End #### 
 
@@ -980,1207 +983,2355 @@ processRegression <- function(
 
 #### End #### 
 
+#############################################
+#### Predictions from regressions: Set 1 ####
+#############################################
+
 #### Regression 1: Predict EFC ####
-#### End #### 
 
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "EFC",
+  retrievalCode = "gkcfkv",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = FALSE,
+  startLine7 = NA, 
+  endLine7 = NA, 
+  linkingVar7 = NA,
+  varType7 = "", 
+  
+  includeVar8 = FALSE,
+  startLine8 = NA, 
+  endLine8 = NA, 
+  linkingVar8 = NA,
+  varType8 = "",
+  
+  includeVar9 = FALSE,
+  startLine9 = NA, 
+  endLine9 = NA, 
+  linkingVar9 = NA,
+  varType9 = ""
+)
 
-
-
-
-
-
-
-
-##############################################
-#### Student list using single-var pulls  ####
-##############################################
-
-#### Establish empty dataframe ####
-
-distInfoWide <- data.frame(
-  `Table Source Code` = character(), 
-  `Target Name` = character(), 
-  `Target Type` = character(), 
-  `Group Name` = character(), 
-  `Group Value` = character(), 
-  `Class 1 Name` = character(), 
-  `Class 1 Share` = character(), 
-  `Class 2 Name` = character(), 
-  `Class 2 Share` = character(), 
-  `Class 3 Name` = character(), 
-  `Class 3 Share` = character(), 
-  `Class 4 Name` = character(), 
-  `Class 4 Share` = character(), 
-  `Class 5 Name` = character(), 
-  `Class 5 Share` = character(), 
-  `Class 6 Name` = character(), 
-  `Class 6 Share` = character(), 
-  `Class 7 Name` = character(), 
-  `Class 7 Share` = character(), 
-  `Class 8 Name` = character(), 
-  `Class 8 Share` = character(), 
-  `Class 9 Name` = character(), 
-  `Class 9 Share` = character(), 
-  `Class 10 Name` = character(), 
-  `Class 10 Share` = character(), 
-  `Class 11 Name` = character(), 
-  `Class 11 Share` = character(), 
-  `Class 12 Name` = character(), 
-  `Class 12 Share` = character(), 
-  `Class 13 Name` = character(), 
-  `Class 13 Share` = character(), 
-  `Class 14 Name` = character(), 
-  `Class 14 Share` = character(), 
-  check.names=FALSE
+studentList <- studentList %>% mutate(
+  `EFC` = ifelse(`EFC` < 0, 0, `EFC`)
 )
 
 #### End #### 
 
-#### Write function to read data per data block (inner) ####
+#### Regression 2: Predict Tuition Jurisdiction ####
 
-readCombo1block <- function(data0, filename, targetName, targetType, groupName, startDataRow, endDataRow, classRow){
+studentList <- processRegression(
   
-  sourceCode <- filename
-  sourceCode <- gsub("PowerStats_", "", sourceCode)
-  sourceCode <- gsub(".csv", "", sourceCode)
+  studentListDF = studentList,
+  newVariableName = "Tuition jurisdiction",
+  retrievalCode = "pwappp",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "In-state tuition", 
+  negativeClass = "Out-of-state tuition", 
+  showWork = FALSE, 
   
-  nSkip <- startDataRow - 1
-  nRows <- endDataRow - startDataRow + 1
-  data1 <- read.csv(filename, header=FALSE, nrows=nRows, skip=nSkip, check.names=FALSE)
-  names(data1)[ncol(data1)] <- "Total column"
-  data1 <- data1 %>% select(-(`Total column`))
-  names(data1)[1] <- "Group Value"
-  rm(nSkip, nRows)
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
   
-  header1 <- read.csv(filename, header=FALSE, nrows=1, skip=classRow-1)
-  header1 <- as.character(as.vector(header1[1, ]))
-  header1 <- header1[(1:length(header1)-1)] # Why does 2 not work, but 3 does?
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
   
-  if("V2" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 1 Name` = rep(header1[2])
-    ) %>% rename(
-      `Class 1 Share` = `V2`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 1 Name` = rep(NA), `Class 1 Share` = rep(NA))}
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
   
-  if("V3" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 2 Name` = rep(header1[3])
-    ) %>% rename(
-      `Class 2 Share` = `V3`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 2 Name` = rep(NA), `Class 2 Share` = rep(NA))}
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
   
-  if("V4" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 3 Name` = rep(header1[4])
-    ) %>% rename(
-      `Class 3 Share` = `V4`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 3 Name` = rep(NA), `Class 3 Share` = rep(NA))}
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
   
-  if("V5" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 4 Name` = rep(header1[5])
-    ) %>% rename(
-      `Class 4 Share` = `V5`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 4 Name` = rep(NA), `Class 4 Share` = rep(NA))}
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
   
-  if("V6" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 5 Name` = rep(header1[6])
-    ) %>% rename(
-      `Class 5 Share` = `V6`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 5 Name` = rep(NA), `Class 5 Share` = rep(NA))}
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
   
-  if("V7" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 6 Name` = rep(header1[7])
-    ) %>% rename(
-      `Class 6 Share` = `V7`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 6 Name` = rep(NA), `Class 6 Share` = rep(NA))}
+  includeVar8 = FALSE,
+  startLine8 = NA, 
+  endLine8 = NA, 
+  linkingVar8 = NA,
+  varType8 = "",
   
-  if("V8" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 7 Name` = rep(header1[8])
-    ) %>% rename(
-      `Class 7 Share` = `V8`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 7 Name` = rep(NA), `Class 7 Share` = rep(NA))}
-  
-  if("V9" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 8 Name` = rep(header1[9])
-    ) %>% rename(
-      `Class 8 Share` = `V9`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 8 Name` = rep(NA), `Class 8 Share` = rep(NA))}
-  
-  if("V10" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 9 Name` = rep(header1[10])
-    ) %>% rename(
-      `Class 9 Share` = `V10`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 9 Name` = rep(NA), `Class 9 Share` = rep(NA))}
-  
-  if("V11" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 10 Name` = rep(header1[11])
-    ) %>% rename(
-      `Class 10 Share` = `V11`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 10 Name` = rep(NA), `Class 10 Share` = rep(NA))}
-  
-  if("V12" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 11 Name` = rep(header1[12])
-    ) %>% rename(
-      `Class 11 Share` = `V12`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 11 Name` = rep(NA), `Class 11 Share` = rep(NA))}
-  
-  if("V13" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 12 Name` = rep(header1[13])
-    ) %>% rename(
-      `Class 12 Share` = `V13`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 12 Name` = rep(NA), `Class 12 Share` = rep(NA))}
-  
-  if("V14" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 13 Name` = rep(header1[14])
-    ) %>% rename(
-      `Class 13 Share` = `V14`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 13 Name` = rep(NA), `Class 13 Share` = rep(NA))}
-  
-  if("V15" %in% names(data1)){
-    data1 <- data1 %>% mutate(
-      `Class 14 Name` = rep(header1[15])
-    ) %>% rename(
-      `Class 14 Share` = `V15`
-    )
-  }else{data1 <- data1 %>% mutate(`Class 14 Name` = rep(NA), `Class 14 Share` = rep(NA))}
-  
-  rm(header1)
-  
-  data1 <- data1 %>% mutate(
-    `Table Source Code` = rep(sourceCode), 
-    `Target Name` = rep(targetName), 
-    `Target Type` = rep(targetType), 
-    `Group Name` = rep(groupName)
+  includeVar9 = FALSE,
+  startLine9 = NA, 
+  endLine9 = NA, 
+  linkingVar9 = NA,
+  varType9 = ""
+)
+
+studentList <- studentList %>% mutate(
+  `Tuition jurisdiction` = ifelse(
+    `Tuition policy` == "Does not vary tuition by in-state status", "No differential tuition charged", `Tuition jurisdiction`
   )
-  
-  data1 <- data1 %>% select(
-    `Table Source Code`, 
-    `Target Name`, 
-    `Target Type`, 
-    `Group Name`, 
-    `Group Value`, 
-    `Class 1 Name`, 
-    `Class 1 Share`, 
-    `Class 2 Name`, 
-    `Class 2 Share`, 
-    `Class 3 Name`, 
-    `Class 3 Share`, 
-    `Class 4 Name`, 
-    `Class 4 Share`, 
-    `Class 5 Name`, 
-    `Class 5 Share`, 
-    `Class 6 Name`, 
-    `Class 6 Share`, 
-    `Class 7 Name`, 
-    `Class 7 Share`, 
-    `Class 8 Name`, 
-    `Class 8 Share`, 
-    `Class 9 Name`, 
-    `Class 9 Share`, 
-    `Class 10 Name`, 
-    `Class 10 Share`, 
-    `Class 11 Name`, 
-    `Class 11 Share`, 
-    `Class 12 Name`, 
-    `Class 12 Share`, 
-    `Class 13 Name`, 
-    `Class 13 Share`, 
-    `Class 14 Name`, 
-    `Class 14 Share` 
-  )
-  
-  data0 <- rbind(data0, data1)
-  return(data0)
-  rm(data1, sourceCode)
-  
-}
-
-#### End #### 
-
-#### Write function to read data per data file (outer) ####
-
-readCombo1file <- function(data0outer, filenameOuter, targetNameOuter, targetTypeOuter){
-  
-  # Institution sector 
-  data0outer <- readCombo1block(data0 = data0outer, 
-                                filename = filenameOuter, 
-                                targetName = targetNameOuter, 
-                                targetType = targetTypeOuter, 
-                                groupName = "Institution sector", 
-                                startDataRow = 13, 
-                                endDataRow = 21, 
-                                classRow = 7
-  )
-  
-  # Institution region
-  data0outer <- readCombo1block(data0 = data0outer, 
-                                filename = filenameOuter, 
-                                targetName = targetNameOuter, 
-                                targetType = targetTypeOuter, 
-                                groupName = "Institution region", 
-                                startDataRow = 24, 
-                                endDataRow = 32, 
-                                classRow = 7
-  )
-  
-  # Student race
-  data0outer <- readCombo1block(data0 = data0outer, 
-                                filename = filenameOuter, 
-                                targetName = targetNameOuter, 
-                                targetType = targetTypeOuter, 
-                                groupName = "Student race", 
-                                startDataRow = 35, 
-                                endDataRow = 41, 
-                                classRow = 7
-  )
-  
-  # Institution size
-  data0outer <- readCombo1block(data0 = data0outer, 
-                                filename = filenameOuter, 
-                                targetName = targetNameOuter, 
-                                targetType = targetTypeOuter, 
-                                groupName = "Institution size", 
-                                startDataRow = 44, 
-                                endDataRow = 49, 
-                                classRow = 7
-  )
-  
-  # Student attendance intensity 
-  data0outer <- readCombo1block(data0 = data0outer, 
-                                filename = filenameOuter, 
-                                targetName = targetNameOuter, 
-                                targetType = targetTypeOuter, 
-                                groupName = "Student attendance intensity", 
-                                startDataRow = 52, 
-                                endDataRow = 54, 
-                                classRow = 7
-  )
-  
-  # Student gender
-  data0outer <- readCombo1block(data0 = data0outer, 
-                                filename = filenameOuter, 
-                                targetName = targetNameOuter, 
-                                targetType = targetTypeOuter, 
-                                groupName = "Student gender", 
-                                startDataRow = 57, 
-                                endDataRow = 58, 
-                                classRow = 7
-  )
-  
-  # Student EFC
-  data0outer <- readCombo1block(data0 = data0outer, 
-                                filename = filenameOuter, 
-                                targetName = targetNameOuter, 
-                                targetType = targetTypeOuter, 
-                                groupName = "Student EFC", 
-                                startDataRow = 61, 
-                                endDataRow = 67, 
-                                classRow = 7
-  )
-  
-  return(data0outer)
-  
-}
-
-#### End #### 
-
-#### Run data #### 
-
-setwd("/Users/peter_granville/Fed State Modeling/Combo1")
-
-# BUDGETAJ
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_ecygyd.csv", 
-                               targetNameOuter = "Student budget", 
-                               targetTypeOuter = "Numeric"
-)
-
-# TUITION2
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_wdslqr.csv", 
-                               targetNameOuter = "Tuition and fees paid", 
-                               targetTypeOuter = "Numeric"
-)
-
-# TFEDGRT
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_xndjqa.csv", 
-                               targetNameOuter = "Federal grants", 
-                               targetTypeOuter = "Numeric"
-)
-
-# VADODAMT
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_xerval.csv", 
-                               targetNameOuter = "Federal veterans' benefits", 
-                               targetTypeOuter = "Numeric"
-)
-
-# STGTAMT
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_ouoyum.csv", 
-                               targetNameOuter = "State grants", 
-                               targetTypeOuter = "Numeric"
-)
-
-# INGRTAMT
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_mgrfas.csv", 
-                               targetNameOuter = "Institution grants", 
-                               targetTypeOuter = "Numeric"
-)
-
-# PRIVAID
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_ufvsze.csv", 
-                               targetNameOuter = "Private grants", 
-                               targetTypeOuter = "Numeric"
-)
-
-# TFEDLN
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_jhcovg.csv", 
-                               targetNameOuter = "Federal loans", 
-                               targetTypeOuter = "Numeric"
-)
-
-# PLUSAMT
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_vgwakh.csv", 
-                               targetNameOuter = "Parent PLUS loans", 
-                               targetTypeOuter = "Numeric"
-)
-
-# AGE
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_exloou.csv", 
-                               targetNameOuter = "Student age", 
-                               targetTypeOuter = "Numeric"
-)
-
-# DEPANY
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_iduzqw.csv", 
-                               targetNameOuter = "Parent status", 
-                               targetTypeOuter = "Categorical"
-)
-
-# CITIZEN2
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_mztdud.csv", 
-                               targetNameOuter = "Citizenship", 
-                               targetTypeOuter = "Categorical"
-)
-
-# MAJORS12
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_bywzye.csv", 
-                               targetNameOuter = "Field of study", 
-                               targetTypeOuter = "Categorical"
-)
-
-# PAREDUC_AC
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_vpyhcz.csv", 
-                               targetNameOuter = "Parents' highest education level", 
-                               targetTypeOuter = "Categorical"
-)
-
-# DEPEND
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_jjsvoo.csv", 
-                               targetNameOuter = "Dependency status", 
-                               targetTypeOuter = "Categorical"
-)
-
-# FEDAPP
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_svlbcg.csv", 
-                               targetNameOuter = "FAFSA status", 
-                               targetTypeOuter = "Categorical"
-)
-
-# VETERAN
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_cfmduq.csv", 
-                               targetNameOuter = "Veteran status", 
-                               targetTypeOuter = "Categorical"
-)
-
-# HSGPA2
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_vlnhld.csv", 
-                               targetNameOuter = "High school GPA", 
-                               targetTypeOuter = "Categorical"
-)
-
-# EFC
-distInfoWide <- readCombo1file(data0outer = distInfoWide, 
-                               filenameOuter = "PowerStats_zxifrf.csv", 
-                               targetNameOuter = "EFC", 
-                               targetTypeOuter = "Numeric"
 )
 
 #### End #### 
 
-#### Handle problem row ####
+#### Regression 3: Predict Tuition and Fees Paid ####
 
-distInfoWide <- distInfoWide %>% filter(
-  ((`Target Name`=="High school GPA") & (`Group Name`=="Institution sector") & (`Group Value`=="Private nonprofit less-than-2-year"))==FALSE 
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Tuition and fees paid",
+  retrievalCode = "btdqqq",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = FALSE,
+  startLine9 = NA, 
+  endLine9 = NA, 
+  linkingVar9 = NA,
+  varType9 = ""
 )
 
-copy1 <- distInfoWide %>% filter(
-  (`Target Name`=="High school GPA") & (`Group Name`=="Institution sector") & (`Group Value`=="Public less-than-2-year") 
+studentList <- studentList %>% mutate(
+  `Tuition and fees paid` = ifelse(`Tuition and fees paid` < 0, 0, `Tuition and fees paid`)
+)
+
+#### End #### 
+
+#### Regression 4: Predict Age ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Age",
+  retrievalCode = "swdwhv",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Age` = ifelse(`Age` < 17, 17, `Age`)
+)
+
+#### End #### 
+
+#### Regression 5: Predict Citizenship ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Citizenship",
+  retrievalCode = "fbmoox",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Citizen or eligible non-citizen", 
+  negativeClass = "Non-citizen", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 6: Predict Dependency Status ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Dependency status",
+  retrievalCode = "mbryhw",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Dependent", 
+  negativeClass = "Independent", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Dependency status` = ifelse(
+    `Age` >= 24, "Independent", `Dependency status`
+  )
+)
+
+#### End #### 
+
+#### Regression 7: Applied for Federal Aid ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Applied for federal aid",
+  retrievalCode = "jvlplk",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Applied for federal aid` = ifelse(
+    `Citizenship`=="Non-citizen", "No", `Applied for federal aid`
+  )
+)
+
+#### End #### 
+
+#### Regression 8: Veteran Status ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Veteran status",
+  retrievalCode = "cxjrap",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Veteran", 
+  negativeClass = "Not a veteran", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 9: Non-Tuition Expense Budget ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Non-tuition expense budget",
+  retrievalCode = "tekbez",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Non-tuition expense budget` = ifelse(`Non-tuition expense budget` < 0, 0, `Non-tuition expense budget`)
+)
+
+#### End #### 
+
+#############################################
+#### Predictions from regressions: Set 2 ####
+#############################################
+
+#### Regression 10: Receives Federal Grants ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Receives federal grants",
+  retrievalCode = "lgqfmf",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Receives federal grants` = ifelse(
+    (`Citizenship`=="Non-citizen") | (`Applied for federal aid`=="No"), "No", `Receives federal grants`
+  )
+)
+
+#### End #### 
+
+#### Regression 11A: Receives VA/DOD Grants (veterans) ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Receives VA/DOD grants (veterans)",
+  retrievalCode = "hvhxhi",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 11B: Receives VA/DOD Grants (non-veterans) ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Receives VA/DOD grants (non-veterans)",
+  retrievalCode = "mkfuco",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 11: Combine 11A and 11B ####
+
+studentList <- studentList %>% mutate(
+  `Receives VA/DOD grants` = ifelse(
+    `Veteran status`=="Veteran", 
+    `Receives VA/DOD grants (veterans)`, 
+    `Receives VA/DOD grants (non-veterans)`
+  )
+) %>% select(
+  -(`Receives VA/DOD grants (veterans)`), 
+  -(`Receives VA/DOD grants (non-veterans)`)
+)
+
+#### End #### 
+
+#### Regression 12: Receives State Grants ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Receives state grants",
+  retrievalCode = "nczufm",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 13: Receives Institutional Grants ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Receives institutional grants",
+  retrievalCode = "xjuweb",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 14: Receives Private Grants ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Receives private grants",
+  retrievalCode = "vgdnty",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 15: Receives Federal Loans ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Receives federal loans",
+  retrievalCode = "gynrmk",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Receives federal loans` = ifelse(
+    (`Citizenship`=="Non-citizen") | (`Applied for federal aid`=="No"), "No", `Receives federal loans`
+  )
+)
+
+#### End #### 
+
+#### Regression 16: Receives Parent Loans ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Receives parent loans",
+  retrievalCode = "asdbgx",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Yes", 
+  negativeClass = "No", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 57, 
+  endLine8 = 57, 
+  linkingVar8 = "Tuition and fees paid",
+  varType8 = "Numeric",
+  
+  # Note the administrative error here. My bad. 
+  includeVar9 = FALSE,
+  startLine9 = NA, 
+  endLine9 = NA, 
+  linkingVar9 = NA,
+  varType9 = ""
+)
+
+studentList <- studentList %>% mutate(
+  `Receives parent loans` = ifelse(
+    (`Citizenship`=="Non-citizen") | (`Dependency status`=="Independent"), "No", `Receives parent loans`
+  )
+)
+
+#### End #### 
+
+#############################################
+#### Predictions from regressions: Set 3 ####
+#############################################
+
+#### Regression 17: Federal Grant Amount ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Federal grant amount",
+  retrievalCode = "uakjre",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Federal grant amount` = ifelse(
+    `Receives federal grants`=="No", 0, `Federal grant amount`
+  )
+)
+
+studentList <- studentList %>% mutate(
+  `Federal grant amount` = ifelse(`Federal grant amount` < 0, 0, `Federal grant amount`)
+)
+
+#### End #### 
+
+#### Regression 18: VA/DOD Grant Amount ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "VA/DOD grant amount",
+  retrievalCode = "nfayff",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `VA/DOD grant amount` = ifelse(
+    `Receives VA/DOD grants`=="No", 0, `VA/DOD grant amount`
+  )
+)
+
+studentList <- studentList %>% mutate(
+  `VA/DOD grant amount` = ifelse(`VA/DOD grant amount` < 0, 0, `VA/DOD grant amount`)
+)
+
+#### End #### 
+
+#### Regression 19: State Grant Amount ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "State grant amount",
+  retrievalCode = "gwqopy",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `State grant amount` = ifelse(
+    `Receives state grants`=="No", 0, `State grant amount`
+  )
+)
+
+studentList <- studentList %>% mutate(
+  `State grant amount` = ifelse(`State grant amount` < 0, 0, `State grant amount`)
+)
+
+#### End #### 
+
+#### Regression 20: Institutional Grant Amount ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Institutional grant amount",
+  retrievalCode = "sclsrj",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Institutional grant amount` = ifelse(
+    `Receives institutional grants`=="No", 0, `Institutional grant amount`
+  )
+)
+
+studentList <- studentList %>% mutate(
+  `Institutional grant amount` = ifelse(`Institutional grant amount` < 0, 0, `Institutional grant amount`)
+)
+
+#### End #### 
+
+#### Regression 21: Private Grant Amount ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Private grant amount",
+  retrievalCode = "sjeisl",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Private grant amount` = ifelse(
+    `Receives private grants`=="No", 0, `Private grant amount`
+  )
+)
+
+studentList <- studentList %>% mutate(
+  `Private grant amount` = ifelse(`Private grant amount` < 0, 0, `Private grant amount`)
+)
+
+#### End #### 
+
+#### Regression 22: Federal Loan Amount ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Federal loan amount",
+  retrievalCode = "ojeaer",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+studentList <- studentList %>% mutate(
+  `Federal loan amount` = ifelse(
+    `Receives federal loans`=="No", 0, `Federal loan amount`
+  )
+)
+
+studentList <- studentList %>% mutate(
+  `Federal loan amount` = ifelse(`Federal loan amount` < 0, 0, `Federal loan amount`)
+)
+
+#### End #### 
+
+#### Regression 23: Parent Loan Amount ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Parent loan amount",
+  retrievalCode = "nuwhux",
+  interceptRow = 17, 
+  regressionType = "Linear", 
+  positiveClass = "", 
+  negativeClass = "", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 28, 
+  linkingVar2 = "Carnegie NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 31, 
+  endLine3 = 32, 
+  linkingVar3 = "Enrollment intensity NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 35, 
+  endLine4 = 35, 
+  linkingVar4 = "Gender",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 37, 
+  endLine5 = 37, 
+  linkingVar5 = "EFC",
+  varType5 = "Numeric", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 40, 
+  endLine6 = 41, 
+  linkingVar6 = "Tuition jurisdiction",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 43, 
+  endLine7 = 43, 
+  linkingVar7 = "Tuition and fees paid",
+  varType7 = "Numeric", 
+  
+  includeVar8 = FALSE,
+  startLine8 = NA, 
+  endLine8 = NA, 
+  linkingVar8 = NA,
+  varType8 = "",
+  
+  includeVar9 = FALSE,
+  startLine9 = NA, 
+  endLine9 = NA, 
+  linkingVar9 = NA,
+  varType9 = ""
+)
+
+studentList <- studentList %>% mutate(
+  `Parent loan amount` = ifelse(
+    `Receives parent loans`=="No", 0, `Parent loan amount`
+  )
+)
+
+studentList <- studentList %>% mutate(
+  `Parent loan amount` = ifelse(`Parent loan amount` < 0, 0, `Parent loan amount`)
+)
+
+#### End #### 
+
+#############################################
+#### Predictions from regressions: Set 4 ####
+#############################################
+
+#### Regression 24: Parent Status ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Parent status",
+  retrievalCode = "vrhoke",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Has dependents", 
+  negativeClass = "Does not have dependents", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 25: STEM Major ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "STEM major status",
+  retrievalCode = "badsvw",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "STEM major", 
+  negativeClass = "Not a STEM major", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 26: Parental Education Attainment ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "Parental education attainment",
+  retrievalCode = "pprqfp",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "Parents have a college degree", 
+  negativeClass = "Parents do not have a college degree", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 27A: High School GPA >= 2.0 ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "High school GPA >= 2.0",
+  retrievalCode = "nioduc",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "GPA >= 2.0", 
+  negativeClass = "GPA < 2.0", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 27B: High School GPA >= 2.5 ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "High school GPA >= 2.5",
+  retrievalCode = "ymonfy",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "GPA >= 2.5", 
+  negativeClass = "GPA < 2.5", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 27C: High School GPA >= 3.0 ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "High school GPA >= 3.0",
+  retrievalCode = "jicznw",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "GPA >= 3.0", 
+  negativeClass = "GPA < 3.0", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 27D: High School GPA >= 3.5 ####
+
+studentList <- processRegression(
+  
+  studentListDF = studentList,
+  newVariableName = "High school GPA >= 3.5",
+  retrievalCode = "kzclud",
+  interceptRow = 17, 
+  regressionType = "Logistic", 
+  positiveClass = "GPA >= 3.5", 
+  negativeClass = "GPA < 3.5", 
+  showWork = FALSE, 
+  
+  includeVar1 = TRUE, 
+  startLine1 = 20, 
+  endLine1 = 21, 
+  linkingVar1 = "Control", 
+  varType1 = "Categorical", 
+  
+  includeVar2 = TRUE, 
+  startLine2 = 24, 
+  endLine2 = 31, 
+  linkingVar2 = "Region NPSAS",
+  varType2 = "Categorical", 
+  
+  includeVar3 = TRUE, 
+  startLine3 = 34, 
+  endLine3 = 39, 
+  linkingVar3 = "Race NPSAS",
+  varType3 = "Categorical", 
+  
+  includeVar4 = TRUE, 
+  startLine4 = 42, 
+  endLine4 = 46, 
+  linkingVar4 = "Carnegie NPSAS",
+  varType4 = "Categorical", 
+  
+  includeVar5 = TRUE, 
+  startLine5 = 49, 
+  endLine5 = 50, 
+  linkingVar5 = "Enrollment intensity NPSAS",
+  varType5 = "Categorical", 
+  
+  includeVar6 = TRUE, 
+  startLine6 = 53, 
+  endLine6 = 53, 
+  linkingVar6 = "Gender",
+  varType6 = "Categorical", 
+  
+  includeVar7 = TRUE,
+  startLine7 = 55, 
+  endLine7 = 55, 
+  linkingVar7 = "EFC",
+  varType7 = "Numeric", 
+  
+  includeVar8 = TRUE,
+  startLine8 = 58, 
+  endLine8 = 59, 
+  linkingVar8 = "Tuition jurisdiction",
+  varType8 = "Categorical",
+  
+  includeVar9 = TRUE,
+  startLine9 = 61, 
+  endLine9 = 61, 
+  linkingVar9 = "Tuition and fees paid",
+  varType9 = "Numeric"
+)
+
+#### End #### 
+
+#### Regression 27: Combine 27A, 27B, 27C, 27D ####
+
+studentList <- studentList %>% mutate(
+  `High school GPA` = rep(NA)
 ) %>% mutate(
-  `Group Value` = rep("Private nonprofit less-than-2-year")
-)
-
-distInfoWide <- rbind(
-  distInfoWide, 
-  copy1
-)
-rm(copy1)
-
-#### End #### 
-
-#### Process distributions ####
-
-for(i in (1:nrow(distInfoWide))){
-  
-  tempDF <- distInfoWide[i, ]
-  
-  numClasses1 <- 14
-  if(is.na(tempDF$`Class 14 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 13 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 12 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 11 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 10 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 9 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 8 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 7 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 6 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 5 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 4 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 3 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 2 Share`[1])){numClasses1 <- numClasses1 - 1}
-  if(is.na(tempDF$`Class 1 Share`[1])){numClasses1 <- numClasses1 - 1}
-  
-  longDF <- tempDF %>% pivot_longer(
-    cols=c(
-      `Class 1 Share`, 
-      `Class 2 Share`, 
-      `Class 3 Share`, 
-      `Class 4 Share`, 
-      `Class 5 Share`, 
-      `Class 6 Share`, 
-      `Class 7 Share`, 
-      `Class 8 Share`, 
-      `Class 9 Share`, 
-      `Class 10 Share`, 
-      `Class 11 Share`, 
-      `Class 12 Share`, 
-      `Class 13 Share`, 
-      `Class 14 Share`
-    ), 
-    names_to="Class", 
-    values_to="Share"
-  ) %>% select(
-    `Class`, 
-    `Share`
-  ) 
-  
-  suppressWarnings({
-    longDF <- longDF %>% filter(
-      is.na(`Share`)==FALSE
-    ) %>% mutate(
-      `Share` = gsub("‡", "0", `Share`)
-    ) %>% mutate(
-      `Share` = gsub("#", "0", `Share`)
-    ) %>% mutate(
-      `Share` = gsub(" !!", "", `Share`)
-    ) %>% mutate(
-      `Share` = gsub(" !", "", `Share`)
-    ) %>% mutate(
-      `Share` = as.numeric(`Share`)
-    ) %>% mutate(
-      `Share` = round(`Share`, 3)
-    )
-  })
-
-  # Confirming that all entries are numbers: 
-  if(sum(is.na(longDF$`Share`)) > 0){
-    print(paste("Row ", i, " has missing data.", sep=""))
-  }
-
-  # Confirming that only eight rows (1% of all) are not within 0.3 percentage points of 100
-  # if(between(sum(longDF$Share), 99.7, 100.3)==FALSE){
-  #   print(paste("Row ", i, ": ", sum(longDF$Share), sep=""))
-  # }
-  
-  # Add any missing percentage points into the largest group 
-  missingVal <- round(100 - sum(longDF$`Share`), 3)
-  if(missingVal != 0){
-    longDF <- longDF %>% arrange(
-      desc(`Share`)
-    )
-    longDF$`Share`[1] <- longDF$`Share`[1] + missingVal
-  }
-  rm(missingVal)
-  
-  longDF <- longDF %>% mutate(
-    `Share` = round(`Share`, 1)
+  `High school GPA` = ifelse(
+    (`High school GPA >= 2.0` == "GPA < 2.0") & (is.na(`High school GPA`)), "Below 2.0", `High school GPA`
   )
-  
-  # Once again add any missing percentage points into the largest group 
-  missingVal <- round(100.0 - sum(longDF$`Share`), 1)
-  if(missingVal != 0){
-    longDF <- longDF %>% arrange(
-      desc(`Share`)
-    )
-    longDF$`Share`[1] <- longDF$`Share`[1] + missingVal
-  }
-  rm(missingVal)
-  
-  # Confirming that all now add up to 100
-  if(round(sum(longDF$`Share`), 1) != round(100, 1)){
-    print(paste("Row ", i, ": ", sum(longDF$Share), sep=""))
-  }
-  
-  if(nrow(longDF) < 3){longDF <- longDF %>% add_row(`Class` = "Class 3 Share", `Share` = 0)}
-  if(nrow(longDF) < 4){longDF <- longDF %>% add_row(`Class` = "Class 4 Share", `Share` = 0)}
-  if(nrow(longDF) < 5){longDF <- longDF %>% add_row(`Class` = "Class 5 Share", `Share` = 0)}
-  if(nrow(longDF) < 6){longDF <- longDF %>% add_row(`Class` = "Class 6 Share", `Share` = 0)}
-  if(nrow(longDF) < 7){longDF <- longDF %>% add_row(`Class` = "Class 7 Share", `Share` = 0)}
-  if(nrow(longDF) < 8){longDF <- longDF %>% add_row(`Class` = "Class 8 Share", `Share` = 0)}
-  if(nrow(longDF) < 9){longDF <- longDF %>% add_row(`Class` = "Class 9 Share", `Share` = 0)}
-  if(nrow(longDF) < 10){longDF <- longDF %>% add_row(`Class` = "Class 10 Share", `Share` = 0)}
-  if(nrow(longDF) < 11){longDF <- longDF %>% add_row(`Class` = "Class 11 Share", `Share` = 0)}
-  if(nrow(longDF) < 12){longDF <- longDF %>% add_row(`Class` = "Class 12 Share", `Share` = 0)}
-  if(nrow(longDF) < 13){longDF <- longDF %>% add_row(`Class` = "Class 13 Share", `Share` = 0)}
-  if(nrow(longDF) < 14){longDF <- longDF %>% add_row(`Class` = "Class 14 Share", `Share` = 0)}
-
-  wideDF <- longDF %>% pivot_wider(
-    names_from=`Class`, 
-    values_from=`Share`
-  ) %>% mutate(
-    `Table Source Code` = rep(tempDF$`Table Source Code`[1])
-  ) %>% select(
-    `Table Source Code`, 
-    `Class 1 Share`, 
-    `Class 2 Share`, 
-    `Class 3 Share`, 
-    `Class 4 Share`, 
-    `Class 5 Share`, 
-    `Class 6 Share`, 
-    `Class 7 Share`, 
-    `Class 8 Share`, 
-    `Class 9 Share`, 
-    `Class 10 Share`, 
-    `Class 11 Share`, 
-    `Class 12 Share`, 
-    `Class 13 Share`, 
-    `Class 14 Share`
+) %>% mutate(
+  `High school GPA` = ifelse(
+    (`High school GPA >= 2.5` == "GPA < 2.5") & (is.na(`High school GPA`)), "2.0 to 2.5", `High school GPA`
   )
-  
-  tempDF <- tempDF %>% select(
-    `Table Source Code`,
-    `Target Name`, 
-    `Target Type`, 
-    `Group Name`, 
-    `Class 1 Name`, 
-    `Class 2 Name`, 
-    `Class 3 Name`, 
-    `Class 4 Name`, 
-    `Class 5 Name`, 
-    `Class 6 Name`, 
-    `Class 7 Name`, 
-    `Class 8 Name`, 
-    `Class 9 Name`, 
-    `Class 10 Name`, 
-    `Class 11 Name`, 
-    `Class 12 Name`, 
-    `Class 13 Name`, 
-    `Class 14 Name` 
+) %>% mutate(
+  `High school GPA` = ifelse(
+    (`High school GPA >= 3.0` == "GPA < 3.0") & (is.na(`High school GPA`)), "2.5 to 3.0", `High school GPA`
   )
-  tempDF <- left_join(x=tempDF, y=wideDF, by="Table Source Code")
-  
-  if(i==1){
-    newInfoWide <- tempDF 
-  }else{
-    newInfoWide <- rbind(
-      newInfoWide, 
-      tempDF
-    )
-  }
-  rm(tempDF, longDF, wideDF, numClasses1)
-  
-}
-rm(i)
-
-#### End #### 
-
-#### Turn distributions into percentiles ####
-
-for(i in (1:nrow(newInfoWide))){
-  
-  tempDF <- newInfoWide[i, ]
-  numCols <- ncol(tempDF)
-  
-  for(j in (1:100)){
-    
-    if(tempDF$`Class 1 Share`[1] > 0){
-      selectedClass <- tempDF$`Class 1 Name`[1]
-      tempDF$`Class 1 Share`[1] <- tempDF$`Class 1 Share`[1] - 1
-      if(tempDF$`Class 1 Share`[1] < 0){
-        tempDF$`Class 2 Share`[1] <- tempDF$`Class 2 Share`[1] + tempDF$`Class 1 Share`[1]
-        tempDF$`Class 1 Share`[1] <- 0
-        if(tempDF$`Class 2 Share`[1] < 0){
-          tempDF$`Class 3 Share`[1] <- tempDF$`Class 3 Share`[1] + tempDF$`Class 2 Share`[1]
-          tempDF$`Class 2 Share`[1] <- 0
-          if(tempDF$`Class 3 Share`[1] < 0){
-            tempDF$`Class 4 Share`[1] <- tempDF$`Class 4 Share`[1] + tempDF$`Class 3 Share`[1]
-            tempDF$`Class 3 Share`[1] <- 0
-            if(tempDF$`Class 4 Share`[1] < 0){
-              tempDF$`Class 5 Share`[1] <- tempDF$`Class 5 Share`[1] + tempDF$`Class 4 Share`[1]
-              tempDF$`Class 4 Share`[1] <- 0
-              if(tempDF$`Class 5 Share`[1] < 0){
-                tempDF$`Class 6 Share`[1] <- tempDF$`Class 6 Share`[1] + tempDF$`Class 5 Share`[1]
-                tempDF$`Class 5 Share`[1] <- 0
-                if(tempDF$`Class 6 Share`[1] < 0){
-                  tempDF$`Class 7 Share`[1] <- tempDF$`Class 7 Share`[1] + tempDF$`Class 6 Share`[1]
-                  tempDF$`Class 6 Share`[1] <- 0
-                  if(tempDF$`Class 7 Share`[1] < 0){
-                    tempDF$`Class 8 Share`[1] <- tempDF$`Class 8 Share`[1] + tempDF$`Class 7 Share`[1]
-                    tempDF$`Class 7 Share`[1] <- 0
-                    if(tempDF$`Class 8 Share`[1] < 0){
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] + tempDF$`Class 8 Share`[1]
-                      tempDF$`Class 8 Share`[1] <- 0
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }else{
-      if(tempDF$`Class 2 Share`[1] > 0){
-        selectedClass <- tempDF$`Class 2 Name`[1]
-        tempDF$`Class 2 Share`[1] <- tempDF$`Class 2 Share`[1] - 1
-        if(tempDF$`Class 2 Share`[1] < 0){
-          tempDF$`Class 3 Share`[1] <- tempDF$`Class 3 Share`[1] + tempDF$`Class 2 Share`[1]
-          tempDF$`Class 2 Share`[1] <- 0
-          if(tempDF$`Class 3 Share`[1] < 0){
-            tempDF$`Class 4 Share`[1] <- tempDF$`Class 4 Share`[1] + tempDF$`Class 3 Share`[1]
-            tempDF$`Class 3 Share`[1] <- 0
-            if(tempDF$`Class 4 Share`[1] < 0){
-              tempDF$`Class 5 Share`[1] <- tempDF$`Class 5 Share`[1] + tempDF$`Class 4 Share`[1]
-              tempDF$`Class 4 Share`[1] <- 0
-              if(tempDF$`Class 5 Share`[1] < 0){
-                tempDF$`Class 6 Share`[1] <- tempDF$`Class 6 Share`[1] + tempDF$`Class 5 Share`[1]
-                tempDF$`Class 5 Share`[1] <- 0
-                if(tempDF$`Class 6 Share`[1] < 0){
-                  tempDF$`Class 7 Share`[1] <- tempDF$`Class 7 Share`[1] + tempDF$`Class 6 Share`[1]
-                  tempDF$`Class 6 Share`[1] <- 0
-                  if(tempDF$`Class 7 Share`[1] < 0){
-                    tempDF$`Class 8 Share`[1] <- tempDF$`Class 8 Share`[1] + tempDF$`Class 7 Share`[1]
-                    tempDF$`Class 7 Share`[1] <- 0
-                    if(tempDF$`Class 8 Share`[1] < 0){
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] + tempDF$`Class 8 Share`[1]
-                      tempDF$`Class 8 Share`[1] <- 0
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }else{
-        if(tempDF$`Class 3 Share`[1] > 0){
-          selectedClass <- tempDF$`Class 3 Name`[1]
-          tempDF$`Class 3 Share`[1] <- tempDF$`Class 3 Share`[1] - 1
-          if(tempDF$`Class 3 Share`[1] < 0){
-            tempDF$`Class 4 Share`[1] <- tempDF$`Class 4 Share`[1] + tempDF$`Class 3 Share`[1]
-            tempDF$`Class 3 Share`[1] <- 0
-            if(tempDF$`Class 4 Share`[1] < 0){
-              tempDF$`Class 5 Share`[1] <- tempDF$`Class 5 Share`[1] + tempDF$`Class 4 Share`[1]
-              tempDF$`Class 4 Share`[1] <- 0
-              if(tempDF$`Class 5 Share`[1] < 0){
-                tempDF$`Class 6 Share`[1] <- tempDF$`Class 6 Share`[1] + tempDF$`Class 5 Share`[1]
-                tempDF$`Class 5 Share`[1] <- 0
-                if(tempDF$`Class 6 Share`[1] < 0){
-                  tempDF$`Class 7 Share`[1] <- tempDF$`Class 7 Share`[1] + tempDF$`Class 6 Share`[1]
-                  tempDF$`Class 6 Share`[1] <- 0
-                  if(tempDF$`Class 7 Share`[1] < 0){
-                    tempDF$`Class 8 Share`[1] <- tempDF$`Class 8 Share`[1] + tempDF$`Class 7 Share`[1]
-                    tempDF$`Class 7 Share`[1] <- 0
-                    if(tempDF$`Class 8 Share`[1] < 0){
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] + tempDF$`Class 8 Share`[1]
-                      tempDF$`Class 8 Share`[1] <- 0
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }else{
-          if(tempDF$`Class 4 Share`[1] > 0){
-            selectedClass <- tempDF$`Class 4 Name`[1]
-            tempDF$`Class 4 Share`[1] <- tempDF$`Class 4 Share`[1] - 1
-            if(tempDF$`Class 4 Share`[1] < 0){
-              tempDF$`Class 5 Share`[1] <- tempDF$`Class 5 Share`[1] + tempDF$`Class 4 Share`[1]
-              tempDF$`Class 4 Share`[1] <- 0
-              if(tempDF$`Class 5 Share`[1] < 0){
-                tempDF$`Class 6 Share`[1] <- tempDF$`Class 6 Share`[1] + tempDF$`Class 5 Share`[1]
-                tempDF$`Class 5 Share`[1] <- 0
-                if(tempDF$`Class 6 Share`[1] < 0){
-                  tempDF$`Class 7 Share`[1] <- tempDF$`Class 7 Share`[1] + tempDF$`Class 6 Share`[1]
-                  tempDF$`Class 6 Share`[1] <- 0
-                  if(tempDF$`Class 7 Share`[1] < 0){
-                    tempDF$`Class 8 Share`[1] <- tempDF$`Class 8 Share`[1] + tempDF$`Class 7 Share`[1]
-                    tempDF$`Class 7 Share`[1] <- 0
-                    if(tempDF$`Class 8 Share`[1] < 0){
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] + tempDF$`Class 8 Share`[1]
-                      tempDF$`Class 8 Share`[1] <- 0
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }else{
-            if(tempDF$`Class 5 Share`[1] > 0){
-              selectedClass <- tempDF$`Class 5 Name`[1]
-              tempDF$`Class 5 Share`[1] <- tempDF$`Class 5 Share`[1] - 1
-              if(tempDF$`Class 5 Share`[1] < 0){
-                tempDF$`Class 6 Share`[1] <- tempDF$`Class 6 Share`[1] + tempDF$`Class 5 Share`[1]
-                tempDF$`Class 5 Share`[1] <- 0
-                if(tempDF$`Class 6 Share`[1] < 0){
-                  tempDF$`Class 7 Share`[1] <- tempDF$`Class 7 Share`[1] + tempDF$`Class 6 Share`[1]
-                  tempDF$`Class 6 Share`[1] <- 0
-                  if(tempDF$`Class 7 Share`[1] < 0){
-                    tempDF$`Class 8 Share`[1] <- tempDF$`Class 8 Share`[1] + tempDF$`Class 7 Share`[1]
-                    tempDF$`Class 7 Share`[1] <- 0
-                    if(tempDF$`Class 8 Share`[1] < 0){
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] + tempDF$`Class 8 Share`[1]
-                      tempDF$`Class 8 Share`[1] <- 0
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }else{
-              if(tempDF$`Class 6 Share`[1] > 0){
-                selectedClass <- tempDF$`Class 6 Name`[1]
-                tempDF$`Class 6 Share`[1] <- tempDF$`Class 6 Share`[1] - 1
-                if(tempDF$`Class 6 Share`[1] < 0){
-                  tempDF$`Class 7 Share`[1] <- tempDF$`Class 7 Share`[1] + tempDF$`Class 6 Share`[1]
-                  tempDF$`Class 6 Share`[1] <- 0
-                  if(tempDF$`Class 7 Share`[1] < 0){
-                    tempDF$`Class 8 Share`[1] <- tempDF$`Class 8 Share`[1] + tempDF$`Class 7 Share`[1]
-                    tempDF$`Class 7 Share`[1] <- 0
-                    if(tempDF$`Class 8 Share`[1] < 0){
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] + tempDF$`Class 8 Share`[1]
-                      tempDF$`Class 8 Share`[1] <- 0
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }else{
-                if(tempDF$`Class 7 Share`[1] > 0){
-                  selectedClass <- tempDF$`Class 7 Name`[1]
-                  tempDF$`Class 7 Share`[1] <- tempDF$`Class 7 Share`[1] - 1
-                  if(tempDF$`Class 7 Share`[1] < 0){
-                    tempDF$`Class 8 Share`[1] <- tempDF$`Class 8 Share`[1] + tempDF$`Class 7 Share`[1]
-                    tempDF$`Class 7 Share`[1] <- 0
-                    if(tempDF$`Class 8 Share`[1] < 0){
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] + tempDF$`Class 8 Share`[1]
-                      tempDF$`Class 8 Share`[1] <- 0
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }else{
-                  if(tempDF$`Class 8 Share`[1] > 0){
-                    selectedClass <- tempDF$`Class 8 Name`[1]
-                    tempDF$`Class 8 Share`[1] <- tempDF$`Class 8 Share`[1] - 1
-                    if(tempDF$`Class 8 Share`[1] < 0){
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] + tempDF$`Class 8 Share`[1]
-                      tempDF$`Class 8 Share`[1] <- 0
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }else{
-                    if(tempDF$`Class 9 Share`[1] > 0){
-                      selectedClass <- tempDF$`Class 9 Name`[1]
-                      tempDF$`Class 9 Share`[1] <- tempDF$`Class 9 Share`[1] - 1
-                      if(tempDF$`Class 9 Share`[1] < 0){
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] + tempDF$`Class 9 Share`[1]
-                        tempDF$`Class 9 Share`[1] <- 0
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }else{
-                      if(tempDF$`Class 10 Share`[1] > 0){
-                        selectedClass <- tempDF$`Class 10 Name`[1]
-                        tempDF$`Class 10 Share`[1] <- tempDF$`Class 10 Share`[1] - 1
-                        if(tempDF$`Class 10 Share`[1] < 0){
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] + tempDF$`Class 10 Share`[1]
-                          tempDF$`Class 10 Share`[1] <- 0
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }
-                      }else{
-                        if(tempDF$`Class 11 Share`[1] > 0){
-                          selectedClass <- tempDF$`Class 11 Name`[1]
-                          tempDF$`Class 11 Share`[1] <- tempDF$`Class 11 Share`[1] - 1
-                          if(tempDF$`Class 11 Share`[1] < 0){
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] + tempDF$`Class 11 Share`[1]
-                            tempDF$`Class 11 Share`[1] <- 0
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }
-                        }else{
-                          if(tempDF$`Class 12 Share`[1] > 0){
-                            selectedClass <- tempDF$`Class 12 Name`[1]
-                            tempDF$`Class 12 Share`[1] <- tempDF$`Class 12 Share`[1] - 1
-                            if(tempDF$`Class 12 Share`[1] < 0){
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] + tempDF$`Class 12 Share`[1]
-                              tempDF$`Class 12 Share`[1] <- 0
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }
-                          }else{
-                            if(tempDF$`Class 13 Share`[1] > 0){
-                              selectedClass <- tempDF$`Class 13 Name`[1]
-                              tempDF$`Class 13 Share`[1] <- tempDF$`Class 13 Share`[1] - 1
-                              if(tempDF$`Class 13 Share`[1] < 0){
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] + tempDF$`Class 13 Share`[1]
-                                tempDF$`Class 13 Share`[1] <- 0
-                              }
-                            }else{
-                              if(tempDF$`Class 14 Share`[1] > 0){
-                                selectedClass <- tempDF$`Class 14 Name`[1]
-                                tempDF$`Class 14 Share`[1] <- tempDF$`Class 14 Share`[1] - 1
-                              }else{
-                                selectedClass <- "Error"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    tempDF <- tempDF %>% mutate(
-      `New Percentile` = rep(selectedClass)
-    )
-    names(tempDF)[numCols + j] <- paste("Percentile ", j, sep="")
-    rm(selectedClass)
-  }
-  rm(j)
-  
-  if(i==1){
-    percentileDF <- tempDF
-  }else{
-    percentileDF <- rbind(
-      percentileDF, 
-      tempDF
-    )
-  }
-
-  rm(tempDF, numCols)
-}
-rm(i)
-
-#### End #### 
-
-#### Separate into numeric and categorical ####
-
-numericDF <- percentileDF %>% filter(`Target Type`=="Numeric")
-categorDF <- percentileDF %>% filter(`Target Type`=="Categorical")
-
-rm(distInfoWide, newInfoWide)
-
-#### End #### 
-
-#### Assign percentile values from numeric ranges ####
-
-
-
-#### End #### 
-
-##############################################
-#### Student list using multi-var pulls   ####
-##############################################
-
-#### Establish empty dataframe ####
-
-distInfoWide <- data.frame(
-  `Table Source Code` = character(), 
-  `Target Name` = character(), 
-  `Target Label` = character(), 
-  `Target Type` = character(), 
-  `Group 1 Name` = character(), 
-  `Group 1 Label` = character(),
-  `Group 1 Value` = character(), 
-  `Group 2 Name` = character(), 
-  `Group 2 Label` = character(),
-  `Group 2 Value` = character(), 
-  `Group 3 Name` = character(), 
-  `Group 3 Label` = character(),
-  `Group 3 Value` = character(), 
-  `Group 4 Name` = character(), 
-  `Group 4 Label` = character(),
-  `Group 4 Value` = character(),
-  `Class 1 Name` = character(), 
-  `Class 1 Share` = character(), 
-  `Class 2 Name` = character(), 
-  `Class 2 Share` = character(), 
-  `Class 3 Name` = character(), 
-  `Class 3 Share` = character(), 
-  `Class 4 Name` = character(), 
-  `Class 4 Share` = character(), 
-  `Class 5 Name` = character(), 
-  `Class 5 Share` = character(), 
-  `Class 6 Name` = character(), 
-  `Class 6 Share` = character(), 
-  `Class 7 Name` = character(), 
-  `Class 7 Share` = character(), 
-  `Class 8 Name` = character(), 
-  `Class 8 Share` = character(), 
-  `Class 9 Name` = character(), 
-  `Class 9 Share` = character(), 
-  `Class 10 Name` = character(), 
-  `Class 10 Share` = character(), 
-  `Class 11 Name` = character(), 
-  `Class 11 Share` = character(), 
-  `Class 12 Name` = character(), 
-  `Class 12 Share` = character(), 
-  `Class 13 Name` = character(), 
-  `Class 13 Share` = character(), 
-  `Class 14 Name` = character(), 
-  `Class 14 Share` = character(), 
-  check.names=FALSE
+) %>% mutate(
+  `High school GPA` = ifelse(
+    (`High school GPA >= 3.5` == "GPA < 3.5") & (is.na(`High school GPA`)), "3.0 to 3.5", "Above 3.5"
+  )
 )
 
 #### End #### 
+
+
 
 
 
