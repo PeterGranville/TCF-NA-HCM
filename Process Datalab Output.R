@@ -477,7 +477,7 @@ processRegression <- function(
   
   #### End #### 
   
-  #### Add randomness ####
+  #### Add randomness to intercept ####
   
   studentListDF <- studentListDF %>% mutate(
     `Random error` = rnorm(
@@ -747,6 +747,154 @@ processRegression <- function(
   
   #### End #### 
   
+  #### Add randomness to coefficients ####
+  
+  if(sum(studentListDF$`Variable 1 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 1 Coefficient` = `Variable 1 Coefficient` + (`Random error` * `Variable 1 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 1 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 1 Standard Error`))
+  }
+  
+  if(sum(studentListDF$`Variable 2 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 2 Coefficient` = `Variable 2 Coefficient` + (`Random error` * `Variable 2 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 2 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 2 Standard Error`))
+  }
+  
+  if(sum(studentListDF$`Variable 3 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 3 Coefficient` = `Variable 3 Coefficient` + (`Random error` * `Variable 3 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 3 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 3 Standard Error`))
+  }
+  
+  if(sum(studentListDF$`Variable 4 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 4 Coefficient` = `Variable 4 Coefficient` + (`Random error` * `Variable 4 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 4 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 4 Standard Error`))
+  }
+  
+  if(sum(studentListDF$`Variable 5 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 5 Coefficient` = `Variable 5 Coefficient` + (`Random error` * `Variable 5 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 5 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 5 Standard Error`))
+  }
+  
+  if(sum(studentListDF$`Variable 6 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 6 Coefficient` = `Variable 6 Coefficient` + (`Random error` * `Variable 6 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 6 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 6 Standard Error`))
+  }
+  
+  if(sum(studentListDF$`Variable 7 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 7 Coefficient` = `Variable 7 Coefficient` + (`Random error` * `Variable 7 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 7 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 7 Standard Error`))
+  }
+  
+  if(sum(studentListDF$`Variable 8 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 8 Coefficient` = `Variable 8 Coefficient` + (`Random error` * `Variable 8 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 8 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 8 Standard Error`))
+  }
+  
+  if(sum(studentListDF$`Variable 9 Coefficient`, na.rm=TRUE) != 0){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Variable 9 Coefficient` = `Variable 9 Coefficient` + (`Random error` * `Variable 9 Standard Error`)
+    ) %>% select(
+      -(`Random error`), -(`Variable 9 Standard Error`)
+    )
+  }else{
+    studentListDF <- studentListDF %>% select(-(`Variable 9 Standard Error`))
+  }
+  
+  #### End #### 
+  
   #### Create components #### 
   
   if(varType1=="Numeric"){
@@ -938,8 +1086,8 @@ processRegression <- function(
     )
   }
   
-  #### End #### 
-
+  #### End ####
+  
   #### Run predictions #### 
   
   studentListDF <- studentListDF %>% mutate(
@@ -962,15 +1110,15 @@ processRegression <- function(
     
     studentListDF <- studentListDF %>% select(
       -(`Intercept`), 
-      -(`Variable 1 Coefficient`), -(`Variable 1 Standard Error`), -(`Variable 1 Component`),
-      -(`Variable 2 Coefficient`), -(`Variable 2 Standard Error`), -(`Variable 2 Component`),
-      -(`Variable 3 Coefficient`), -(`Variable 3 Standard Error`), -(`Variable 3 Component`),
-      -(`Variable 4 Coefficient`), -(`Variable 4 Standard Error`), -(`Variable 4 Component`),
-      -(`Variable 5 Coefficient`), -(`Variable 5 Standard Error`), -(`Variable 5 Component`),
-      -(`Variable 6 Coefficient`), -(`Variable 6 Standard Error`), -(`Variable 6 Component`),
-      -(`Variable 7 Coefficient`), -(`Variable 7 Standard Error`), -(`Variable 7 Component`),
-      -(`Variable 8 Coefficient`), -(`Variable 8 Standard Error`), -(`Variable 8 Component`),
-      -(`Variable 9 Coefficient`), -(`Variable 9 Standard Error`), -(`Variable 9 Component`)
+      -(`Variable 1 Coefficient`), -(`Variable 1 Component`),
+      -(`Variable 2 Coefficient`), -(`Variable 2 Component`),
+      -(`Variable 3 Coefficient`), -(`Variable 3 Component`),
+      -(`Variable 4 Coefficient`), -(`Variable 4 Component`),
+      -(`Variable 5 Coefficient`), -(`Variable 5 Component`),
+      -(`Variable 6 Coefficient`), -(`Variable 6 Component`),
+      -(`Variable 7 Coefficient`), -(`Variable 7 Component`),
+      -(`Variable 8 Coefficient`), -(`Variable 8 Component`),
+      -(`Variable 9 Coefficient`), -(`Variable 9 Component`)
     )
     
   }
@@ -3309,29 +3457,45 @@ studentList <- processRegression(
 
 #### Regression 27: Combine 27A, 27B, 27C, 27D ####
 
+labelGPA <- data.frame(
+  `High school GPA >= 2.0` = character(), 
+  `High school GPA >= 2.5` = character(), 
+  `High school GPA >= 3.0` = character(), 
+  `High school GPA >= 3.5` = character(), 
+  `High school GPA` = character(), 
+  check.names=FALSE
+) %>% add_row(
+  `High school GPA >= 2.0` = "", 
+  `High school GPA >= 2.5` = "", 
+  `High school GPA >= 3.0` = "", 
+  `High school GPA >= 3.5` = "", 
+  `High school GPA` = "Below 2.5", 
+)
+
+studentList <- left_join(x=studentList, y=labelGPA, by=c("High school GPA >= 2.0", "High school GPA >= 2.5", "High school GPA >= 3.0", "High school GPA >= 3.5"))
+rm(labelGPA)
+
 studentList <- studentList %>% mutate(
   `High school GPA` = rep(NA)
 ) %>% mutate(
   `High school GPA` = ifelse(
-    (`High school GPA >= 2.0` == "GPA < 2.0") & (is.na(`High school GPA`)), "Below 2.0", `High school GPA`
+    (`High school GPA >= 2.0` == "GPA >= 2.0") & (is.na(`High school GPA`)), `High school GPA`, "Below 2.0"
   )
 ) %>% mutate(
   `High school GPA` = ifelse(
-    (`High school GPA >= 2.5` == "GPA < 2.5") & (is.na(`High school GPA`)), "2.0 to 2.5", `High school GPA`
+    (`High school GPA >= 2.5` == "GPA >= 2.5") & (is.na(`High school GPA`)), `High school GPA`, "2.0 to 2.5"
   )
 ) %>% mutate(
   `High school GPA` = ifelse(
-    (`High school GPA >= 3.0` == "GPA < 3.0") & (is.na(`High school GPA`)), "2.5 to 3.0", `High school GPA`
+    (`High school GPA >= 3.0` == "GPA >= 3.0") & (is.na(`High school GPA`)), `High school GPA`, "2.5 to 3.0"
   )
 ) %>% mutate(
   `High school GPA` = ifelse(
-    (`High school GPA >= 3.5` == "GPA < 3.5") & (is.na(`High school GPA`)), "3.0 to 3.5", "Above 3.5"
+    (`High school GPA >= 3.5` == "GPA >= 3.5") & (is.na(`High school GPA`)), "Above 3.5", "3.0 to 3.5"
   )
 )
 
 #### End #### 
-
-
 
 
 
