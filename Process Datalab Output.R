@@ -211,8 +211,11 @@ effy <- effy %>% filter(
 
 #### Create student level dataset ####
 
-# Shuffle effy
-effy <- effy[sample(nrow(effy)),]
+# Shuffle effy by UNITID
+set.seed(1001)
+unitidLevels <- sample(unique(effy$UNITID))
+effy$UNITID <- factor(effy$UNITID, levels=unitidLevels)
+effy <- effy %>% arrange(`UNITID`)
 
 # Index effy
 effy <- effy %>% mutate(
@@ -220,7 +223,8 @@ effy <- effy %>% mutate(
 )
 
 # Create student level dataset: 
-for(i in (1:2000)){ # Starting small: 
+for(i in (1:1)){ # Test
+# for(i in (1:2000)){ # Starting small: 
 # for(i in (1:nrow(effy))){
   
   if(i %% 100 == 0){
@@ -309,6 +313,9 @@ hdRegion <- data.frame(
 hd <- left_join(x=hd, y=hdRegion, by="OBEREG") %>% select(-(`OBEREG`))
 rm(hdRegion)
 
+hd <- hd %>% mutate(
+  `UNITID` = factor(`UNITID`, levels=unitidLevels)
+)
 studentList <- left_join(x=studentList, y=hd, by="UNITID")
 rm(hd)
 
@@ -332,6 +339,9 @@ icTuition <- data.frame(
 ic <- left_join(x=ic, y=icTuition, by="TUITVARY") %>% select(-(`TUITVARY`))
 rm(icTuition)
 
+ic <- ic %>% mutate(
+  `UNITID` = factor(`UNITID`, levels=unitidLevels)
+)
 studentList <- left_join(x=studentList, y=ic, by="UNITID")
 rm(ic)
 
@@ -386,6 +396,8 @@ processRegression <- function(
   positiveClass, 
   negativeClass, 
   showWork, 
+  randomI, 
+  randomC,
 
   includeVar1, 
   startLine1, 
@@ -479,17 +491,23 @@ processRegression <- function(
   
   #### Add randomness to intercept ####
   
-  studentListDF <- studentListDF %>% mutate(
-    `Random error` = rnorm(
-      nrow(studentListDF), 
-      mean = 0, 
-      sd = 1
+  if(randomI==TRUE){
+    studentListDF <- studentListDF %>% mutate(
+      `Random error` = rnorm(
+        nrow(studentListDF), 
+        mean = 0, 
+        sd = 1
+      )
+    ) %>% mutate(
+      `Intercept` = `Intercept` + (`Random error` * `Intercept SE`)
+    ) %>% select(
+      -(`Random error`), -(`Intercept SE`)
     )
-  ) %>% mutate(
-    `Intercept` = `Intercept` + (`Random error` * `Intercept SE`)
-  ) %>% select(
-    -(`Random error`), -(`Intercept SE`)
-  )
+  }else{
+    studentListDF <- studentListDF %>% select(
+      -(`Intercept SE`)
+    )
+  }
   
   #### End #### 
   
@@ -749,148 +767,162 @@ processRegression <- function(
   
   #### Add randomness to coefficients ####
   
-  if(sum(studentListDF$`Variable 1 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+  if(randomC==TRUE){
+    if(sum(studentListDF$`Variable 1 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 1 Coefficient` = `Variable 1 Coefficient` + (`Random error` * `Variable 1 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 1 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 1 Coefficient` = `Variable 1 Coefficient` + (`Random error` * `Variable 1 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 1 Standard Error`)
-    )
-  }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 1 Standard Error`))
-  }
-  
-  if(sum(studentListDF$`Variable 2 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 1 Standard Error`))
+    }
+    
+    if(sum(studentListDF$`Variable 2 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 2 Coefficient` = `Variable 2 Coefficient` + (`Random error` * `Variable 2 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 2 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 2 Coefficient` = `Variable 2 Coefficient` + (`Random error` * `Variable 2 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 2 Standard Error`)
-    )
-  }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 2 Standard Error`))
-  }
-  
-  if(sum(studentListDF$`Variable 3 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 2 Standard Error`))
+    }
+    
+    if(sum(studentListDF$`Variable 3 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 3 Coefficient` = `Variable 3 Coefficient` + (`Random error` * `Variable 3 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 3 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 3 Coefficient` = `Variable 3 Coefficient` + (`Random error` * `Variable 3 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 3 Standard Error`)
-    )
-  }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 3 Standard Error`))
-  }
-  
-  if(sum(studentListDF$`Variable 4 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 3 Standard Error`))
+    }
+    
+    if(sum(studentListDF$`Variable 4 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 4 Coefficient` = `Variable 4 Coefficient` + (`Random error` * `Variable 4 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 4 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 4 Coefficient` = `Variable 4 Coefficient` + (`Random error` * `Variable 4 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 4 Standard Error`)
-    )
-  }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 4 Standard Error`))
-  }
-  
-  if(sum(studentListDF$`Variable 5 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 4 Standard Error`))
+    }
+    
+    if(sum(studentListDF$`Variable 5 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 5 Coefficient` = `Variable 5 Coefficient` + (`Random error` * `Variable 5 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 5 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 5 Coefficient` = `Variable 5 Coefficient` + (`Random error` * `Variable 5 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 5 Standard Error`)
-    )
-  }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 5 Standard Error`))
-  }
-  
-  if(sum(studentListDF$`Variable 6 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 5 Standard Error`))
+    }
+    
+    if(sum(studentListDF$`Variable 6 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 6 Coefficient` = `Variable 6 Coefficient` + (`Random error` * `Variable 6 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 6 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 6 Coefficient` = `Variable 6 Coefficient` + (`Random error` * `Variable 6 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 6 Standard Error`)
-    )
-  }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 6 Standard Error`))
-  }
-  
-  if(sum(studentListDF$`Variable 7 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 6 Standard Error`))
+    }
+    
+    if(sum(studentListDF$`Variable 7 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 7 Coefficient` = `Variable 7 Coefficient` + (`Random error` * `Variable 7 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 7 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 7 Coefficient` = `Variable 7 Coefficient` + (`Random error` * `Variable 7 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 7 Standard Error`)
-    )
-  }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 7 Standard Error`))
-  }
-  
-  if(sum(studentListDF$`Variable 8 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 7 Standard Error`))
+    }
+    
+    if(sum(studentListDF$`Variable 8 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 8 Coefficient` = `Variable 8 Coefficient` + (`Random error` * `Variable 8 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 8 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 8 Coefficient` = `Variable 8 Coefficient` + (`Random error` * `Variable 8 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 8 Standard Error`)
-    )
-  }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 8 Standard Error`))
-  }
-  
-  if(sum(studentListDF$`Variable 9 Coefficient`, na.rm=TRUE) != 0){
-    studentListDF <- studentListDF %>% mutate(
-      `Random error` = rnorm(
-        nrow(studentListDF), 
-        mean = 0, 
-        sd = 1
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 8 Standard Error`))
+    }
+    
+    if(sum(studentListDF$`Variable 9 Coefficient`, na.rm=TRUE) != 0){
+      studentListDF <- studentListDF %>% mutate(
+        `Random error` = rnorm(
+          nrow(studentListDF), 
+          mean = 0, 
+          sd = 1
+        )
+      ) %>% mutate(
+        `Variable 9 Coefficient` = `Variable 9 Coefficient` + (`Random error` * `Variable 9 Standard Error`)
+      ) %>% select(
+        -(`Random error`), -(`Variable 9 Standard Error`)
       )
-    ) %>% mutate(
-      `Variable 9 Coefficient` = `Variable 9 Coefficient` + (`Random error` * `Variable 9 Standard Error`)
-    ) %>% select(
-      -(`Random error`), -(`Variable 9 Standard Error`)
-    )
+    }else{
+      studentListDF <- studentListDF %>% select(-(`Variable 9 Standard Error`))
+    }
   }else{
-    studentListDF <- studentListDF %>% select(-(`Variable 9 Standard Error`))
+    studentListDF <- studentListDF %>% select(
+      -(`Variable 1 Standard Error`), 
+      -(`Variable 2 Standard Error`), 
+      -(`Variable 3 Standard Error`), 
+      -(`Variable 4 Standard Error`), 
+      -(`Variable 5 Standard Error`), 
+      -(`Variable 6 Standard Error`), 
+      -(`Variable 7 Standard Error`), 
+      -(`Variable 8 Standard Error`), 
+      -(`Variable 9 Standard Error`)
+    )
   }
   
   #### End #### 
@@ -1146,7 +1178,9 @@ studentList <- processRegression(
   regressionType = "Linear", 
   positiveClass = "", 
   negativeClass = "", 
-  showWork = FALSE, 
+  showWork = FALSE,
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1221,6 +1255,8 @@ studentList <- processRegression(
   positiveClass = "In-state tuition", 
   negativeClass = "Out-of-state tuition", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1297,6 +1333,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1371,6 +1409,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1445,6 +1485,8 @@ studentList <- processRegression(
   positiveClass = "Citizen or eligible non-citizen", 
   negativeClass = "Non-citizen", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1515,6 +1557,8 @@ studentList <- processRegression(
   positiveClass = "Dependent", 
   negativeClass = "Independent", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1591,6 +1635,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1667,6 +1713,8 @@ studentList <- processRegression(
   positiveClass = "Veteran", 
   negativeClass = "Not a veteran", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1737,6 +1785,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1815,6 +1865,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1891,6 +1943,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -1961,6 +2015,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2046,6 +2102,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2116,6 +2174,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2186,6 +2246,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2256,6 +2318,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2332,6 +2396,8 @@ studentList <- processRegression(
   positiveClass = "Yes", 
   negativeClass = "No", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2413,6 +2479,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2493,6 +2561,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2573,6 +2643,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2653,6 +2725,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2733,6 +2807,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2813,6 +2889,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2893,6 +2971,8 @@ studentList <- processRegression(
   positiveClass = "", 
   negativeClass = "", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -2977,6 +3057,8 @@ studentList <- processRegression(
   positiveClass = "Has dependents", 
   negativeClass = "Does not have dependents", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -3047,6 +3129,8 @@ studentList <- processRegression(
   positiveClass = "STEM major", 
   negativeClass = "Not a STEM major", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -3117,6 +3201,8 @@ studentList <- processRegression(
   positiveClass = "Parents have a college degree", 
   negativeClass = "Parents do not have a college degree", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -3187,6 +3273,8 @@ studentList <- processRegression(
   positiveClass = "GPA >= 2.0", 
   negativeClass = "GPA < 2.0", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -3257,6 +3345,8 @@ studentList <- processRegression(
   positiveClass = "GPA >= 2.5", 
   negativeClass = "GPA < 2.5", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -3327,6 +3417,8 @@ studentList <- processRegression(
   positiveClass = "GPA >= 3.0", 
   negativeClass = "GPA < 3.0", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
@@ -3397,6 +3489,8 @@ studentList <- processRegression(
   positiveClass = "GPA >= 3.5", 
   negativeClass = "GPA < 3.5", 
   showWork = FALSE, 
+  randomI = FALSE, 
+  randomC = FALSE, 
   
   includeVar1 = TRUE, 
   startLine1 = 20, 
