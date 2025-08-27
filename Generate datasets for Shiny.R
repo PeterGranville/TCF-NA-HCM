@@ -21,22 +21,13 @@ removeColumns <- function(data1){
   ) %>% mutate(
     `Net price` = pmax(0, `Total cost` - `Total grants`)
   ) %>% select(
-    -(`Federal grant amount`), 
-    -(`VA/DOD grant amount`), 
-    -(`State grant amount`), 
-    -(`Institutional grant amount`), 
-    -(`Private grant amount`), 
-    -(`Federal loan amount`), 
-    -(`Parent loan amount`), 
     -(`Effy index`), 
     -(`Student index`), 
-    -(`UNITID`), 
     -(`Race NPSAS`), 
     -(`Region NPSAS`), 
     -(`Enrollment intensity NPSAS`), 
     -(`Tuition policy`), 
     -(`Effy-student index`), 
-    -(`INSTNM`), 
     -(`Receives federal grants`),
     -(`Receives VA/DOD grants`),
     -(`Receives state grants`),
@@ -496,6 +487,8 @@ baselineResults <- data.frame(
   `table4.veteran` = c(table4.veteran),
   `table4.nonveteran` = c(table4.nonveteran)
 )
+
+write.csv(baselineResults, "Baseline results.csv", row.names=FALSE)
 
 #### End #### 
 

@@ -58,21 +58,9 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                     
                     mainPanel(
                       
-                      #### Output figure #### 
+                      #### Baseline table #### 
                       
-                      h3(textOutput("titleFig")),
-                      plotlyOutput("displayFig", width = "100%", height = "100%"),
-                      br(),
-                      
-                      #### End #### 
-                      
-                      #### Output text ####
-                      
-                      tags$div(
-                        style = "border: 2px dashed #acacab; background-color: #F7EFF5; padding: 10px; display: inline-block; width: 750px;",
-                        textOutput("summary")
-                      ),
-                      br(),
+                      tableOutput("baselineTable"),
                       br()
                       
                       #### End #### 
