@@ -1150,9 +1150,9 @@ for(j in (1:176)){
   #### Import institutional information #### 
   
   studentList <- left_join(x=studentList, y=hd, by="UNITID")
-
+  
   studentList <- left_join(x=studentList, y=ic, by="UNITID")
-
+  
   #### End #### 
   
   #### Prep dataset for regressions ####
@@ -1198,20 +1198,20 @@ for(j in (1:176)){
   # 
   # #### End #### 
   
-  #### Regression 1: Predict EFC ####
+  #### Regression 1a: Predict Zero-EFC ####
   
   studentList <- processRegression(
     
     studentListDF = studentList,
-    newVariableName = "EFC",
-    retrievalCode = "gkcfkv",
+    newVariableName = "Zero-EFC",
+    retrievalCode = "qnnsor",
     interceptRow = 17, 
-    regressionType = "Linear", 
-    positiveClass = "", 
-    negativeClass = "", 
+    regressionType = "Logistic", 
+    positiveClass = "Zero-EFC", 
+    negativeClass = "Nonzero-EFC", 
     thresholdVal = 0.5, 
     absoluteAdjustment = 0, 
-    relativeAdjustment = 1,
+    relativeAdjustment = 1, 
     showWork = FALSE,
     randomI = FALSE, 
     randomC = FALSE, 
@@ -1271,8 +1271,89 @@ for(j in (1:176)){
     varType9 = ""
   )
   
+  #### End #### 
+  
+  #### Regression 1b: Predict EFC ####
+  
+  studentList <- processRegression(
+    
+    studentListDF = studentList,
+    newVariableName = "EFC",
+    retrievalCode = "xtmjuz",
+    interceptRow = 17, 
+    regressionType = "Linear", 
+    positiveClass = "", 
+    negativeClass = "", 
+    thresholdVal = 0.5, 
+    absoluteAdjustment = 0, 
+    relativeAdjustment = 1, 
+    showWork = FALSE,
+    randomI = FALSE, 
+    randomC = FALSE, 
+    
+    includeVar1 = TRUE, 
+    startLine1 = 20, 
+    endLine1 = 21, 
+    linkingVar1 = "Control", 
+    varType1 = "Categorical", 
+    
+    includeVar2 = TRUE, 
+    startLine2 = 24, 
+    endLine2 = 31, 
+    linkingVar2 = "Region NPSAS",
+    varType2 = "Categorical", 
+    
+    includeVar3 = TRUE, 
+    startLine3 = 34, 
+    endLine3 = 39, 
+    linkingVar3 = "Race NPSAS",
+    varType3 = "Categorical", 
+    
+    includeVar4 = TRUE, 
+    startLine4 = 42, 
+    endLine4 = 46, 
+    linkingVar4 = "Carnegie NPSAS",
+    varType4 = "Categorical", 
+    
+    includeVar5 = TRUE, 
+    startLine5 = 49, 
+    endLine5 = 50, 
+    linkingVar5 = "Enrollment intensity NPSAS",
+    varType5 = "Categorical", 
+    
+    includeVar6 = TRUE, 
+    startLine6 = 53, 
+    endLine6 = 53, 
+    linkingVar6 = "Gender",
+    varType6 = "Categorical", 
+    
+    includeVar7 = FALSE,
+    startLine7 = NA, 
+    endLine7 = NA, 
+    linkingVar7 = NA,
+    varType7 = "", 
+    
+    includeVar8 = FALSE,
+    startLine8 = NA, 
+    endLine8 = NA, 
+    linkingVar8 = NA,
+    varType8 = "",
+    
+    includeVar9 = FALSE,
+    startLine9 = NA, 
+    endLine9 = NA, 
+    linkingVar9 = NA,
+    varType9 = ""
+  )
+  
+  #### End #### 
+  
+  #### Combine 1a and 1b ####
+  
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(`EFC` < 0, 0, `EFC`)
+    `EFC` = ifelse(`Zero-EFC` == "Zero-EFC", 0, `EFC`)
+  ) %>% select(
+    -(`Zero-EFC`)
   )
   
   #### End #### 
@@ -3335,7 +3416,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Parents have a college degree", 
     negativeClass = "Parents do not have a college degree",  
-    thresholdVal = 0.55, 
+    thresholdVal = 0.55, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -3785,14 +3866,5 @@ for(j in (1:176)){
   
 }
 rm(j)
-
-
-
-
-
-
-
-
-
 
 

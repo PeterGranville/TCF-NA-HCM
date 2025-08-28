@@ -15,12 +15,34 @@ library(tidyverse)
 removeColumns <- function(data1){
   
   data1 <- data1 %>% mutate(
+    
+    # Adjust by inflation: January 2020 to January 2023 
+    `EFC` = `EFC` * 1.159704, # Does it make sense to do this?
+    `Tuition and fees paid` = `Tuition and fees paid` * 1.159704, 
+    `Non-tuition expense budget` = `Non-tuition expense budget` * 1.159704, 
+    `Federal grant amount` = `Federal grant amount` * 1.159704, # Does it make sense to do this?
+    `VA/DOD grant amount` = `VA/DOD grant amount` * 1.159704, 
+    `State grant amount` = `State grant amount` * 1.159704, 
+    `Institutional grant amount` = `Institutional grant amount` * 1.159704, 
+    `Private grant amount` = `Private grant amount` * 1.159704, 
+    `Federal loan amount` = `Federal loan amount` * 1.159704, 
+    `Parent loan amount` = `Parent loan amount` * 1.159704 
+    
+  ) %>% mutate(
+    
+    # Calculate total grants, loans, and cost 
     `Total grants` = `Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`, 
     `Total loans` = `Federal loan amount` + `Parent loan amount`,
     `Total cost` = `Tuition and fees paid` + `Non-tuition expense budget`
+  
   ) %>% mutate(
+    
+    # Calculate net price 
     `Net price` = pmax(0, `Total cost` - `Total grants`)
+    
   ) %>% select(
+    
+    # Remove variables we don't need 
     -(`Effy index`), 
     -(`Student index`), 
     -(`Race NPSAS`), 
@@ -39,6 +61,12 @@ removeColumns <- function(data1){
     -(`High school GPA >= 2.5`),
     -(`High school GPA >= 3.0`),
     -(`High school GPA >= 3.5`)
+    
+  ) %>% mutate(
+    
+    # Add a counting variable 
+    `Count` = rep(1)
+    
   )
   
   return(data1)
@@ -46,53 +74,59 @@ removeColumns <- function(data1){
 
 #### End #### 
 
-# #### Load procesed output (LONG WAY: 20 MIN) ####
-# 
-# setwd("/Users/peter_granville/Fed State Modeling/Postprocessing data")
-# 
-# for(i in (1:176)){
-#   
-#   print(Sys.time())
-#   
-#   print(paste("Merging dataset ", i, ".", sep=""))
-#   
-#   if(i==1){
-#     studentDF <- removeColumns(read.csv(
-#       paste("Set-", i, ".csv", sep=""), 
-#       header=TRUE, 
-#       check.names=FALSE
-#     ))
-#   }else{
-#     studentDF <- rbind(
-#       studentDF, 
-#       removeColumns(read.csv(
-#         paste("Set-", i, ".csv", sep=""), 
-#         header=TRUE, 
-#         check.names=FALSE
-#       ))
-#     )
-#   }
-#   
-# }
-# rm(i)
-# 
-# setwd("/Users/peter_granville/Fed State Modeling")
-# 
-# write.csv(studentDF, "All merged student data.csv", row.names=FALSE)
-# 
-# setwd("/Users/peter_granville/Fed State Modeling")
-# 
-# #### End #### 
+#### Load procesed output (LONG WAY: 20 MIN) ####
 
-#### Load processed output (SHORT WAY: 2 MIN) ####
+setwd("/Users/peter_granville/Fed State Modeling/Postprocessing data")
 
-studentDF <- read.csv(
-  "All merged student data.csv",
-  header=TRUE, 
-  check.names=FALSE
-)
+for(i in (1:176)){
 
-#### End #### 
+  print(Sys.time())
+
+  print(paste("Merging dataset ", i, ".", sep=""))
+
+  if(i==1){
+    studentDF <- removeColumns(read.csv(
+      paste("Set-", i, ".csv", sep=""),
+      header=TRUE,
+      check.names=FALSE
+    )) %>% mutate(
+      `Source file number` = rep(i)
+    )
+  }else{
+    tempDF <- removeColumns(read.csv(
+      paste("Set-", i, ".csv", sep=""),
+      header=TRUE,
+      check.names=FALSE
+    )) %>% mutate(
+      `Source file number` = rep(i)
+    )
+    studentDF <- rbind(
+      studentDF,
+      tempDF
+    )
+    rm(tempDF)
+  }
+
+}
+rm(i, removeColumns)
+
+setwd("/Users/peter_granville/Fed State Modeling")
+
+write.csv(studentDF, "All merged student data.csv", row.names=FALSE)
+
+setwd("/Users/peter_granville/Fed State Modeling")
+
+#### End ####
+
+# #### Load processed output (SHORT WAY: 2 MIN) ####
+# 
+# studentDF <- read.csv(
+#   "All merged student data.csv",
+#   header=TRUE,
+#   check.names=FALSE
+# )
+# 
+# #### End ####
 
 #### Load College Scorecard institution data ####
 
@@ -110,13 +144,32 @@ studentDF <- read.csv(
 #### End #### 
 
 ################################################
-#### Merge and format datasets              ####
+#### Checking validity of studentDF         ####
 ################################################
 
-#### Assign EFC Group ####
+#### Aggregate sums #### 
+
+dollar(sum(studentDF$`Federal grant amount`))
+dollar(sum(studentDF$`State grant amount`))
+dollar(sum(studentDF$`Institutional grant amount`))
+dollar(sum(studentDF$`Private grant amount`))
+dollar(sum(studentDF$`Federal loan amount`))
+dollar(sum(studentDF$`Parent loan amount`))
+
+#### End #### 
+
+#### Turn numeric values into groups ####
 
 studentDF <- studentDF %>% mutate(
-  `EFC Group` = ifelse(
+  `Receiving federal grants` = ifelse(`Federal grant amount` > 0, "Yes", "No"), 
+  `Receiving VA/DOD grants` = ifelse(`VA/DOD grant amount` > 0, "Yes", "No"), 
+  `Receiving state grants` = ifelse(`State grant amount` > 0, "Yes", "No"), 
+  `Receiving institutional grants` = ifelse(`Institutional grant amount` > 0, "Yes", "No"), 
+  `Receiving private grants` = ifelse(`Private grant amount` > 0, "Yes", "No"), 
+  `Receiving federal loans` = ifelse(`Federal loan amount` > 0, "Yes", "No"), 
+  `Receiving parent loans` = ifelse(`Parent loan amount` > 0, "Yes", "No")
+) %>% mutate(
+  `EFC group` = ifelse(
     `EFC`==0, "$0", ifelse(
       between(`EFC`, 1, 5000), "$1 to $5,000", ifelse(
         between(`EFC`, 5001, 10000), "$5,001 to $10,000", ifelse(
@@ -128,15 +181,233 @@ studentDF <- studentDF %>% mutate(
   `Zero EFC status` = ifelse(
     `EFC`==0, "Zero EFC", "Nonzero EFC"
   )
+) %>% mutate(
+  `Tuition group` = ifelse(
+    `Tuition and fees paid`==0, "$0", ifelse(
+      between(`Tuition and fees paid`, 1, 5000), "$1 to $5,000", ifelse(
+        between(`Tuition and fees paid`, 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(`Tuition and fees paid`, 10001, 15000), "$10,001 to $15,000", ifelse(
+            between(`Tuition and fees paid`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
+          )
+        )
+      )
+    )
+  )
+) %>% mutate(
+  `Non-tuition group` = ifelse(
+    `Non-tuition expense budget`==0, "$0", ifelse(
+      between(`Non-tuition expense budget`, 1, 5000), "$1 to $5,000", ifelse(
+        between(`Non-tuition expense budget`, 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(`Non-tuition expense budget`, 10001, 15000), "$10,001 to $15,000", ifelse(
+            between(`Non-tuition expense budget`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
+          )
+        )
+      )
+    )
+  )
+) %>% mutate(
+  `Federal grant amount group` = ifelse(
+    `Federal grant amount`==0, "$0", ifelse(
+      between(`Federal grant amount`, 1, 3000), "$1 to $3,000", ifelse(
+        between(`Federal grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
+      )
+    )
+  )
+) %>% mutate(
+  `VA/DOD grant amount group` = ifelse(
+    `VA/DOD grant amount`==0, "$0", ifelse(
+      between(`VA/DOD grant amount`, 1, 3000), "$1 to $3,000", ifelse(
+        between(`VA/DOD grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
+      )
+    )
+  )
+) %>% mutate(
+  `State grant amount group` = ifelse(
+    `State grant amount`==0, "$0", ifelse(
+      between(`State grant amount`, 1, 3000), "$1 to $3,000", ifelse(
+        between(`State grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
+      )
+    )
+  )
+) %>% mutate(
+  `Institutional grant amount group` = ifelse(
+    `Institutional grant amount`==0, "$0", ifelse(
+      between(`Institutional grant amount`, 1, 3000), "$1 to $3,000", ifelse(
+        between(`Institutional grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
+      )
+    )
+  )
+) %>% mutate(
+  `Private grant amount group` = ifelse(
+    `Private grant amount`==0, "$0", ifelse(
+      between(`Private grant amount`, 1, 3000), "$1 to $3,000", ifelse(
+        between(`Private grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
+      )
+    )
+  )
+) %>% mutate(
+  `Federal loan amount group` = ifelse(
+    `Federal loan amount`==0, "$0", ifelse(
+      between(`Federal loan amount`, 1, 5000), "$1 to $5,000", ifelse(
+        between(`Federal loan amount`, 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(`Federal loan amount`, 10001, 15000), "$10,001 to $15,000", ifelse(
+            between(`Federal loan amount`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
+          )
+        )
+      )
+    )
+  )
+) %>% mutate(
+  `Parent loan amount group` = ifelse(
+    `Parent loan amount`==0, "$0", ifelse(
+      between(`Parent loan amount`, 1, 5000), "$1 to $5,000", ifelse(
+        between(`Parent loan amount`, 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(`Parent loan amount`, 10001, 15000), "$10,001 to $15,000", ifelse(
+            between(`Parent loan amount`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
+          )
+        )
+      )
+    )
+  )
+) %>% mutate(
+  `Total grants group` = ifelse(
+    `Total grants`==0, "$0", ifelse(
+      between(`Total grants`, 1, 5000), "$1 to $5,000", ifelse(
+        between(`Total grants`, 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(`Total grants`, 10001, 15000), "$10,001 to $15,000", ifelse(
+            between(`Total grants`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
+          )
+        )
+      )
+    )
+  )
+) %>% mutate(
+  `Total loans group` = ifelse(
+    `Total loans`==0, "$0", ifelse(
+      between(`Total loans`, 1, 5000), "$1 to $5,000", ifelse(
+        between(`Total loans`, 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(`Total loans`, 10001, 15000), "$10,001 to $15,000", ifelse(
+            between(`Total loans`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
+          )
+        )
+      )
+    )
+  )
+) %>% mutate(
+  `Total cost group` = ifelse(
+    `Total cost`==0, "$0", ifelse(
+      between(`Total cost`, 1, 5000), "$1 to $5,000", ifelse(
+        between(`Total cost`, 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(`Total cost`, 10001, 15000), "$10,001 to $15,000", ifelse(
+            between(`Total cost`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
+          )
+        )
+      )
+    )
+  )
+) %>% mutate(
+  `Net price group` = ifelse(
+    `Net price`==0, "$0", ifelse(
+      between(`Net price`, 1, 5000), "$1 to $5,000", ifelse(
+        between(`Net price`, 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(`Net price`, 10001, 15000), "$10,001 to $15,000", ifelse(
+            between(`Net price`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
+          )
+        )
+      )
+    )
+  )
+) %>% mutate(
+  `Age group` = ifelse(
+    `Age` < 18, "17 and under", ifelse(
+      between(`Age`, 18, 20.99), "18 to 20", ifelse(
+        between(`Age`, 21, 24.99), "21 to 25", ifelse(
+          between(`Age`, 25, 29.99), "25 to 30", ifelse(
+            between(`Age`, 30, 39.99), "30 to 39", "40 and above"
+          )
+        )
+      )
+    )
+  )
 )
 
 #### End #### 
 
-#### Add a counting variable ####
+#### Write function to display distribution as percentages ####
 
-studentDF <- studentDF %>% mutate(
-  `Count` = rep(1)
-)
+showDistribution <- function(variableName){
+  
+  totalStudents <- sum(studentDF$`Count`)
+  
+  tempDF <- studentDF %>% select(
+    all_of(variableName), 
+    `Count`
+  )
+  names(tempDF)[1] <- "InterestVar"
+  
+  tempDF <- aggregate(
+    data=tempDF, 
+    `Count` ~ `InterestVar`,
+    FUN=sum
+  ) %>% mutate(
+    `Share` = percent(`Count` / totalStudents, accuracy=0.1)
+  ) %>% select(
+    -(`Count`)
+  ) %>% pivot_wider(
+    names_from=`InterestVar`, 
+    values_from=`Share`
+  )
+  
+  print(tempDF, totalStudents)
+  
+  rm(tempDF)
+  
+}
+
+#### End #### 
+
+#### Run function to display percentages #### 
+
+showDistribution("Control")
+showDistribution("Region")
+showDistribution("Race")
+showDistribution("Carnegie NPSAS")
+showDistribution("Enrollment intensity")
+showDistribution("Gender")
+showDistribution("EFC group")
+showDistribution("Tuition jurisdiction")
+showDistribution("Tuition group")
+showDistribution("Age group")
+showDistribution("Citizenship")
+showDistribution("Dependency status")
+showDistribution("Applied for federal aid")
+showDistribution("Veteran status")
+showDistribution("Non-tuition group")
+showDistribution("Receiving federal grants")
+showDistribution("Receiving VA/DOD grants")
+showDistribution("Receiving state grants")
+showDistribution("Receiving institutional grants")
+showDistribution("Receiving private grants")
+showDistribution("Receiving federal loans")
+showDistribution("Receiving parent loans")
+showDistribution("Federal grant amount group")
+showDistribution("VA/DOD grant amount group")
+showDistribution("State grant amount group")
+showDistribution("Institutional grant amount group")
+showDistribution("Private grant amount group")
+showDistribution("Federal loan amount group")
+showDistribution("Parent loan amount group")
+showDistribution("Parent status")
+showDistribution("STEM major status")
+showDistribution("Parental education attainment")
+showDistribution("High school GPA")
+showDistribution("Total grants group")
+showDistribution("Total loans group")
+showDistribution("Total cost group")
+showDistribution("Net price group")
+
+quantile(studentDF$EFC, probs = seq(.1, .9, by = .1))
+
 
 #### End #### 
 
@@ -652,7 +923,7 @@ runSimulation <- function(
   
   data1 <- data1 %>% mutate(
     `Eligible for program` = ifelse(
-      (`Carnegie NPSAS` %in% vector.carnegie) & (`Control` %in% vector.control) & (`Enrollment intensity` %in% vector.intensity) & (`EFC Group` %in% vector.efc) & (`Tuition jurisdiction` %in% vector.oos) & (`Citizenship` %in% vector.cit) & (`Applied for federal aid` %in% vector.fafsa) & (`High school GPA` %in% vector.gpa), 
+      (`Carnegie NPSAS` %in% vector.carnegie) & (`Control` %in% vector.control) & (`Enrollment intensity` %in% vector.intensity) & (`EFC group` %in% vector.efc) & (`Tuition jurisdiction` %in% vector.oos) & (`Citizenship` %in% vector.cit) & (`Applied for federal aid` %in% vector.fafsa) & (`High school GPA` %in% vector.gpa), 
       "Eligible", 
       "Not eligible"
     )
