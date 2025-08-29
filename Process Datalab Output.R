@@ -1700,7 +1700,7 @@ for(j in (1:176)){
     )
   )
   
-  showDistribution("Tuition jurisdiction")
+  # showDistribution("Tuition jurisdiction")
   
   #### End #### 
   
@@ -1818,7 +1818,7 @@ for(j in (1:176)){
     )
   )
   
-  showPercentiles("Tuition and fees paid")
+  # showPercentiles("Tuition and fees paid")
   
   #### End #### 
   
@@ -1981,7 +1981,7 @@ for(j in (1:176)){
     )
   )
   
-  showPercentiles("Age")
+  # showPercentiles("Age")
   
   #### End #### 
   
@@ -2066,7 +2066,7 @@ for(j in (1:176)){
     )
   )
   
-  showDistribution("Citizenship")
+  # showDistribution("Citizenship")
   
   #### End #### 
   
@@ -2151,7 +2151,7 @@ for(j in (1:176)){
     )
   )
   
-  showDistribution("Veteran status")
+  # showDistribution("Veteran status")
   
   #### End #### 
   
@@ -2238,7 +2238,7 @@ for(j in (1:176)){
     )
   )
   
-  showDistribution("Dependency status")
+  # showDistribution("Dependency status")
   
   #### End #### 
   
@@ -2321,7 +2321,7 @@ for(j in (1:176)){
     )
   )
   
-  showDistribution("Applied for federal aid")
+  # showDistribution("Applied for federal aid")
   
   #### End #### 
   
@@ -2406,13 +2406,61 @@ for(j in (1:176)){
   
   #### Calibrate non-tuition budget: Lower high values #### 
   
+  studentList <- studentList %>% mutate(
+    `Non-tuition expense budget` = ifelse(
+      between(`Non-tuition expense budget`, 1, 4000), 
+      `Non-tuition expense budget` * 0.5, 
+      `Non-tuition expense budget`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Non-tuition expense budget` = ifelse(
+      between(`Non-tuition expense budget`, 4001, 7000), 
+      `Non-tuition expense budget` * 0.6, 
+      `Non-tuition expense budget`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Non-tuition expense budget` = ifelse(
+      between(`Non-tuition expense budget`, 7001, 9000),
+      `Non-tuition expense budget` * 0.8,
+      `Non-tuition expense budget`
+    )
+  )
+  
   #### End #### 
   
   #### Calibrate non-tuition budget: Raise low values #### 
   
-  #### End #### 
+  studentList <- studentList %>% mutate(
+    `Non-tuition expense budget` = ifelse(
+      between(`Non-tuition expense budget`, 17001, 99999), 
+      `Non-tuition expense budget` * 1.45, 
+      `Non-tuition expense budget`
+    )
+  )
   
-  showPercentiles("Non-tuition expense budget")
+  studentList <- studentList %>% mutate(
+    `Non-tuition expense budget` = ifelse(
+      between(`Non-tuition expense budget`, 12001, 17000), 
+      `Non-tuition expense budget` * 1.2, 
+      `Non-tuition expense budget`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Non-tuition expense budget` = ifelse(
+      between(`Non-tuition expense budget`, 9001, 12000), 
+      `Non-tuition expense budget` * 1.05, 
+      `Non-tuition expense budget`
+    )
+  )
+  
+  # showPercentiles("Non-tuition expense budget")
+  
+  #### End #### 
   
   #############################################
   #### Predictions from regressions: Set 2 ####
@@ -2435,7 +2483,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.05, # EDITED - WHY SO SKEWED?
+    thresholdVal = 0.35, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2503,6 +2551,8 @@ for(j in (1:176)){
     )
   )
   
+  showDistribution("Receives federal grants")
+  
   #### End #### 
   
   #### Regression 11A: Receives VA/DOD Grants (veterans) ####
@@ -2516,7 +2566,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.23, # EDITED 
+    thresholdVal = 0.3, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2591,7 +2641,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.5, 
+    thresholdVal = 0.4, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2668,6 +2718,8 @@ for(j in (1:176)){
     -(`Receives VA/DOD grants (non-veterans)`)
   )
   
+  # showDistribution("Receives VA/DOD grants")
+  
   #### End #### 
   
   #### Regression 12: Receives State Grants ####
@@ -2681,7 +2733,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.25, # EDITED 
+    thresholdVal = 0.32,  
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2742,6 +2794,8 @@ for(j in (1:176)){
     linkingVar9 = "Tuition and fees paid",
     varType9 = "Numeric"
   )
+  
+  # showDistribution("Receives state grants")
   
   #### End #### 
   
@@ -2756,7 +2810,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.35, # EDITED 
+    thresholdVal = 0.365, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2817,6 +2871,8 @@ for(j in (1:176)){
     linkingVar9 = "Tuition and fees paid",
     varType9 = "Numeric"
   )
+  
+  # showDistribution("Receives institutional grants")
   
   #### End #### 
   
@@ -2831,7 +2887,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.15, # EDITED  
+    thresholdVal = 0.14, # EDITED  
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2892,6 +2948,8 @@ for(j in (1:176)){
     linkingVar9 = "Tuition and fees paid",
     varType9 = "Numeric"
   )
+  
+  # showDistribution("Receives private grants")
   
   #### End #### 
   
@@ -2974,6 +3032,8 @@ for(j in (1:176)){
     )
   )
   
+  # showDistribution("Receives federal loans")
+  
   #### End #### 
   
   #### Regression 16: Receives Parent Loans ####
@@ -2987,7 +3047,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.22, # EDITED 
+    thresholdVal = 0.2, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -3054,6 +3114,8 @@ for(j in (1:176)){
       (`Citizenship`=="Non-citizen") | (`Dependency status`=="Independent"), "No", `Receives parent loans`
     )
   )
+  
+  showDistribution("Receives parent loans")
   
   #### End #### 
   
