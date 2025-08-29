@@ -1103,9 +1103,13 @@ for(j in (1:176)){
   
   #### End #### 
   
+  newEffy <- effy # PURELY FOR TESTING PURPOSES 08-28-2025
+  
   #### Create student level dataset #### 
   
   for(i in newEffy$`Index`){
+    
+    if(i %% 1000 == 0){print(paste("Number ", comma(i), " out of ", comma(nrow(newEffy)), ".", sep=""))}
     
     tempEFFY <- newEffy %>% filter(`Index`==i)
     
@@ -1134,7 +1138,8 @@ for(j in (1:176)){
       ) 
     }
     
-    if(i %% 1000 == 1){
+    if(i == 1){
+    # if(i %% 1000 == 1){ # WHY DID I HAVE THIS HERE? 
       studentList <- tempSTU
     }else{
       studentList <- rbind(studentList, tempSTU)
@@ -1161,9 +1166,7 @@ for(j in (1:176)){
     `Enrollment intensity NPSAS` = ifelse(`Enrollment intensity`=="Full-time", "Exclusively full-time", "Exclusively part-time")
   ) %>% mutate(
     `Region NPSAS` = ifelse(`Region`=="Other U.S. jurisdictions", "Puerto Rico", `Region`)
-  ) %>% mutate(
-    `Race NPSAS` = ifelse(`Race` %in% c("U.S. Nonresident", "Race/ethnicity unknown"), "White", `Race`) # NOTE: This is a placeholder. 
-  )
+  ) 
   
   carnegieNPSAS <- data.frame(
     `C18BASIC` = c(-2, (1:33)), 
@@ -1188,6 +1191,111 @@ for(j in (1:176)){
   
   #### End #### 
   
+  #### Handle "U.S. Nonresident" and "Race/ethnicity unknown" #### 
+  
+  assignRandomRace <- rbind(
+    
+    # White (48 out of 100)
+    data.frame(
+      `2 Digits` = c(
+        "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", 
+        "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", 
+        "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", 
+        "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", 
+        "40", "41", "42", "43", "44", "45", "46", "47" 
+      ), 
+      `Race substitution` = rep("White"), 
+      check.names=FALSE
+    ),
+    
+    # Black (13 out of 100)
+    data.frame(
+      `2 Digits` = c(
+        "48", "49", 
+        "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", 
+        "60"
+      ), 
+      `Race substitution` = rep("Black or African American"), 
+      check.names=FALSE
+    ),
+    
+    # Hispanic (21 out of 100) 
+    data.frame(
+      `2 Digits` = c(
+        "61", "62", "63", "64", "65", "66", "67", "68", "69", 
+        "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", 
+        "80", "81"
+      ), 
+      `Race substitution` = rep("Hispanic or Latino"), 
+      check.names=FALSE
+    ),
+    
+    # Asian (10 out of 100) 
+    data.frame(
+      `2 Digits` = c(
+        "82", "83", "84", "85", "86", "87", "88", "89", 
+        "90", "91" 
+      ), 
+      `Race substitution` = rep("Asian"), 
+      check.names=FALSE
+    ),
+    
+    # Native American (1 out of 100)
+    data.frame(
+      `2 Digits` = c(
+        "92" 
+      ), 
+      `Race substitution` = rep("American Indian or Alaska Native"), 
+      check.names=FALSE
+    ),
+    
+    # Native Hawaiian/other Pacific Islander (1 out of 100)
+    data.frame(
+      `2 Digits` = c(
+        "93" 
+      ), 
+      `Race substitution` = rep("Native Hawaiian/other Pacific Islander"), 
+      check.names=FALSE
+    ),
+    
+    # More than one race (6 out of 100)
+    data.frame(
+      `2 Digits` = c(
+        "94", "95", "96", "97", "98", "99" 
+      ), 
+      `Race substitution` = rep("More than one race"), 
+      check.names=FALSE
+    )
+  ) 
+
+  # Using last 2 digits of Student Index as essentially random 
+  studentList <- studentList %>% mutate(
+    `2 Digits` = substr(`Student index`, nchar(`Student index`)-1, nchar(`Student index`))
+  ) %>% mutate(
+    `2 Digits` = ifelse(
+      nchar(`2 Digits`)==1, 
+      paste("0", `2 Digits`, sep=""),
+      `2 Digits`
+    )
+  )
+  studentList <- left_join(x=studentList, y=assignRandomRace, by="2 Digits")
+  rm(assignRandomRace)
+  
+  studentList <- studentList %>% mutate(
+    `Race NPSAS` = ifelse(
+      `Race` %in% c("U.S. Nonresident", "Race/ethnicity unknown"), 
+      `Race substitution`, 
+      `Race`
+    )  
+  )
+  
+  studentList <- studentList %>% select(
+    -(`2 Digits`),
+    -(`Race substitution`)
+  )
+   
+  #### End #### 
+  
   #############################################
   #### Predictions from regressions: Set 1 ####
   #############################################
@@ -1197,6 +1305,57 @@ for(j in (1:176)){
   # studentListSave <- studentList
   # 
   # #### End #### 
+  
+  #### Write function to display distribution as percentages ####
+  
+  showDistribution <- function(variableName){
+    
+    tempDF <- studentList %>% select(
+      all_of(variableName)
+    ) %>% mutate(
+      `Count` = rep(1)
+    )
+    names(tempDF)[1] <- "InterestVar"
+    
+    totalStudents <- sum(tempDF$`Count`)
+    
+    tempDF <- aggregate(
+      data=tempDF, 
+      `Count` ~ `InterestVar`,
+      FUN=sum
+    ) %>% mutate(
+      `Share` = percent(`Count` / totalStudents, accuracy=0.1)
+    ) %>% select(
+      -(`Count`)
+    ) %>% pivot_wider(
+      names_from=`InterestVar`, 
+      values_from=`Share`
+    )
+    
+    print(as.data.frame(tempDF))
+    
+    rm(tempDF, totalStudents)
+    
+  }
+  
+  #### End #### 
+  
+  #### Write function to display distribution as percentiles ####
+  
+  showPercentiles <- function(variableName){
+    
+    tempDF <- studentList %>% select(
+      all_of(variableName)
+    )
+    names(tempDF)[1] <- "InterestVar"
+    
+    print(quantile(tempDF$`InterestVar`, probs = seq(.05, .95, by = .05)))
+    
+    rm(tempDF)
+    
+  }
+  
+  #### End #### 
   
   #### Regression 1a: Predict Zero-EFC ####
   
@@ -1209,7 +1368,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Zero-EFC", 
     negativeClass = "Nonzero-EFC", 
-    thresholdVal = 0.5, 
+    thresholdVal = 0.414, # EDITED 08-29-2025 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1, 
     showWork = FALSE,
@@ -1270,6 +1429,8 @@ for(j in (1:176)){
     linkingVar9 = NA,
     varType9 = ""
   )
+  
+  # showDistribution("Zero-EFC")
   
   #### End #### 
   
@@ -1352,8 +1513,110 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `EFC` = ifelse(`Zero-EFC` == "Zero-EFC", 0, `EFC`)
-  ) %>% select(
+  ) 
+  
+  studentList <- studentList %>% select(
     -(`Zero-EFC`)
+  )
+  
+  #### End #### 
+  
+  #### Calibrate EFC: Bring down high values  #### 
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 1, 15000), `EFC` * 0.1, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 15001, 18000), `EFC` * 0.2, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 18001, 20000), `EFC` * 0.3, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 20001, 22000), `EFC` * 0.4, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 22001, 24000), `EFC` * 0.6, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 24001, 26000), `EFC` * 0.75, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 26001, 28000), `EFC` * 0.9, `EFC`)
+  )
+  
+  #### End #### 
+  
+  #### Calibrate EFC: Bring up low values #### 
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 34001, 36000), `EFC` * 3.2, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 33001, 34000), `EFC` * 2.5, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 32001, 33000), `EFC` * 2, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 31001, 32000), `EFC` * 1.5, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 30501, 31000), `EFC` * 1.35, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 30001, 30500), `EFC` * 1.2, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 29001, 30000), `EFC` * 1.1, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 28001, 29000), `EFC` * 1, `EFC`)
+  )
+  
+  #### End #### 
+  
+  #### Calibrate EFC: Bring down high values #### 
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 1, 1000), `EFC` * 0.2, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 1001, 1500), `EFC` * 0.25, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 1501, 2000), `EFC` * 0.3, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 2001, 2500), `EFC` * 0.4, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 2501, 3000), `EFC` * 0.5, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 3001, 3500), `EFC` * 0.7, `EFC`)
+  )
+  
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(between(`EFC`, 3501, 4000), `EFC` * 0.9, `EFC`)
   )
   
   #### End #### 
@@ -1369,7 +1632,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "In-state tuition", 
     negativeClass = "Out-of-state tuition",  
-    thresholdVal = 0.75, # EDITED FROM 0.5 
+    thresholdVal = 0.81, # EDITED FROM 0.5 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -1437,6 +1700,8 @@ for(j in (1:176)){
     )
   )
   
+  showDistribution("Tuition jurisdiction")
+  
   #### End #### 
   
   #### Regression 3: Predict Tuition and Fees Paid ####
@@ -1451,8 +1716,8 @@ for(j in (1:176)){
     positiveClass = "", 
     negativeClass = "",  
     thresholdVal = 0.5, 
-    absoluteAdjustment = 3000, # EDITED FROM 0 
-    relativeAdjustment = 0.9,
+    absoluteAdjustment = 2000,  
+    relativeAdjustment = 1,
     showWork = FALSE, 
     randomI = FALSE, 
     randomC = FALSE, 
@@ -1515,6 +1780,45 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Tuition and fees paid` = ifelse(`Tuition and fees paid` < 0, 0, `Tuition and fees paid`)
   )
+  
+  #### End #### 
+  
+  #### Calibrate tuition and fees paid ####
+  
+  studentList <- studentList %>% mutate(
+    `Tuition and fees paid` = ifelse(
+      `Tuition and fees paid` <= 2000, 
+      `Tuition and fees paid` * 1.5, 
+      `Tuition and fees paid` * 0.9
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Tuition and fees paid` = ifelse(
+      between(`Tuition and fees paid`, 3500, 15000),
+      `Tuition and fees paid` * 0.8, 
+      `Tuition and fees paid`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Tuition and fees paid` = ifelse(
+      between(`Tuition and fees paid`, 15001, 25000),
+      `Tuition and fees paid` * 0.9, 
+      `Tuition and fees paid`
+    )
+  )
+  
+  
+  studentList <- studentList %>% mutate(
+    `Tuition and fees paid` = ifelse(
+      between(`Tuition and fees paid`, 25001, 35000),
+      `Tuition and fees paid` * 0.95, 
+      `Tuition and fees paid`
+    )
+  )
+  
+  showPercentiles("Tuition and fees paid")
   
   #### End #### 
   
@@ -1591,10 +1895,6 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
-  studentList <- studentList %>% mutate(
-    `Age` = ifelse(`Age` < 17, 17, `Age`)
-  )
-  
   # RANDOMLY MAKE HALF OF THEM YOUNGER 
   studentList <- studentList %>% mutate(
     `Age` = ifelse(
@@ -1603,6 +1903,24 @@ for(j in (1:176)){
       `Age`
     )
   )
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(`Age` < 17, 17, `Age`)
+  )
+  
+  #### End #### 
+  
+  #### Calibrate age ####
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(
+      `Age` < 21,
+      `Age` - 1, 
+      `Age`
+    )
+  )
+  
+  showPercentiles("Age")
   
   #### End #### 
   

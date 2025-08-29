@@ -358,9 +358,9 @@ showDistribution <- function(variableName){
     values_from=`Share`
   )
   
-  print(tempDF, totalStudents)
+  print(tempDF)
   
-  rm(tempDF)
+  rm(tempDF, totalStudents)
   
 }
 
@@ -406,7 +406,6 @@ showDistribution("Total loans group")
 showDistribution("Total cost group")
 showDistribution("Net price group")
 
-quantile(studentDF$EFC, probs = seq(.1, .9, by = .1))
 
 
 #### End #### 
