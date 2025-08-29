@@ -3115,7 +3115,7 @@ for(j in (1:176)){
     )
   )
   
-  showDistribution("Receives parent loans")
+  # showDistribution("Receives parent loans")
   
   #### End #### 
   
@@ -3142,7 +3142,7 @@ for(j in (1:176)){
     negativeClass = "",  
     thresholdVal = 0.5, 
     absoluteAdjustment = 0, 
-    relativeAdjustment = 1.25, # EDITED 
+    relativeAdjustment = 1, 
     showWork = FALSE, 
     randomI = FALSE, 
     randomC = FALSE, 
@@ -3214,6 +3214,76 @@ for(j in (1:176)){
   
   #### End #### 
   
+  #### Calibrate Federal grant amount: Lower high values ####
+  
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 1, 1000), 
+      `Federal grant amount` * 0.1, 
+      `Federal grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 1000, 2000), 
+      `Federal grant amount` * 0.25, 
+      `Federal grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 2001, 2500), 
+      `Federal grant amount` * 0.65, 
+      `Federal grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 2501, 2800), 
+      `Federal grant amount` * 0.9, 
+      `Federal grant amount`
+    )
+  )
+
+  #### End #### 
+  
+  #### Calibrate Federal grant amount: Raise low values ####
+  
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 4001, 6000), 
+      `Federal grant amount` * 1.4, 
+      `Federal grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 3501, 4000), 
+      `Federal grant amount` * 1.3, 
+      `Federal grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 3000, 3500), 
+      `Federal grant amount` * 1.2, 
+      `Federal grant amount`
+    )
+  )
+
+  # showPercentiles("Federal grant amount")
+  
+  # test <- studentList %>% filter(`Federal grant amount` > 0)
+  # print(quantile(test$`Federal grant amount`, probs = seq(.1, .9, by = .1)))
+  # rm(test)
+  
+  #### End #### 
+  
   #### Regression 18: VA/DOD Grant Amount ####
   
   studentList <- processRegression(
@@ -3227,7 +3297,7 @@ for(j in (1:176)){
     negativeClass = "",  
     thresholdVal = 0.5, 
     absoluteAdjustment = 0, 
-    relativeAdjustment = 1.5, # EDITED 
+    relativeAdjustment = 1, 
     showWork = FALSE, 
     randomI = FALSE, 
     randomC = FALSE, 
@@ -3296,6 +3366,30 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `VA/DOD grant amount` = ifelse(`VA/DOD grant amount` < 0, 0, `VA/DOD grant amount`)
   )
+  
+  #### End #### 
+  
+  #### Calibrate VA/DOD grant amount: Raise low values ####
+  
+  studentList <- studentList %>% mutate(
+    `VA/DOD grant amount` = ifelse(
+      between(`VA/DOD grant amount`, 6000, 9000),
+      `VA/DOD grant amount` + ((`VA/DOD grant amount` - 6000) * 1.1), 
+      `VA/DOD grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `VA/DOD grant amount` = ifelse(
+      between(`VA/DOD grant amount`, 9000, 99999),
+      `VA/DOD grant amount` + ((`VA/DOD grant amount` - 6000) * 1.25), 
+      `VA/DOD grant amount`
+    )
+  )
+  
+  # test <- studentList %>% filter(`VA/DOD grant amount` > 0)
+  # print(quantile(test$`VA/DOD grant amount`, probs = seq(.1, .9, by = .1)))
+  # rm(test)
   
   #### End #### 
   
@@ -3384,6 +3478,66 @@ for(j in (1:176)){
   
   #### End #### 
   
+  #### Calibrate state grant amount: Lower high values #### 
+  
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 1, 2000), 
+      `State grant amount` * 0.2, 
+      `State grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 2001, 3000), 
+      `State grant amount` * 0.35, 
+      `State grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 3001, 4000), 
+      `State grant amount` * 0.45, 
+      `State grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 4001, 4500), 
+      `State grant amount` * 0.6, 
+      `State grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 4501, 5000), 
+      `State grant amount` * 0.75, 
+      `State grant amount`
+    )
+  )
+  
+  #### End #### 
+  
+  #### Calibrate state grant amount: Raise low values #### 
+  
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 5501, 99999), 
+      `State grant amount` * 1.3, 
+      `State grant amount`
+    )
+  )
+  
+  # test <- studentList %>% filter(`State grant amount` > 0)
+  # print(quantile(test$`State grant amount`, probs = seq(.1, .9, by = .1)))
+  # rm(test)
+  
+  #### End #### 
+  
   #### Regression 20: Institutional Grant Amount ####
   
   studentList <- processRegression(
@@ -3466,6 +3620,74 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Institutional grant amount` = ifelse(`Institutional grant amount` < 0, 0, `Institutional grant amount`)
   )
+  
+  #### End #### 
+  
+  #### Calibrate institutional grant amount: Lower high values #### 
+  
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 0, 3000), 
+      `Institutional grant amount` * 0.2, 
+      `Institutional grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 3001, 3500), 
+      `Institutional grant amount` * 0.3, 
+      `Institutional grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 3501, 4000), 
+      `Institutional grant amount` * 0.7, 
+      `Institutional grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 4001, 4500), 
+      `Institutional grant amount` * 0.9, 
+      `Institutional grant amount`
+    )
+  )
+  
+  #### End #### 
+  
+  #### Calibrate institutional grant amount: Raise low values #### 
+  
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 14501, 99999), 
+      `Institutional grant amount` * 1.5, 
+      `Institutional grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 13501, 14500), 
+      `Institutional grant amount` * 1.3, 
+      `Institutional grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 12501, 13500), 
+      `Institutional grant amount` * 1.1, 
+      `Institutional grant amount`
+    )
+  )
+  
+  # test <- studentList %>% filter(`Institutional grant amount` > 0)
+  # print(quantile(test$`Institutional grant amount`, probs = seq(.1, .9, by = .1)))
+  # rm(test)
   
   #### End #### 
   
