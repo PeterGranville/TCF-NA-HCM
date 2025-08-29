@@ -1910,12 +1910,73 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Calibrate age ####
+  #### Calibrate age: Lower high values ####
   
   studentList <- studentList %>% mutate(
     `Age` = ifelse(
-      `Age` < 21,
-      `Age` - 1, 
+      between(`Age`, 19, 19.99),
+      `Age` * 0.85, 
+      `Age`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(
+      between(`Age`, 20, 21.99),
+      `Age` * 0.95, 
+      `Age`
+    )
+  )
+  
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(
+      between(`Age`, 22, 24.99),
+      `Age` * 0.95, 
+      `Age`
+    )
+  )
+  
+  #### End #### 
+  
+  #### Calibrate age: Raise low values #### 
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(
+      `Age` > 29.71,
+      `Age` * 1.8, 
+      `Age`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(
+      between(`Age`, 29.41, 29.7),
+      `Age` * 1.6, 
+      `Age`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(
+      between(`Age`, 29, 29.4),
+      `Age` * 1.4, 
+      `Age`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(
+      between(`Age`, 28, 28.99),
+      `Age` * 1.3, 
+      `Age`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Age` = ifelse(
+      between(`Age`, 26, 27.99),
+      `Age` * 1.2, 
       `Age`
     )
   )
@@ -1935,82 +1996,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Citizen or eligible non-citizen", 
     negativeClass = "Non-citizen",  
-    thresholdVal = 0.5, 
-    absoluteAdjustment = 0, 
-    relativeAdjustment = 1,
-    showWork = FALSE, 
-    randomI = FALSE, 
-    randomC = FALSE, 
-    
-    includeVar1 = TRUE, 
-    startLine1 = 20, 
-    endLine1 = 21, 
-    linkingVar1 = "Control", 
-    varType1 = "Categorical", 
-    
-    includeVar2 = TRUE, 
-    startLine2 = 24, 
-    endLine2 = 31, 
-    linkingVar2 = "Region NPSAS",
-    varType2 = "Categorical", 
-    
-    includeVar3 = TRUE, 
-    startLine3 = 34, 
-    endLine3 = 39, 
-    linkingVar3 = "Race NPSAS",
-    varType3 = "Categorical", 
-    
-    includeVar4 = TRUE, 
-    startLine4 = 42, 
-    endLine4 = 46, 
-    linkingVar4 = "Carnegie NPSAS",
-    varType4 = "Categorical", 
-    
-    includeVar5 = TRUE, 
-    startLine5 = 49, 
-    endLine5 = 50, 
-    linkingVar5 = "Enrollment intensity NPSAS",
-    varType5 = "Categorical", 
-    
-    includeVar6 = TRUE, 
-    startLine6 = 53, 
-    endLine6 = 53, 
-    linkingVar6 = "Gender",
-    varType6 = "Categorical", 
-    
-    includeVar7 = TRUE,
-    startLine7 = 55, 
-    endLine7 = 55, 
-    linkingVar7 = "EFC",
-    varType7 = "Numeric", 
-    
-    includeVar8 = TRUE,
-    startLine8 = 58, 
-    endLine8 = 59, 
-    linkingVar8 = "Tuition jurisdiction",
-    varType8 = "Categorical",
-    
-    includeVar9 = TRUE,
-    startLine9 = 61, 
-    endLine9 = 61, 
-    linkingVar9 = "Tuition and fees paid",
-    varType9 = "Numeric"
-  )
-  
-  #### End #### 
-  
-  #### Regression 6: Predict Dependency Status ####
-  
-  studentList <- processRegression(
-    
-    studentListDF = studentList,
-    newVariableName = "Dependency status",
-    retrievalCode = "mbryhw",
-    interceptRow = 17, 
-    regressionType = "Logistic", 
-    positiveClass = "Dependent", 
-    negativeClass = "Independent",  
-    thresholdVal = 0.5, 
+    thresholdVal = 0.3, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2073,95 +2059,18 @@ for(j in (1:176)){
   )
   
   studentList <- studentList %>% mutate(
-    `Dependency status` = ifelse(
-      `Age` >= 24, "Independent", `Dependency status`
+    `Citizenship` = ifelse(
+      `Race` == "U.S. Nonresident", 
+      "Non-citizen", 
+      `Citizenship`
     )
   )
   
-  #### End #### 
-  
-  #### Regression 7: Applied for Federal Aid ####
-  
-  studentList <- processRegression(
-    
-    studentListDF = studentList,
-    newVariableName = "Applied for federal aid",
-    retrievalCode = "jvlplk",
-    interceptRow = 17, 
-    regressionType = "Logistic", 
-    positiveClass = "Yes", 
-    negativeClass = "No",  
-    thresholdVal = 0.55, # EDITED 
-    absoluteAdjustment = 0, 
-    relativeAdjustment = 1,
-    showWork = FALSE, 
-    randomI = FALSE, 
-    randomC = FALSE, 
-    
-    includeVar1 = TRUE, 
-    startLine1 = 20, 
-    endLine1 = 21, 
-    linkingVar1 = "Control", 
-    varType1 = "Categorical", 
-    
-    includeVar2 = TRUE, 
-    startLine2 = 24, 
-    endLine2 = 31, 
-    linkingVar2 = "Region NPSAS",
-    varType2 = "Categorical", 
-    
-    includeVar3 = TRUE, 
-    startLine3 = 34, 
-    endLine3 = 39, 
-    linkingVar3 = "Race NPSAS",
-    varType3 = "Categorical", 
-    
-    includeVar4 = TRUE, 
-    startLine4 = 42, 
-    endLine4 = 46, 
-    linkingVar4 = "Carnegie NPSAS",
-    varType4 = "Categorical", 
-    
-    includeVar5 = TRUE, 
-    startLine5 = 49, 
-    endLine5 = 50, 
-    linkingVar5 = "Enrollment intensity NPSAS",
-    varType5 = "Categorical", 
-    
-    includeVar6 = TRUE, 
-    startLine6 = 53, 
-    endLine6 = 53, 
-    linkingVar6 = "Gender",
-    varType6 = "Categorical", 
-    
-    includeVar7 = TRUE,
-    startLine7 = 55, 
-    endLine7 = 55, 
-    linkingVar7 = "EFC",
-    varType7 = "Numeric", 
-    
-    includeVar8 = TRUE,
-    startLine8 = 58, 
-    endLine8 = 59, 
-    linkingVar8 = "Tuition jurisdiction",
-    varType8 = "Categorical",
-    
-    includeVar9 = TRUE,
-    startLine9 = 61, 
-    endLine9 = 61, 
-    linkingVar9 = "Tuition and fees paid",
-    varType9 = "Numeric"
-  )
-  
-  studentList <- studentList %>% mutate(
-    `Applied for federal aid` = ifelse(
-      `Citizenship`=="Non-citizen", "No", `Applied for federal aid`
-    )
-  )
+  showDistribution("Citizenship")
   
   #### End #### 
   
-  #### Regression 8: Veteran Status ####
+  #### Regression 6: Veteran Status ####
   
   studentList <- processRegression(
     
@@ -2234,6 +2143,186 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
+  studentList <- studentList %>% mutate(
+    `Veteran status` = ifelse(
+      `Citizenship`=="Non-citizen", 
+      "Not a veteran", 
+      `Veteran status`
+    )
+  )
+  
+  showDistribution("Veteran status")
+  
+  #### End #### 
+  
+  #### Regression 7: Predict Dependency Status ####
+  
+  studentList <- processRegression(
+    
+    studentListDF = studentList,
+    newVariableName = "Dependency status",
+    retrievalCode = "mbryhw",
+    interceptRow = 17, 
+    regressionType = "Logistic", 
+    positiveClass = "Dependent", 
+    negativeClass = "Independent",  
+    thresholdVal = 0.818, 
+    absoluteAdjustment = 0, 
+    relativeAdjustment = 1,
+    showWork = FALSE, 
+    randomI = FALSE, 
+    randomC = FALSE, 
+    
+    includeVar1 = TRUE, 
+    startLine1 = 20, 
+    endLine1 = 21, 
+    linkingVar1 = "Control", 
+    varType1 = "Categorical", 
+    
+    includeVar2 = TRUE, 
+    startLine2 = 24, 
+    endLine2 = 31, 
+    linkingVar2 = "Region NPSAS",
+    varType2 = "Categorical", 
+    
+    includeVar3 = TRUE, 
+    startLine3 = 34, 
+    endLine3 = 39, 
+    linkingVar3 = "Race NPSAS",
+    varType3 = "Categorical", 
+    
+    includeVar4 = TRUE, 
+    startLine4 = 42, 
+    endLine4 = 46, 
+    linkingVar4 = "Carnegie NPSAS",
+    varType4 = "Categorical", 
+    
+    includeVar5 = TRUE, 
+    startLine5 = 49, 
+    endLine5 = 50, 
+    linkingVar5 = "Enrollment intensity NPSAS",
+    varType5 = "Categorical", 
+    
+    includeVar6 = TRUE, 
+    startLine6 = 53, 
+    endLine6 = 53, 
+    linkingVar6 = "Gender",
+    varType6 = "Categorical", 
+    
+    includeVar7 = TRUE,
+    startLine7 = 55, 
+    endLine7 = 55, 
+    linkingVar7 = "EFC",
+    varType7 = "Numeric", 
+    
+    includeVar8 = TRUE,
+    startLine8 = 58, 
+    endLine8 = 59, 
+    linkingVar8 = "Tuition jurisdiction",
+    varType8 = "Categorical",
+    
+    includeVar9 = TRUE,
+    startLine9 = 61, 
+    endLine9 = 61, 
+    linkingVar9 = "Tuition and fees paid",
+    varType9 = "Numeric"
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Dependency status` = ifelse(
+      `Age` >= 24, "Independent", `Dependency status`
+    )
+  ) %>% mutate(
+    `Dependency status` = ifelse(
+      `Veteran status` == "Veteran", "Independent", `Dependency status`
+    )
+  )
+  
+  showDistribution("Dependency status")
+  
+  #### End #### 
+  
+  #### Regression 8: Applied for Federal Aid ####
+  
+  studentList <- processRegression(
+    
+    studentListDF = studentList,
+    newVariableName = "Applied for federal aid",
+    retrievalCode = "jvlplk",
+    interceptRow = 17, 
+    regressionType = "Logistic", 
+    positiveClass = "Yes", 
+    negativeClass = "No",  
+    thresholdVal = 0.539, # EDITED 
+    absoluteAdjustment = 0, 
+    relativeAdjustment = 1,
+    showWork = FALSE, 
+    randomI = FALSE, 
+    randomC = FALSE, 
+    
+    includeVar1 = TRUE, 
+    startLine1 = 20, 
+    endLine1 = 21, 
+    linkingVar1 = "Control", 
+    varType1 = "Categorical", 
+    
+    includeVar2 = TRUE, 
+    startLine2 = 24, 
+    endLine2 = 31, 
+    linkingVar2 = "Region NPSAS",
+    varType2 = "Categorical", 
+    
+    includeVar3 = TRUE, 
+    startLine3 = 34, 
+    endLine3 = 39, 
+    linkingVar3 = "Race NPSAS",
+    varType3 = "Categorical", 
+    
+    includeVar4 = TRUE, 
+    startLine4 = 42, 
+    endLine4 = 46, 
+    linkingVar4 = "Carnegie NPSAS",
+    varType4 = "Categorical", 
+    
+    includeVar5 = TRUE, 
+    startLine5 = 49, 
+    endLine5 = 50, 
+    linkingVar5 = "Enrollment intensity NPSAS",
+    varType5 = "Categorical", 
+    
+    includeVar6 = TRUE, 
+    startLine6 = 53, 
+    endLine6 = 53, 
+    linkingVar6 = "Gender",
+    varType6 = "Categorical", 
+    
+    includeVar7 = TRUE,
+    startLine7 = 55, 
+    endLine7 = 55, 
+    linkingVar7 = "EFC",
+    varType7 = "Numeric", 
+    
+    includeVar8 = TRUE,
+    startLine8 = 58, 
+    endLine8 = 59, 
+    linkingVar8 = "Tuition jurisdiction",
+    varType8 = "Categorical",
+    
+    includeVar9 = TRUE,
+    startLine9 = 61, 
+    endLine9 = 61, 
+    linkingVar9 = "Tuition and fees paid",
+    varType9 = "Numeric"
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Applied for federal aid` = ifelse(
+      `Citizenship`=="Non-citizen", "No", `Applied for federal aid`
+    )
+  )
+  
+  showDistribution("Applied for federal aid")
+  
   #### End #### 
   
   #### Regression 9: Non-Tuition Expense Budget ####
@@ -2248,7 +2337,7 @@ for(j in (1:176)){
     positiveClass = "", 
     negativeClass = "",  
     thresholdVal = 0.5, 
-    absoluteAdjustment = 2000, # EDITED 
+    absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
     randomI = FALSE, 
@@ -2314,6 +2403,16 @@ for(j in (1:176)){
   )
   
   #### End #### 
+  
+  #### Calibrate non-tuition budget: Lower high values #### 
+  
+  #### End #### 
+  
+  #### Calibrate non-tuition budget: Raise low values #### 
+  
+  #### End #### 
+  
+  showPercentiles("Non-tuition expense budget")
   
   #############################################
   #### Predictions from regressions: Set 2 ####
