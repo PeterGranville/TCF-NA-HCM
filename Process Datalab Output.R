@@ -4032,11 +4032,11 @@ for(j in (1:176)){
     )
   )
   
-  #### End ####
+  # test <- studentList %>% filter(`Federal loan amount` > 0)
+  # print(quantile(test$`Federal loan amount`, probs = seq(.1, .9, by = .1)))
+  # rm(test)
   
-  test <- studentList %>% filter(`Federal loan amount` > 0)
-  print(quantile(test$`Federal loan amount`, probs = seq(.1, .9, by = .1)))
-  rm(test)
+  #### End ####
   
   #### Regression 23: Parent Loan Amount ####
   
@@ -4123,6 +4123,74 @@ for(j in (1:176)){
   
   #### End #### 
   
+  #### Calibrate parent loan amount: Lower high values #### 
+  
+  studentList <- studentList %>% mutate(
+    `Parent loan amount` = ifelse(
+      between(`Parent loan amount`, 1, 15500), 
+      `Parent loan amount` * 0.3, 
+      `Parent loan amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Parent loan amount` = ifelse(
+      between(`Parent loan amount`, 15501, 16500), 
+      `Parent loan amount` * 0.5, 
+      `Parent loan amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Parent loan amount` = ifelse(
+      between(`Parent loan amount`, 16501, 17500), 
+      `Parent loan amount` * 0.65, 
+      `Parent loan amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Parent loan amount` = ifelse(
+      between(`Parent loan amount`, 17501, 18500), 
+      `Parent loan amount` * 0.75, 
+      `Parent loan amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Parent loan amount` = ifelse(
+      between(`Parent loan amount`, 18501, 19500), 
+      `Parent loan amount` * 0.85, 
+      `Parent loan amount`
+    )
+  )
+  
+  #### End #### 
+  
+  #### Calibrate parent loan amount: Raise low values #### 
+  
+  studentList <- studentList %>% mutate(
+    `Parent loan amount` = ifelse(
+      `Parent loan amount` > 21500, 
+      `Parent loan amount` * 1.4, 
+      `Parent loan amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Parent loan amount` = ifelse(
+      between(`Parent loan amount`, 20001, 21500), 
+      `Parent loan amount` * 1.15, 
+      `Parent loan amount`
+    )
+  )
+  
+  # test <- studentList %>% filter(`Parent loan amount` > 0)
+  # print(quantile(test$`Parent loan amount`, probs = seq(.1, .9, by = .1)))
+  # rm(test)
+
+  #### End #### 
+  
   #############################################
   #### Predictions from regressions: Set 4 ####
   #############################################
@@ -4144,7 +4212,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Has dependents", 
     negativeClass = "Does not have dependents",  
-    thresholdVal = 0.3, # EDITED 
+    thresholdVal = 0.377, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -4206,84 +4274,11 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
-  #### End #### 
-  
-  #### Regression 25: STEM Major ####
-  
-  studentList <- processRegression(
-    
-    studentListDF = studentList,
-    newVariableName = "STEM major status",
-    retrievalCode = "badsvw",
-    interceptRow = 17, 
-    regressionType = "Logistic", 
-    positiveClass = "STEM major", 
-    negativeClass = "Not a STEM major",  
-    thresholdVal = 0.3, # EDITED  
-    absoluteAdjustment = 0, 
-    relativeAdjustment = 1,
-    showWork = FALSE, 
-    randomI = FALSE, 
-    randomC = FALSE, 
-    
-    includeVar1 = TRUE, 
-    startLine1 = 20, 
-    endLine1 = 21, 
-    linkingVar1 = "Control", 
-    varType1 = "Categorical", 
-    
-    includeVar2 = TRUE, 
-    startLine2 = 24, 
-    endLine2 = 31, 
-    linkingVar2 = "Region NPSAS",
-    varType2 = "Categorical", 
-    
-    includeVar3 = TRUE, 
-    startLine3 = 34, 
-    endLine3 = 39, 
-    linkingVar3 = "Race NPSAS",
-    varType3 = "Categorical", 
-    
-    includeVar4 = TRUE, 
-    startLine4 = 42, 
-    endLine4 = 46, 
-    linkingVar4 = "Carnegie NPSAS",
-    varType4 = "Categorical", 
-    
-    includeVar5 = TRUE, 
-    startLine5 = 49, 
-    endLine5 = 50, 
-    linkingVar5 = "Enrollment intensity NPSAS",
-    varType5 = "Categorical", 
-    
-    includeVar6 = TRUE, 
-    startLine6 = 53, 
-    endLine6 = 53, 
-    linkingVar6 = "Gender",
-    varType6 = "Categorical", 
-    
-    includeVar7 = TRUE,
-    startLine7 = 55, 
-    endLine7 = 55, 
-    linkingVar7 = "EFC",
-    varType7 = "Numeric", 
-    
-    includeVar8 = TRUE,
-    startLine8 = 58, 
-    endLine8 = 59, 
-    linkingVar8 = "Tuition jurisdiction",
-    varType8 = "Categorical",
-    
-    includeVar9 = TRUE,
-    startLine9 = 61, 
-    endLine9 = 61, 
-    linkingVar9 = "Tuition and fees paid",
-    varType9 = "Numeric"
-  )
+  # showDistribution("Parent status")
   
   #### End #### 
-  
-  #### Regression 26: Parental Education Attainment ####
+
+  #### Regression 25: Parental Education Attainment ####
   
   studentList <- processRegression(
     
@@ -4294,7 +4289,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Parents have a college degree", 
     negativeClass = "Parents do not have a college degree",  
-    thresholdVal = 0.55, # EDITED 
+    thresholdVal = 0.52,  
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -4356,9 +4351,11 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
+  # showDistribution("Parental education attainment")
+  
   #### End #### 
   
-  #### Regression 27A: High School GPA >= 2.0 ####
+  #### Regression 26A: High School GPA >= 2.0 ####
   
   studentList <- processRegression(
     
@@ -4433,7 +4430,7 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Regression 27B: High School GPA >= 2.5 ####
+  #### Regression 26B: High School GPA >= 2.5 ####
   
   studentList <- processRegression(
     
@@ -4516,7 +4513,7 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Regression 27C: High School GPA >= 3.0 ####
+  #### Regression 26C: High School GPA >= 3.0 ####
   
   studentList <- processRegression(
     
@@ -4599,7 +4596,7 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Regression 27D: High School GPA >= 3.5 ####
+  #### Regression 26D: High School GPA >= 3.5 ####
   
   studentList <- processRegression(
     
@@ -4682,7 +4679,7 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Regression 27: Combine 27A, 27B, 27C, 27D ####
+  #### Regression 26: Combine 27A, 27B, 27C, 27D ####
   
   labelGPA <- data.frame(
     `High school GPA >= 2.0` = character(),
@@ -4696,7 +4693,7 @@ for(j in (1:176)){
     `High school GPA >= 2.5` = "GPA < 2.5",
     `High school GPA >= 3.0` = "GPA < 3.0",
     `High school GPA >= 3.5` = "GPA < 3.5",
-    `High school GPA` = "Below 2.5"
+    `High school GPA` = "Below 2.0"
   ) %>% add_row(
     `High school GPA >= 2.0` = "GPA >= 2.0",
     `High school GPA >= 2.5` = "GPA < 2.5",
@@ -4725,6 +4722,8 @@ for(j in (1:176)){
   
   studentList <- left_join(x=studentList, y=labelGPA, by=c("High school GPA >= 2.0", "High school GPA >= 2.5", "High school GPA >= 3.0", "High school GPA >= 3.5"))
   rm(labelGPA)
+  
+  showDistribution("High school GPA")
   
   #### End #### 
   
