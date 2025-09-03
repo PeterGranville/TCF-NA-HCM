@@ -1065,12 +1065,12 @@ effy <- effy %>% filter(
 set.seed(1001)
 unitidLevels <- sample(unique(effy$UNITID))
 effy$UNITID <- factor(effy$UNITID, levels=unitidLevels)
-# 
-# # Shuffle effy by UNITID
-# # effy <- effy %>% arrange(`UNITID`)
+
+# Shuffle effy by UNITID
+# effy <- effy %>% arrange(`UNITID`)
 # 
 # # Or shuffle by EFFY row 
-# effy <- effy[sample(nrow(effy)),]
+effy <- effy[sample(nrow(effy)),]
 
 # Index effy
 effy <- effy %>% mutate(
@@ -1103,7 +1103,7 @@ for(j in (1:176)){
   
   #### End #### 
   
-  newEffy <- effy # PURELY FOR TESTING PURPOSES 08-28-2025
+  newEffy <- effy ### JUST FOR TESTING 09-02-2025
   
   #### Create student level dataset #### 
   
@@ -1138,8 +1138,8 @@ for(j in (1:176)){
       ) 
     }
     
-    if(i == 1){
-    # if(i %% 1000 == 1){ # WHY DID I HAVE THIS HERE? 
+    if(i == 1){ # JUST FOR TESTING 09-02-2025
+    # if(i %% 1000 == 1){ # "If this i is the first in the j-block"
       studentList <- tempSTU
     }else{
       studentList <- rbind(studentList, tempSTU)
@@ -1342,14 +1342,20 @@ for(j in (1:176)){
   
   #### Write function to display distribution as percentiles ####
   
-  showPercentiles <- function(variableName){
+  showPercentiles <- function(variableName, removeZeros){
     
     tempDF <- studentList %>% select(
       all_of(variableName)
     )
     names(tempDF)[1] <- "InterestVar"
     
-    print(quantile(tempDF$`InterestVar`, probs = seq(.05, .95, by = .05)))
+    if(removeZeros){
+      tempDF <- tempDF %>% filter(
+        `InterestVar` > 0
+      )
+    }
+    
+    print(quantile(tempDF$`InterestVar`, probs = seq(.1, .9, by = .1)))
     
     rm(tempDF)
     
@@ -1368,7 +1374,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Zero-EFC", 
     negativeClass = "Nonzero-EFC", 
-    thresholdVal = 0.414, # EDITED 08-29-2025 
+    thresholdVal = 0.4178, # EDITED 08-29-2025 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1, 
     showWork = FALSE,
@@ -1429,8 +1435,6 @@ for(j in (1:176)){
     linkingVar9 = NA,
     varType9 = ""
   )
-  
-  # showDistribution("Zero-EFC")
   
   #### End #### 
   
@@ -1515,40 +1519,64 @@ for(j in (1:176)){
     `EFC` = ifelse(`Zero-EFC` == "Zero-EFC", 0, `EFC`)
   ) 
   
-  studentList <- studentList %>% select(
-    -(`Zero-EFC`)
-  )
-  
   #### End #### 
   
   #### Calibrate EFC: Bring down high values  #### 
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 1, 15000), `EFC` * 0.1, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 1, 15000),
+      `EFC` * 0.1, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 15001, 18000), `EFC` * 0.2, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 15001, 18000), 
+      `EFC` * 0.2, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 18001, 20000), `EFC` * 0.3, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 18001, 20000), 
+      `EFC` * 0.3, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 20001, 22000), `EFC` * 0.4, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 20001, 22000), 
+      `EFC` * 0.4, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 22001, 24000), `EFC` * 0.6, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 22001, 24000), 
+      `EFC` * 0.6, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 24001, 26000), `EFC` * 0.75, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 24001, 26000), 
+      `EFC` * 0.75, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 26001, 28000), `EFC` * 0.9, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 26001, 28000), 
+      `EFC` * 0.9, 
+      `EFC`
+    )
   )
   
   #### End #### 
@@ -1556,35 +1584,67 @@ for(j in (1:176)){
   #### Calibrate EFC: Bring up low values #### 
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 34001, 36000), `EFC` * 3.2, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 34001, 36000), 
+      `EFC` * 3.2, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 33001, 34000), `EFC` * 2.5, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 33001, 34000),
+      `EFC` * 2.5, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 32001, 33000), `EFC` * 2, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 32001, 33000),
+      `EFC` * 2, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 31001, 32000), `EFC` * 1.5, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 31001, 32000), 
+      `EFC` * 1.75, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 30501, 31000), `EFC` * 1.35, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 30501, 31000), 
+      `EFC` * 1.45, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 30001, 30500), `EFC` * 1.2, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 30001, 30500), 
+      `EFC` * 1.25, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 29001, 30000), `EFC` * 1.1, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 29001, 30000), 
+      `EFC` * 1.1, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 28001, 29000), `EFC` * 1, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 28001, 29000), 
+      `EFC` * 1, 
+      `EFC`
+    )
   )
   
   #### End #### 
@@ -1592,32 +1652,45 @@ for(j in (1:176)){
   #### Calibrate EFC: Bring down high values #### 
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 1, 1000), `EFC` * 0.2, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 1, 3200), 
+      `EFC` * 0.3, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 1001, 1500), `EFC` * 0.25, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 3201, 5800), 
+      `EFC` * 0.7, 
+      `EFC`
+    )
+  )
+
+  studentList <- studentList %>% mutate(
+    `EFC` = ifelse(
+      between(`EFC`, 15001, 20000), 
+      `EFC` * 0.75, 
+      `EFC`
+    )
   )
   
   studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 1501, 2000), `EFC` * 0.3, `EFC`)
+    `EFC` = ifelse(
+      between(`EFC`, 20001, 26000), 
+      `EFC` * 0.8, 
+      `EFC`
+    )
   )
   
-  studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 2001, 2500), `EFC` * 0.4, `EFC`)
-  )
+  #### End #### 
   
-  studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 2501, 3000), `EFC` * 0.5, `EFC`)
-  )
+  #### Check EFC distribution ####
   
-  studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 3001, 3500), `EFC` * 0.7, `EFC`)
-  )
+  showDistribution("Zero-EFC")
+  studentList <- studentList %>% select(-(`Zero-EFC`))
   
-  studentList <- studentList %>% mutate(
-    `EFC` = ifelse(between(`EFC`, 3501, 4000), `EFC` * 0.9, `EFC`)
-  )
+  showPercentiles("EFC", removeZeros=TRUE)
   
   #### End #### 
   
@@ -1632,7 +1705,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "In-state tuition", 
     negativeClass = "Out-of-state tuition",  
-    thresholdVal = 0.81, # EDITED FROM 0.5 
+    thresholdVal = 0.79, # EDITED FROM 0.5 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -1700,7 +1773,11 @@ for(j in (1:176)){
     )
   )
   
-  # showDistribution("Tuition jurisdiction")
+  #### End #### 
+  
+  #### Check tuition jurisdiction distribution ####
+  
+  showDistribution("Tuition jurisdiction")
   
   #### End #### 
   
@@ -1716,7 +1793,7 @@ for(j in (1:176)){
     positiveClass = "", 
     negativeClass = "",  
     thresholdVal = 0.5, 
-    absoluteAdjustment = 2000,  
+    absoluteAdjustment = 2600,
     relativeAdjustment = 1,
     showWork = FALSE, 
     randomI = FALSE, 
@@ -1783,42 +1860,53 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Calibrate tuition and fees paid ####
+  #### Calibrate tuition and fees paid: Lower high values ####
   
   studentList <- studentList %>% mutate(
     `Tuition and fees paid` = ifelse(
-      `Tuition and fees paid` <= 2000, 
-      `Tuition and fees paid` * 1.5, 
-      `Tuition and fees paid` * 0.9
+      between(`Tuition and fees paid`, 1000, 3500),
+      `Tuition and fees paid` * 0.75, 
+      `Tuition and fees paid`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Tuition and fees paid` = ifelse(
-      between(`Tuition and fees paid`, 3500, 15000),
+      between(`Tuition and fees paid`, 3501, 8500),
+      `Tuition and fees paid` * 0.5, 
+      `Tuition and fees paid`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Tuition and fees paid` = ifelse(
+      between(`Tuition and fees paid`, 8501, 20000),
+      `Tuition and fees paid` * 0.6, 
+      `Tuition and fees paid`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Tuition and fees paid` = ifelse(
+      between(`Tuition and fees paid`, 20001, 35000),
+      `Tuition and fees paid` * 0.65, 
+      `Tuition and fees paid`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Tuition and fees paid` = ifelse(
+      `Tuition and fees paid` > 35000,
       `Tuition and fees paid` * 0.8, 
       `Tuition and fees paid`
     )
   )
   
-  studentList <- studentList %>% mutate(
-    `Tuition and fees paid` = ifelse(
-      between(`Tuition and fees paid`, 15001, 25000),
-      `Tuition and fees paid` * 0.9, 
-      `Tuition and fees paid`
-    )
-  )
+  #### End #### 
   
+  #### Check tuition and fees distribution ####
   
-  studentList <- studentList %>% mutate(
-    `Tuition and fees paid` = ifelse(
-      between(`Tuition and fees paid`, 25001, 35000),
-      `Tuition and fees paid` * 0.95, 
-      `Tuition and fees paid`
-    )
-  )
-  
-  # showPercentiles("Tuition and fees paid")
+  showPercentiles("Tuition and fees paid", removeZeros=FALSE)
   
   #### End #### 
   
@@ -1915,23 +2003,14 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Age` = ifelse(
       between(`Age`, 19, 19.99),
-      `Age` * 0.85, 
+      `Age` * 0.9, 
       `Age`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Age` = ifelse(
-      between(`Age`, 20, 21.99),
-      `Age` * 0.95, 
-      `Age`
-    )
-  )
-  
-  
-  studentList <- studentList %>% mutate(
-    `Age` = ifelse(
-      between(`Age`, 22, 24.99),
+      between(`Age`, 20, 24.99),
       `Age` * 0.95, 
       `Age`
     )
@@ -1943,16 +2022,8 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Age` = ifelse(
-      `Age` > 29.71,
-      `Age` * 1.8, 
-      `Age`
-    )
-  )
-  
-  studentList <- studentList %>% mutate(
-    `Age` = ifelse(
-      between(`Age`, 29.41, 29.7),
-      `Age` * 1.6, 
+      `Age` > 29.41,
+      `Age` * 1.25, 
       `Age`
     )
   )
@@ -1960,7 +2031,7 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Age` = ifelse(
       between(`Age`, 29, 29.4),
-      `Age` * 1.4, 
+      `Age` * 1.2, 
       `Age`
     )
   )
@@ -1968,7 +2039,7 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Age` = ifelse(
       between(`Age`, 28, 28.99),
-      `Age` * 1.3, 
+      `Age` * 1.15, 
       `Age`
     )
   )
@@ -1976,12 +2047,16 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Age` = ifelse(
       between(`Age`, 26, 27.99),
-      `Age` * 1.2, 
+      `Age` * 1.1, 
       `Age`
     )
   )
   
-  # showPercentiles("Age")
+  #### End #### 
+  
+  #### Check age distribution #### 
+  
+  showPercentiles("Age", removeZeros=FALSE)
   
   #### End #### 
   
@@ -2066,7 +2141,11 @@ for(j in (1:176)){
     )
   )
   
-  # showDistribution("Citizenship")
+  #### End #### 
+  
+  #### Check citizenship distribution #### 
+  
+  showDistribution("Citizenship")
   
   #### End #### 
   
@@ -2081,7 +2160,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Veteran", 
     negativeClass = "Not a veteran", 
-    thresholdVal = 0.1, # EDITED 
+    thresholdVal = 0.11, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2151,7 +2230,11 @@ for(j in (1:176)){
     )
   )
   
-  # showDistribution("Veteran status")
+  #### End #### 
+  
+  #### Check veteran status distribution #### 
+  
+  showDistribution("Veteran status")
   
   #### End #### 
   
@@ -2238,7 +2321,11 @@ for(j in (1:176)){
     )
   )
   
-  # showDistribution("Dependency status")
+  #### End #### 
+  
+  #### Check dependency status distribution ####
+  
+  showDistribution("Dependency status")
   
   #### End #### 
   
@@ -2253,7 +2340,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.539, # EDITED 
+    thresholdVal = 0.558, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2321,7 +2408,11 @@ for(j in (1:176)){
     )
   )
   
-  # showDistribution("Applied for federal aid")
+  #### End #### 
+  
+  #### Check federal aid application distribution #### 
+  
+  showDistribution("Applied for federal aid")
   
   #### End #### 
   
@@ -2417,14 +2508,14 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Non-tuition expense budget` = ifelse(
       between(`Non-tuition expense budget`, 4001, 7000), 
-      `Non-tuition expense budget` * 0.6, 
+      `Non-tuition expense budget` * 0.7, 
       `Non-tuition expense budget`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Non-tuition expense budget` = ifelse(
-      between(`Non-tuition expense budget`, 7001, 9000),
+      between(`Non-tuition expense budget`, 7001, 8000),
       `Non-tuition expense budget` * 0.8,
       `Non-tuition expense budget`
     )
@@ -2444,8 +2535,24 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Non-tuition expense budget` = ifelse(
-      between(`Non-tuition expense budget`, 12001, 17000), 
-      `Non-tuition expense budget` * 1.2, 
+      between(`Non-tuition expense budget`, 15001, 17000), 
+      `Non-tuition expense budget` * 1.35, 
+      `Non-tuition expense budget`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Non-tuition expense budget` = ifelse(
+      between(`Non-tuition expense budget`, 13501, 15000), 
+      `Non-tuition expense budget` * 1.25, 
+      `Non-tuition expense budget`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Non-tuition expense budget` = ifelse(
+      between(`Non-tuition expense budget`, 12001, 13500), 
+      `Non-tuition expense budget` * 1.15, 
       `Non-tuition expense budget`
     )
   )
@@ -2458,7 +2565,11 @@ for(j in (1:176)){
     )
   )
   
-  # showPercentiles("Non-tuition expense budget")
+  #### End #### 
+  
+  #### Check non-tuition expense budget distribution #### 
+  
+  showPercentiles("Non-tuition expense budget", removeZeros=FALSE)
   
   #### End #### 
   
@@ -2551,6 +2662,10 @@ for(j in (1:176)){
     )
   )
   
+  #### End #### 
+  
+  #### Check receives federal grants distribution #### 
+  
   showDistribution("Receives federal grants")
   
   #### End #### 
@@ -2641,7 +2756,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.4, 
+    thresholdVal = 0.02, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2718,7 +2833,11 @@ for(j in (1:176)){
     -(`Receives VA/DOD grants (non-veterans)`)
   )
   
-  # showDistribution("Receives VA/DOD grants")
+  #### End #### 
+  
+  #### Check receives VA/DOD grants distribution #### 
+  
+  showDistribution("Receives VA/DOD grants")
   
   #### End #### 
   
@@ -2733,7 +2852,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.32,  
+    thresholdVal = 0.295,  
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2795,7 +2914,11 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
-  # showDistribution("Receives state grants")
+  #### End #### 
+  
+  #### Check receives state grants distribution #### 
+  
+  showDistribution("Receives state grants")
   
   #### End #### 
   
@@ -2810,7 +2933,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.365, 
+    thresholdVal = 0.372, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2872,7 +2995,11 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
-  # showDistribution("Receives institutional grants")
+  #### End #### 
+  
+  #### Check receives institutional grants distribution #### 
+  
+  showDistribution("Receives institutional grants")
   
   #### End #### 
   
@@ -2887,7 +3014,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.14, # EDITED  
+    thresholdVal = 0.135, # EDITED  
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -2949,7 +3076,11 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
-  # showDistribution("Receives private grants")
+  #### End ####
+  
+  #### Check receives private grants distribution #### 
+  
+  showDistribution("Receives private grants")
   
   #### End #### 
   
@@ -2964,7 +3095,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.5, 
+    thresholdVal = 0.55, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -3032,7 +3163,11 @@ for(j in (1:176)){
     )
   )
   
-  # showDistribution("Receives federal loans")
+  #### End #### 
+  
+  #### Check receives federal loans distribution #### 
+  
+  showDistribution("Receives federal loans")
   
   #### End #### 
   
@@ -3047,7 +3182,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Yes", 
     negativeClass = "No",  
-    thresholdVal = 0.2, # EDITED 
+    thresholdVal = 0.195, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -3115,7 +3250,11 @@ for(j in (1:176)){
     )
   )
   
-  # showDistribution("Receives parent loans")
+  #### End #### 
+  
+  #### Check receives parent loans distribution #### 
+  
+  showDistribution("Receives parent loans")
   
   #### End #### 
   
@@ -3235,15 +3374,23 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Federal grant amount` = ifelse(
       between(`Federal grant amount`, 2001, 2500), 
-      `Federal grant amount` * 0.65, 
+      `Federal grant amount` * 0.35, 
       `Federal grant amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Federal grant amount` = ifelse(
-      between(`Federal grant amount`, 2501, 2800), 
-      `Federal grant amount` * 0.9, 
+      between(`Federal grant amount`, 2501, 2650), 
+      `Federal grant amount` * 0.4, 
+      `Federal grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 2651, 2800), 
+      `Federal grant amount` * 0.65, 
       `Federal grant amount`
     )
   )
@@ -3255,14 +3402,6 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Federal grant amount` = ifelse(
       between(`Federal grant amount`, 4001, 6000), 
-      `Federal grant amount` * 1.4, 
-      `Federal grant amount`
-    )
-  )
-  
-  studentList <- studentList %>% mutate(
-    `Federal grant amount` = ifelse(
-      between(`Federal grant amount`, 3501, 4000), 
       `Federal grant amount` * 1.3, 
       `Federal grant amount`
     )
@@ -3270,17 +3409,25 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Federal grant amount` = ifelse(
-      between(`Federal grant amount`, 3000, 3500), 
+      between(`Federal grant amount`, 3501, 4000), 
       `Federal grant amount` * 1.2, 
       `Federal grant amount`
     )
   )
-
-  # showPercentiles("Federal grant amount")
   
-  # test <- studentList %>% filter(`Federal grant amount` > 0)
-  # print(quantile(test$`Federal grant amount`, probs = seq(.1, .9, by = .1)))
-  # rm(test)
+  studentList <- studentList %>% mutate(
+    `Federal grant amount` = ifelse(
+      between(`Federal grant amount`, 3000, 3500), 
+      `Federal grant amount` * 1.1, 
+      `Federal grant amount`
+    )
+  )
+  
+  #### End #### 
+  
+  #### Check federal grant amount distribution ####
+  
+  showPercentiles("Federal grant amount", removeZeros=TRUE)
   
   #### End #### 
   
@@ -3369,27 +3516,73 @@ for(j in (1:176)){
   
   #### End #### 
   
+  #### Calibrate VA/DOD grant amount: Lower high values ####
+  
+  studentList <- studentList %>% mutate(
+    `VA/DOD grant amount` = ifelse(
+      `VA/DOD grant amount` < 8000,
+      `VA/DOD grant amount` * 0.4, 
+      `VA/DOD grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `VA/DOD grant amount` = ifelse(
+      between(`VA/DOD grant amount`, 8001, 10000),
+      `VA/DOD grant amount` * 0.6, 
+      `VA/DOD grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `VA/DOD grant amount` = ifelse(
+      between(`VA/DOD grant amount`, 10001, 11000),
+      `VA/DOD grant amount` * 0.8, 
+      `VA/DOD grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `VA/DOD grant amount` = ifelse(
+      between(`VA/DOD grant amount`, 11001, 12000),
+      `VA/DOD grant amount` * 0.95, 
+      `VA/DOD grant amount`
+    )
+  )
+  
+  #### End #### 
+  
   #### Calibrate VA/DOD grant amount: Raise low values ####
   
   studentList <- studentList %>% mutate(
     `VA/DOD grant amount` = ifelse(
-      between(`VA/DOD grant amount`, 6000, 9000),
-      `VA/DOD grant amount` + ((`VA/DOD grant amount` - 6000) * 1.1), 
+      `VA/DOD grant amount` > 22000,
+      `VA/DOD grant amount` * 1.5, 
       `VA/DOD grant amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `VA/DOD grant amount` = ifelse(
-      between(`VA/DOD grant amount`, 9000, 99999),
-      `VA/DOD grant amount` + ((`VA/DOD grant amount` - 6000) * 1.25), 
+      between(`VA/DOD grant amount`, 20001, 22000),
+      `VA/DOD grant amount` * 1.2, 
       `VA/DOD grant amount`
     )
   )
   
-  # test <- studentList %>% filter(`VA/DOD grant amount` > 0)
-  # print(quantile(test$`VA/DOD grant amount`, probs = seq(.1, .9, by = .1)))
-  # rm(test)
+  studentList <- studentList %>% mutate(
+    `VA/DOD grant amount` = ifelse(
+      between(`VA/DOD grant amount`, 18000, 20000),
+      `VA/DOD grant amount` * 1.1, 
+      `VA/DOD grant amount`
+    )
+  )
+  
+  #### End #### 
+  
+  #### Check VA/DOD grant amount distribution ####
+  
+  showPercentiles("VA/DOD grant amount", removeZeros=TRUE)
   
   #### End #### 
   
@@ -3483,14 +3676,6 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `State grant amount` = ifelse(
       between(`State grant amount`, 1, 2000), 
-      `State grant amount` * 0.2, 
-      `State grant amount`
-    )
-  )
-  
-  studentList <- studentList %>% mutate(
-    `State grant amount` = ifelse(
-      between(`State grant amount`, 2001, 3000), 
       `State grant amount` * 0.35, 
       `State grant amount`
     )
@@ -3498,7 +3683,7 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `State grant amount` = ifelse(
-      between(`State grant amount`, 3001, 4000), 
+      between(`State grant amount`, 2001, 3000), 
       `State grant amount` * 0.45, 
       `State grant amount`
     )
@@ -3506,7 +3691,15 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `State grant amount` = ifelse(
-      between(`State grant amount`, 4001, 4500), 
+      between(`State grant amount`, 3001, 4000), 
+      `State grant amount` * 0.5, 
+      `State grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 4001, 4200), 
       `State grant amount` * 0.6, 
       `State grant amount`
     )
@@ -3514,8 +3707,16 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `State grant amount` = ifelse(
-      between(`State grant amount`, 4501, 5000), 
-      `State grant amount` * 0.75, 
+      between(`State grant amount`, 4201, 4500), 
+      `State grant amount` * 0.7, 
+      `State grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 4501, 4700), 
+      `State grant amount` * 0.85, 
       `State grant amount`
     )
   )
@@ -3526,15 +3727,25 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `State grant amount` = ifelse(
-      between(`State grant amount`, 5501, 99999), 
-      `State grant amount` * 1.3, 
+      `State grant amount` > 5001, 
+      `State grant amount` * 1.4, 
       `State grant amount`
     )
   )
   
-  # test <- studentList %>% filter(`State grant amount` > 0)
-  # print(quantile(test$`State grant amount`, probs = seq(.1, .9, by = .1)))
-  # rm(test)
+  studentList <- studentList %>% mutate(
+    `State grant amount` = ifelse(
+      between(`State grant amount`, 4701, 5000), 
+      `State grant amount` * 1.1, 
+      `State grant amount`
+    )
+  )
+
+  #### End #### 
+  
+  #### Check state grant amount distribution ####
+  
+  showPercentiles("State grant amount", removeZeros=TRUE)
   
   #### End #### 
   
@@ -3627,7 +3838,7 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Institutional grant amount` = ifelse(
-      between(`Institutional grant amount`, 0, 3000), 
+      between(`Institutional grant amount`, 1, 2350), 
       `Institutional grant amount` * 0.2, 
       `Institutional grant amount`
     )
@@ -3635,24 +3846,24 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Institutional grant amount` = ifelse(
-      between(`Institutional grant amount`, 3001, 3500), 
-      `Institutional grant amount` * 0.3, 
+      between(`Institutional grant amount`, 2351, 3000), 
+      `Institutional grant amount` * 0.4, 
       `Institutional grant amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Institutional grant amount` = ifelse(
-      between(`Institutional grant amount`, 3501, 4000), 
-      `Institutional grant amount` * 0.7, 
+      between(`Institutional grant amount`, 3001, 3300), 
+      `Institutional grant amount` * 0.55, 
       `Institutional grant amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Institutional grant amount` = ifelse(
-      between(`Institutional grant amount`, 4001, 4500), 
-      `Institutional grant amount` * 0.9, 
+      between(`Institutional grant amount`, 3301, 3500), 
+      `Institutional grant amount` * 0.85, 
       `Institutional grant amount`
     )
   )
@@ -3663,16 +3874,8 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Institutional grant amount` = ifelse(
-      between(`Institutional grant amount`, 14501, 99999), 
-      `Institutional grant amount` * 1.5, 
-      `Institutional grant amount`
-    )
-  )
-  
-  studentList <- studentList %>% mutate(
-    `Institutional grant amount` = ifelse(
-      between(`Institutional grant amount`, 13501, 14500), 
-      `Institutional grant amount` * 1.3, 
+      `Institutional grant amount` > 13501, 
+      `Institutional grant amount` * 1.8, 
       `Institutional grant amount`
     )
   )
@@ -3680,14 +3883,36 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Institutional grant amount` = ifelse(
       between(`Institutional grant amount`, 12501, 13500), 
-      `Institutional grant amount` * 1.1, 
+      `Institutional grant amount` * 1.25, 
       `Institutional grant amount`
     )
   )
   
-  # test <- studentList %>% filter(`Institutional grant amount` > 0)
-  # print(quantile(test$`Institutional grant amount`, probs = seq(.1, .9, by = .1)))
-  # rm(test)
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 3801, 6000), 
+      `Institutional grant amount` * 1.2, 
+      `Institutional grant amount`
+    )
+  )
+  
+  #### End ####
+  
+  #### Calibrate institutional grant amount: Lower high values ####
+  
+  studentList <- studentList %>% mutate(
+    `Institutional grant amount` = ifelse(
+      between(`Institutional grant amount`, 7001, 9000), 
+      `Institutional grant amount` * 0.85, 
+      `Institutional grant amount`
+    )
+  )
+  
+  #### End #### 
+  
+  #### Check institutional grant amount distribution ####
+  
+  showPercentiles("Institutional grant amount", removeZeros=TRUE)
   
   #### End #### 
   
@@ -3789,7 +4014,7 @@ for(j in (1:176)){
   studentList <- studentList %>% mutate(
     `Private grant amount` = ifelse(
       between(`Private grant amount`, 6301, 6500), 
-      `Private grant amount` * 0.1, 
+      `Private grant amount` * 0.12, 
       `Private grant amount`
     )
   )
@@ -3805,7 +4030,15 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Private grant amount` = ifelse(
-      between(`Private grant amount`, 6801, 7000), 
+      between(`Private grant amount`, 6801, 7200), 
+      `Private grant amount` * 0.25, 
+      `Private grant amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Private grant amount` = ifelse(
+      between(`Private grant amount`, 7201, 7300), 
       `Private grant amount` * 0.35, 
       `Private grant amount`
     )
@@ -3813,85 +4046,47 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Private grant amount` = ifelse(
-      between(`Private grant amount`, 7001, 7500), 
-      `Private grant amount` * 0.45, 
+      between(`Private grant amount`, 7301, 7500), 
+      `Private grant amount` * 0.5, 
       `Private grant amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Private grant amount` = ifelse(
-      between(`Private grant amount`, 7501, 8000), 
-      `Private grant amount` * 0.55, 
+      between(`Private grant amount`, 7501, 7700), 
+      `Private grant amount` * 0.65, 
       `Private grant amount`
     )
   )
-  
+
   #### End ####
   
   #### Calibrate private grant amount: Raise low values ####
   
   studentList <- studentList %>% mutate(
     `Private grant amount` = ifelse(
-      `Private grant amount` > 8000, 
-      `Private grant amount` + ((`Private grant amount` - 8000) * 6), 
-      `Private grant amount`
-    )
-  )
-  
-  #### End ####
-  
-  #### Calibrate private grant amount: Further lower high values ####
-  
-  studentList <- studentList %>% mutate(
-    `Private grant amount` = ifelse(
-      between(`Private grant amount`, 600, 1500), 
-      `Private grant amount` * 0.8, 
+      `Private grant amount` > 7800, 
+      `Private grant amount` * 1.3, 
       `Private grant amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Private grant amount` = ifelse(
-      between(`Private grant amount`, 1501, 4000), 
-      `Private grant amount` * 0.65, 
-      `Private grant amount`
-    )
-  )
-  
-  studentList <- studentList %>% mutate(
-    `Private grant amount` = ifelse(
-      between(`Private grant amount`, 4001, 4200), 
-      `Private grant amount` * 0.7, 
-      `Private grant amount`
-    )
-  )
-  
-  #### End #### 
-  
-  #### Calibrate private grant amount: Further raise low values ####
-  
-  studentList <- studentList %>% mutate(
-    `Private grant amount` = ifelse(
-      `Private grant amount` > 4500, 
-      `Private grant amount` * 1.1, 
-      `Private grant amount`
-    )
-  )
-  
-  studentList <- studentList %>% mutate(
-    `Private grant amount` = ifelse(
-      between(`Private grant amount`, 4201, 4500), 
+      between(`Private grant amount`, 7701, 7800),
       `Private grant amount` * 1.15, 
       `Private grant amount`
     )
   )
   
-  # test <- studentList %>% filter(`Private grant amount` > 0)
-  # print(quantile(test$`Private grant amount`, probs = seq(.1, .9, by = .1)))
-  # rm(test)
-  
   #### End ####
+  
+  #### Check private grant amount distribution ####
+  
+  showPercentiles("Private grant amount", removeZeros=TRUE)
+  
+  #### End #### 
   
   #### Regression 22: Federal Loan Amount ####
   
@@ -4032,11 +4227,13 @@ for(j in (1:176)){
     )
   )
   
-  # test <- studentList %>% filter(`Federal loan amount` > 0)
-  # print(quantile(test$`Federal loan amount`, probs = seq(.1, .9, by = .1)))
-  # rm(test)
-  
   #### End ####
+  
+  #### Check federal loan amount distribution ####
+  
+  showPercentiles("Federal loan amount", removeZeros=TRUE)
+  
+  #### End #### 
   
   #### Regression 23: Parent Loan Amount ####
   
@@ -4184,11 +4381,13 @@ for(j in (1:176)){
       `Parent loan amount`
     )
   )
-  
-  # test <- studentList %>% filter(`Parent loan amount` > 0)
-  # print(quantile(test$`Parent loan amount`, probs = seq(.1, .9, by = .1)))
-  # rm(test)
 
+  #### End #### 
+  
+  #### Check parent loan amount distribution ####
+  
+  showPercentiles("Parent loan amount", removeZeros=TRUE)
+  
   #### End #### 
   
   #############################################
@@ -4274,10 +4473,14 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
-  # showDistribution("Parent status")
-  
   #### End #### 
 
+  #### Check parent status distribution ####
+  
+  showDistribution("Parent status")
+  
+  #### End #### 
+  
   #### Regression 25: Parental Education Attainment ####
   
   studentList <- processRegression(
@@ -4351,7 +4554,11 @@ for(j in (1:176)){
     varType9 = "Numeric"
   )
   
-  # showDistribution("Parental education attainment")
+  #### End #### 
+  
+  #### Check parental education attainment distribution ####
+  
+  showDistribution("Parental education attainment")
   
   #### End #### 
   
@@ -4722,6 +4929,10 @@ for(j in (1:176)){
   
   studentList <- left_join(x=studentList, y=labelGPA, by=c("High school GPA >= 2.0", "High school GPA >= 2.5", "High school GPA >= 3.0", "High school GPA >= 3.5"))
   rm(labelGPA)
+  
+  #### End #### 
+  
+  #### Check high school GPA distribution #### 
   
   showDistribution("High school GPA")
   

@@ -169,167 +169,10 @@ studentDF <- studentDF %>% mutate(
   `Receiving federal loans` = ifelse(`Federal loan amount` > 0, "Yes", "No"), 
   `Receiving parent loans` = ifelse(`Parent loan amount` > 0, "Yes", "No")
 ) %>% mutate(
-  `EFC group` = ifelse(
-    `EFC`==0, "$0", ifelse(
-      between(`EFC`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`EFC`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`EFC`, 10001, 20000), "$10,001 to $20,000", "Over $20,000"
-        )
-      )
-    )
-  ), 
   `Zero EFC status` = ifelse(
     `EFC`==0, "Zero EFC", "Nonzero EFC"
   )
-) %>% mutate(
-  `Tuition group` = ifelse(
-    `Tuition and fees paid`==0, "$0", ifelse(
-      between(`Tuition and fees paid`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Tuition and fees paid`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Tuition and fees paid`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Tuition and fees paid`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-) %>% mutate(
-  `Non-tuition group` = ifelse(
-    `Non-tuition expense budget`==0, "$0", ifelse(
-      between(`Non-tuition expense budget`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Non-tuition expense budget`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Non-tuition expense budget`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Non-tuition expense budget`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-) %>% mutate(
-  `Federal grant amount group` = ifelse(
-    `Federal grant amount`==0, "$0", ifelse(
-      between(`Federal grant amount`, 1, 3000), "$1 to $3,000", ifelse(
-        between(`Federal grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
-      )
-    )
-  )
-) %>% mutate(
-  `VA/DOD grant amount group` = ifelse(
-    `VA/DOD grant amount`==0, "$0", ifelse(
-      between(`VA/DOD grant amount`, 1, 3000), "$1 to $3,000", ifelse(
-        between(`VA/DOD grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
-      )
-    )
-  )
-) %>% mutate(
-  `State grant amount group` = ifelse(
-    `State grant amount`==0, "$0", ifelse(
-      between(`State grant amount`, 1, 3000), "$1 to $3,000", ifelse(
-        between(`State grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
-      )
-    )
-  )
-) %>% mutate(
-  `Institutional grant amount group` = ifelse(
-    `Institutional grant amount`==0, "$0", ifelse(
-      between(`Institutional grant amount`, 1, 3000), "$1 to $3,000", ifelse(
-        between(`Institutional grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
-      )
-    )
-  )
-) %>% mutate(
-  `Private grant amount group` = ifelse(
-    `Private grant amount`==0, "$0", ifelse(
-      between(`Private grant amount`, 1, 3000), "$1 to $3,000", ifelse(
-        between(`Private grant amount`, 3001, 5000), "$3,001 to $5,000", "Above $5,000"
-      )
-    )
-  )
-) %>% mutate(
-  `Federal loan amount group` = ifelse(
-    `Federal loan amount`==0, "$0", ifelse(
-      between(`Federal loan amount`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Federal loan amount`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Federal loan amount`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Federal loan amount`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-) %>% mutate(
-  `Parent loan amount group` = ifelse(
-    `Parent loan amount`==0, "$0", ifelse(
-      between(`Parent loan amount`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Parent loan amount`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Parent loan amount`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Parent loan amount`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-) %>% mutate(
-  `Total grants group` = ifelse(
-    `Total grants`==0, "$0", ifelse(
-      between(`Total grants`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Total grants`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Total grants`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Total grants`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-) %>% mutate(
-  `Total loans group` = ifelse(
-    `Total loans`==0, "$0", ifelse(
-      between(`Total loans`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Total loans`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Total loans`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Total loans`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-) %>% mutate(
-  `Total cost group` = ifelse(
-    `Total cost`==0, "$0", ifelse(
-      between(`Total cost`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Total cost`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Total cost`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Total cost`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-) %>% mutate(
-  `Net price group` = ifelse(
-    `Net price`==0, "$0", ifelse(
-      between(`Net price`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Net price`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Net price`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Net price`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-) %>% mutate(
-  `Age group` = ifelse(
-    `Age` < 18, "17 and under", ifelse(
-      between(`Age`, 18, 20.99), "18 to 20", ifelse(
-        between(`Age`, 21, 24.99), "21 to 25", ifelse(
-          between(`Age`, 25, 29.99), "25 to 30", ifelse(
-            between(`Age`, 30, 39.99), "30 to 39", "40 and above"
-          )
-        )
-      )
-    )
-  )
-)
+) 
 
 #### End #### 
 
@@ -366,6 +209,29 @@ showDistribution <- function(variableName){
 
 #### End #### 
 
+#### Write function to display distribution as percentiles ####
+
+showPercentiles <- function(variableName, removeZeros){
+  
+  tempDF <- studentDF %>% select(
+    all_of(variableName)
+  )
+  names(tempDF)[1] <- "InterestVar"
+  
+  if(removeZeros){
+    tempDF <- tempDF %>% filter(
+      `InterestVar` > 0
+    )
+  }
+  
+  print(quantile(tempDF$`InterestVar`, probs = seq(.1, .9, by = .1)))
+  
+  rm(tempDF)
+  
+}
+
+#### End #### 
+
 #### Run function to display percentages #### 
 
 showDistribution("Control")
@@ -374,15 +240,16 @@ showDistribution("Race")
 showDistribution("Carnegie NPSAS")
 showDistribution("Enrollment intensity")
 showDistribution("Gender")
-showDistribution("EFC group")
+showDistribution("Zero-EFC")
+showPercentiles("EFC", removeZeros=TRUE)
 showDistribution("Tuition jurisdiction")
-showDistribution("Tuition group")
-showDistribution("Age group")
+showPercentiles("Tuition and fees", removeZeros=TRUE)
+showPercentiles("Age", removeZeros=FALSE)
 showDistribution("Citizenship")
 showDistribution("Dependency status")
 showDistribution("Applied for federal aid")
 showDistribution("Veteran status")
-showDistribution("Non-tuition group")
+showPercentiles("Non-tuition expense budget", removeZeros=FALSE)
 showDistribution("Receiving federal grants")
 showDistribution("Receiving VA/DOD grants")
 showDistribution("Receiving state grants")
@@ -390,20 +257,20 @@ showDistribution("Receiving institutional grants")
 showDistribution("Receiving private grants")
 showDistribution("Receiving federal loans")
 showDistribution("Receiving parent loans")
-showDistribution("Federal grant amount group")
-showDistribution("VA/DOD grant amount group")
-showDistribution("State grant amount group")
-showDistribution("Institutional grant amount group")
-showDistribution("Private grant amount group")
-showDistribution("Federal loan amount group")
-showDistribution("Parent loan amount group")
+showPercentiles("Federal grant amount", removeZeros=FALSE)
+showPercentiles("VA/DOD grant amount", removeZeros=FALSE)
+showPercentiles("State grant amount", removeZeros=FALSE)
+showPercentiles("Institutional grant amount", removeZeros=FALSE)
+showPercentiles("Private grant amount", removeZeros=FALSE)
+showPercentiles("Federal loan amount", removeZeros=FALSE)
+showPercentiles("Parent loan amount", removeZeros=FALSE)
 showDistribution("Parent status")
 showDistribution("Parental education attainment")
 showDistribution("High school GPA")
-showDistribution("Total grants group")
-showDistribution("Total loans group")
-showDistribution("Total cost group")
-showDistribution("Net price group")
+showPercentiles("Total grants", removeZeros=FALSE)
+showPercentiles("Total loans", removeZeros=FALSE)
+showPercentiles("Total cost", removeZeros=FALSE)
+showPercentiles("Net price", removeZeros=FALSE)
 
 
 
