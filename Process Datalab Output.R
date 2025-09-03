@@ -1103,8 +1103,6 @@ for(j in (1:176)){
   
   #### End #### 
   
-  newEffy <- effy ### JUST FOR TESTING 09-02-2025
-  
   #### Create student level dataset #### 
   
   for(i in newEffy$`Index`){
@@ -1138,8 +1136,7 @@ for(j in (1:176)){
       ) 
     }
     
-    if(i == 1){ # JUST FOR TESTING 09-02-2025
-    # if(i %% 1000 == 1){ # "If this i is the first in the j-block"
+    if(i %% 1000 == 1){ # "If this i is the first in the j-block"
       studentList <- tempSTU
     }else{
       studentList <- rbind(studentList, tempSTU)
@@ -1685,14 +1682,14 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check EFC distribution ####
-  
-  showDistribution("Zero-EFC")
-  studentList <- studentList %>% select(-(`Zero-EFC`))
-  
-  showPercentiles("EFC", removeZeros=TRUE)
-  
-  #### End #### 
+  # #### Check EFC distribution ####
+  # 
+  # showDistribution("Zero-EFC")
+  # studentList <- studentList %>% select(-(`Zero-EFC`))
+  # 
+  # showPercentiles("EFC", removeZeros=TRUE)
+  # 
+  # #### End #### 
   
   #### Regression 2: Predict Tuition Jurisdiction ####
   
@@ -1775,11 +1772,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check tuition jurisdiction distribution ####
-  
-  showDistribution("Tuition jurisdiction")
-  
-  #### End #### 
+  # #### Check tuition jurisdiction distribution ####
+  # 
+  # showDistribution("Tuition jurisdiction")
+  # 
+  # #### End #### 
   
   #### Regression 3: Predict Tuition and Fees Paid ####
   
@@ -1904,11 +1901,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check tuition and fees distribution ####
-  
-  showPercentiles("Tuition and fees paid", removeZeros=FALSE)
-  
-  #### End #### 
+  # #### Check tuition and fees distribution ####
+  # 
+  # showPercentiles("Tuition and fees paid", removeZeros=FALSE)
+  # 
+  # #### End #### 
   
   #### Regression 4: Predict Age ####
   
@@ -2054,11 +2051,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check age distribution #### 
-  
-  showPercentiles("Age", removeZeros=FALSE)
-  
-  #### End #### 
+  # #### Check age distribution #### 
+  # 
+  # showPercentiles("Age", removeZeros=FALSE)
+  # 
+  # #### End #### 
   
   #### Regression 5: Predict Citizenship ####
   
@@ -2143,11 +2140,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check citizenship distribution #### 
-  
-  showDistribution("Citizenship")
-  
-  #### End #### 
+  # #### Check citizenship distribution #### 
+  # 
+  # showDistribution("Citizenship")
+  # 
+  # #### End #### 
   
   #### Regression 6: Veteran Status ####
   
@@ -2232,11 +2229,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check veteran status distribution #### 
-  
-  showDistribution("Veteran status")
-  
-  #### End #### 
+  # #### Check veteran status distribution #### 
+  # 
+  # showDistribution("Veteran status")
+  # 
+  # #### End #### 
   
   #### Regression 7: Predict Dependency Status ####
   
@@ -2323,11 +2320,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check dependency status distribution ####
-  
-  showDistribution("Dependency status")
-  
-  #### End #### 
+  # #### Check dependency status distribution ####
+  # 
+  # showDistribution("Dependency status")
+  # 
+  # #### End #### 
   
   #### Regression 8: Applied for Federal Aid ####
   
@@ -2410,11 +2407,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check federal aid application distribution #### 
-  
-  showDistribution("Applied for federal aid")
-  
-  #### End #### 
+  # #### Check federal aid application distribution #### 
+  # 
+  # showDistribution("Applied for federal aid")
+  # 
+  # #### End #### 
   
   #### Regression 9: Non-Tuition Expense Budget ####
   
@@ -2567,11 +2564,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check non-tuition expense budget distribution #### 
-  
-  showPercentiles("Non-tuition expense budget", removeZeros=FALSE)
-  
-  #### End #### 
+  # #### Check non-tuition expense budget distribution #### 
+  # 
+  # showPercentiles("Non-tuition expense budget", removeZeros=FALSE)
+  # 
+  # #### End #### 
   
   #############################################
   #### Predictions from regressions: Set 2 ####
@@ -2664,11 +2661,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check receives federal grants distribution #### 
-  
-  showDistribution("Receives federal grants")
-  
-  #### End #### 
+  # #### Check receives federal grants distribution #### 
+  # 
+  # showDistribution("Receives federal grants")
+  # 
+  # #### End #### 
   
   #### Regression 11A: Receives VA/DOD Grants (veterans) ####
   
@@ -2835,11 +2832,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check receives VA/DOD grants distribution #### 
-  
-  showDistribution("Receives VA/DOD grants")
-  
-  #### End #### 
+  # #### Check receives VA/DOD grants distribution #### 
+  # 
+  # showDistribution("Receives VA/DOD grants")
+  # 
+  # #### End #### 
   
   #### Regression 12: Receives State Grants ####
   
@@ -2916,11 +2913,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check receives state grants distribution #### 
-  
-  showDistribution("Receives state grants")
-  
-  #### End #### 
+  # #### Check receives state grants distribution #### 
+  # 
+  # showDistribution("Receives state grants")
+  # 
+  # #### End #### 
   
   #### Regression 13: Receives Institutional Grants ####
   
@@ -2997,11 +2994,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check receives institutional grants distribution #### 
-  
-  showDistribution("Receives institutional grants")
-  
-  #### End #### 
+  # #### Check receives institutional grants distribution #### 
+  # 
+  # showDistribution("Receives institutional grants")
+  # 
+  # #### End #### 
   
   #### Regression 14: Receives Private Grants ####
   
@@ -3078,11 +3075,11 @@ for(j in (1:176)){
   
   #### End ####
   
-  #### Check receives private grants distribution #### 
-  
-  showDistribution("Receives private grants")
-  
-  #### End #### 
+  # #### Check receives private grants distribution #### 
+  # 
+  # showDistribution("Receives private grants")
+  # 
+  # #### End #### 
   
   #### Regression 15: Receives Federal Loans ####
   
@@ -3165,11 +3162,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check receives federal loans distribution #### 
-  
-  showDistribution("Receives federal loans")
-  
-  #### End #### 
+  # #### Check receives federal loans distribution #### 
+  # 
+  # showDistribution("Receives federal loans")
+  # 
+  # #### End #### 
   
   #### Regression 16: Receives Parent Loans ####
   
@@ -3252,11 +3249,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check receives parent loans distribution #### 
-  
-  showDistribution("Receives parent loans")
-  
-  #### End #### 
+  # #### Check receives parent loans distribution #### 
+  # 
+  # showDistribution("Receives parent loans")
+  # 
+  # #### End #### 
   
   #############################################
   #### Predictions from regressions: Set 3 ####
@@ -3424,12 +3421,12 @@ for(j in (1:176)){
   )
   
   #### End #### 
-  
-  #### Check federal grant amount distribution ####
-  
-  showPercentiles("Federal grant amount", removeZeros=TRUE)
-  
-  #### End #### 
+   
+  # #### Check federal grant amount distribution ####
+  # 
+  # showPercentiles("Federal grant amount", removeZeros=TRUE)
+  # 
+  # #### End #### 
   
   #### Regression 18: VA/DOD Grant Amount ####
   
@@ -3580,11 +3577,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check VA/DOD grant amount distribution ####
-  
-  showPercentiles("VA/DOD grant amount", removeZeros=TRUE)
-  
-  #### End #### 
+  # #### Check VA/DOD grant amount distribution ####
+  # 
+  # showPercentiles("VA/DOD grant amount", removeZeros=TRUE)
+  # 
+  # #### End #### 
   
   #### Regression 19: State Grant Amount ####
   
@@ -3743,11 +3740,11 @@ for(j in (1:176)){
 
   #### End #### 
   
-  #### Check state grant amount distribution ####
-  
-  showPercentiles("State grant amount", removeZeros=TRUE)
-  
-  #### End #### 
+  # #### Check state grant amount distribution ####
+  # 
+  # showPercentiles("State grant amount", removeZeros=TRUE)
+  # 
+  # #### End #### 
   
   #### Regression 20: Institutional Grant Amount ####
   
@@ -3910,11 +3907,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check institutional grant amount distribution ####
-  
-  showPercentiles("Institutional grant amount", removeZeros=TRUE)
-  
-  #### End #### 
+  # #### Check institutional grant amount distribution ####
+  # 
+  # showPercentiles("Institutional grant amount", removeZeros=TRUE)
+  # 
+  # #### End #### 
   
   #### Regression 21: Private Grant Amount ####
   
@@ -4082,11 +4079,11 @@ for(j in (1:176)){
   
   #### End ####
   
-  #### Check private grant amount distribution ####
-  
-  showPercentiles("Private grant amount", removeZeros=TRUE)
-  
-  #### End #### 
+  # #### Check private grant amount distribution ####
+  # 
+  # showPercentiles("Private grant amount", removeZeros=TRUE)
+  # 
+  # #### End #### 
   
   #### Regression 22: Federal Loan Amount ####
   
@@ -4229,11 +4226,11 @@ for(j in (1:176)){
   
   #### End ####
   
-  #### Check federal loan amount distribution ####
-  
-  showPercentiles("Federal loan amount", removeZeros=TRUE)
-  
-  #### End #### 
+  # #### Check federal loan amount distribution ####
+  # 
+  # showPercentiles("Federal loan amount", removeZeros=TRUE)
+  # 
+  # #### End #### 
   
   #### Regression 23: Parent Loan Amount ####
   
@@ -4324,7 +4321,7 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Parent loan amount` = ifelse(
-      between(`Parent loan amount`, 1, 15500), 
+      between(`Parent loan amount`, 1, 15000), 
       `Parent loan amount` * 0.3, 
       `Parent loan amount`
     )
@@ -4332,32 +4329,40 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Parent loan amount` = ifelse(
-      between(`Parent loan amount`, 15501, 16500), 
-      `Parent loan amount` * 0.5, 
+      between(`Parent loan amount`, 15001, 15500), 
+      `Parent loan amount` * 0.45, 
       `Parent loan amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Parent loan amount` = ifelse(
-      between(`Parent loan amount`, 16501, 17500), 
-      `Parent loan amount` * 0.65, 
+      between(`Parent loan amount`, 15501, 16000), 
+      `Parent loan amount` * 0.55, 
       `Parent loan amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Parent loan amount` = ifelse(
-      between(`Parent loan amount`, 17501, 18500), 
-      `Parent loan amount` * 0.75, 
+      between(`Parent loan amount`, 16001, 16700), 
+      `Parent loan amount` * 0.7, 
       `Parent loan amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Parent loan amount` = ifelse(
-      between(`Parent loan amount`, 18501, 19500), 
-      `Parent loan amount` * 0.85, 
+      between(`Parent loan amount`, 16701, 17000), 
+      `Parent loan amount` * 0.8, 
+      `Parent loan amount`
+    )
+  )
+  
+  studentList <- studentList %>% mutate(
+    `Parent loan amount` = ifelse(
+      between(`Parent loan amount`, 17001, 18000), 
+      `Parent loan amount` * 0.95, 
       `Parent loan amount`
     )
   )
@@ -4368,27 +4373,27 @@ for(j in (1:176)){
   
   studentList <- studentList %>% mutate(
     `Parent loan amount` = ifelse(
-      `Parent loan amount` > 21500, 
-      `Parent loan amount` * 1.4, 
+      `Parent loan amount` > 19500, 
+      `Parent loan amount` * 1.55, 
       `Parent loan amount`
     )
   )
   
   studentList <- studentList %>% mutate(
     `Parent loan amount` = ifelse(
-      between(`Parent loan amount`, 20001, 21500), 
-      `Parent loan amount` * 1.15, 
+      between(`Parent loan amount`, 18500, 19500), 
+      `Parent loan amount` * 1.25, 
       `Parent loan amount`
     )
   )
 
   #### End #### 
   
-  #### Check parent loan amount distribution ####
-  
-  showPercentiles("Parent loan amount", removeZeros=TRUE)
-  
-  #### End #### 
+  # #### Check parent loan amount distribution ####
+  # 
+  # showPercentiles("Parent loan amount", removeZeros=TRUE)
+  # 
+  # #### End #### 
   
   #############################################
   #### Predictions from regressions: Set 4 ####
@@ -4411,7 +4416,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "Has dependents", 
     negativeClass = "Does not have dependents",  
-    thresholdVal = 0.377, # EDITED 
+    thresholdVal = 0.41, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -4475,11 +4480,11 @@ for(j in (1:176)){
   
   #### End #### 
 
-  #### Check parent status distribution ####
-  
-  showDistribution("Parent status")
-  
-  #### End #### 
+  # #### Check parent status distribution ####
+  # 
+  # showDistribution("Parent status")
+  # 
+  # #### End #### 
   
   #### Regression 25: Parental Education Attainment ####
   
@@ -4556,11 +4561,11 @@ for(j in (1:176)){
   
   #### End #### 
   
-  #### Check parental education attainment distribution ####
-  
-  showDistribution("Parental education attainment")
-  
-  #### End #### 
+  # #### Check parental education attainment distribution ####
+  # 
+  # showDistribution("Parental education attainment")
+  # 
+  # #### End #### 
   
   #### Regression 26A: High School GPA >= 2.0 ####
   
@@ -4573,7 +4578,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "GPA >= 2.0", 
     negativeClass = "GPA < 2.0",  
-    thresholdVal = 0.9, 
+    thresholdVal = 0.94, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -4648,7 +4653,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "GPA >= 2.5", 
     negativeClass = "GPA < 2.5",  
-    thresholdVal = 0.83, # EDITED  
+    thresholdVal = 0.84, # EDITED  
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -4731,7 +4736,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "GPA >= 3.0", 
     negativeClass = "GPA < 3.0",  
-    thresholdVal = 0.75, # EDITED 
+    thresholdVal = 0.78, # EDITED 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -4814,7 +4819,7 @@ for(j in (1:176)){
     regressionType = "Logistic", 
     positiveClass = "GPA >= 3.5", 
     negativeClass = "GPA < 3.5",  
-    thresholdVal = 0.5, 
+    thresholdVal = 0.55, 
     absoluteAdjustment = 0, 
     relativeAdjustment = 1,
     showWork = FALSE, 
@@ -4931,12 +4936,12 @@ for(j in (1:176)){
   rm(labelGPA)
   
   #### End #### 
-  
-  #### Check high school GPA distribution #### 
-  
-  showDistribution("High school GPA")
-  
-  #### End #### 
+   
+  # #### Check high school GPA distribution #### 
+  # 
+  # showDistribution("High school GPA")
+  # 
+  # #### End #### 
   
   #### Save file #### 
   
