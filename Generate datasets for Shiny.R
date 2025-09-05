@@ -14,49 +14,12 @@ library(tidyverse)
 
 removeColumns <- function(data1){
   
-  data1 <- data1 %>% mutate(
-    
-    # Adjust by inflation: January 2020 to January 2023 
-    `EFC` = `EFC` * 1.159704, # Does it make sense to do this?
-    `Tuition and fees paid` = `Tuition and fees paid` * 1.159704, 
-    `Non-tuition expense budget` = `Non-tuition expense budget` * 1.159704, 
-    `Federal grant amount` = `Federal grant amount` * 1.159704, # Does it make sense to do this?
-    `VA/DOD grant amount` = `VA/DOD grant amount` * 1.159704, 
-    `State grant amount` = `State grant amount` * 1.159704, 
-    `Institutional grant amount` = `Institutional grant amount` * 1.159704, 
-    `Private grant amount` = `Private grant amount` * 1.159704, 
-    `Federal loan amount` = `Federal loan amount` * 1.159704, 
-    `Parent loan amount` = `Parent loan amount` * 1.159704 
-    
-  ) %>% mutate(
-    
-    # Calculate total grants, loans, and cost 
-    `Total grants` = `Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`, 
-    `Total loans` = `Federal loan amount` + `Parent loan amount`,
-    `Total cost` = `Tuition and fees paid` + `Non-tuition expense budget`
-  
-  ) %>% mutate(
-    
-    # Calculate net price 
-    `Net price` = pmax(0, `Total cost` - `Total grants`)
-    
-  ) %>% select(
+  data1 <- data1 %>% select(
     
     # Remove variables we don't need 
     -(`Effy index`), 
     -(`Student index`), 
-    -(`Race NPSAS`), 
-    -(`Region NPSAS`), 
-    -(`Enrollment intensity NPSAS`), 
-    -(`Tuition policy`), 
     -(`Effy-student index`), 
-    -(`Receives federal grants`),
-    -(`Receives VA/DOD grants`),
-    -(`Receives state grants`),
-    -(`Receives institutional grants`),
-    -(`Receives private grants`),
-    -(`Receives federal loans`),
-    -(`Receives parent loans`),
     -(`High school GPA >= 2.0`),
     -(`High school GPA >= 2.5`),
     -(`High school GPA >= 3.0`),
@@ -74,59 +37,59 @@ removeColumns <- function(data1){
 
 #### End #### 
 
-#### Load procesed output (LONG WAY: 20 MIN) ####
-
-setwd("/Users/peter_granville/Fed State Modeling/Postprocessing data")
-
-for(i in (1:176)){
-
-  print(Sys.time())
-
-  print(paste("Merging dataset ", i, ".", sep=""))
-
-  if(i==1){
-    studentDF <- removeColumns(read.csv(
-      paste("Set-", i, ".csv", sep=""),
-      header=TRUE,
-      check.names=FALSE
-    )) %>% mutate(
-      `Source file number` = rep(i)
-    )
-  }else{
-    tempDF <- removeColumns(read.csv(
-      paste("Set-", i, ".csv", sep=""),
-      header=TRUE,
-      check.names=FALSE
-    )) %>% mutate(
-      `Source file number` = rep(i)
-    )
-    studentDF <- rbind(
-      studentDF,
-      tempDF
-    )
-    rm(tempDF)
-  }
-
-}
-rm(i, removeColumns)
-
-setwd("/Users/peter_granville/Fed State Modeling")
-
-write.csv(studentDF, "All merged student data.csv", row.names=FALSE)
-
-setwd("/Users/peter_granville/Fed State Modeling")
-
-#### End ####
-
-# #### Load processed output (SHORT WAY: 2 MIN) ####
+# #### Load procesed output (LONG WAY: 20 MIN) ####
 # 
-# studentDF <- read.csv(
-#   "All merged student data.csv",
-#   header=TRUE,
-#   check.names=FALSE
-# )
+# setwd("/Users/peter_granville/Fed State Modeling/Postprocessing data")
+# 
+# for(i in (1:176)){
+# 
+#   print(Sys.time())
+# 
+#   print(paste("Merging dataset ", i, ".", sep=""))
+# 
+#   if(i==1){
+#     studentDF <- removeColumns(read.csv(
+#       paste("Set-", i, ".csv", sep=""),
+#       header=TRUE,
+#       check.names=FALSE
+#     )) %>% mutate(
+#       `Source file number` = rep(i)
+#     )
+#   }else{
+#     tempDF <- removeColumns(read.csv(
+#       paste("Set-", i, ".csv", sep=""),
+#       header=TRUE,
+#       check.names=FALSE
+#     )) %>% mutate(
+#       `Source file number` = rep(i)
+#     )
+#     studentDF <- rbind(
+#       studentDF,
+#       tempDF
+#     )
+#     rm(tempDF)
+#   }
+# 
+# }
+# rm(i, removeColumns)
+# 
+# setwd("/Users/peter_granville/Fed State Modeling")
+# 
+# write.csv(studentDF, "All merged student data.csv", row.names=FALSE)
+# 
+# setwd("/Users/peter_granville/Fed State Modeling")
 # 
 # #### End ####
+
+#### Load processed output (SHORT WAY: 2 MIN) ####
+
+studentDF <- read.csv(
+  "All merged student data.csv",
+  header=TRUE,
+  check.names=FALSE
+)
+
+#### End ####
 
 #### Load College Scorecard institution data ####
 
@@ -147,32 +110,50 @@ setwd("/Users/peter_granville/Fed State Modeling")
 #### Checking validity of studentDF         ####
 ################################################
 
+#### Total/net variables ####
+
+studentDF <- studentDF %>% mutate(
+  
+  # Calculate total grants, loans, and cost 
+  `Total grants` = `Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`, 
+  `Total loans` = `Federal loan amount` + `Parent loan amount`,
+  `Total cost` = `Tuition and fees paid` + `Non-tuition expense budget`
+  
+) %>% mutate(
+  
+  # Calculate net price 
+  `Net price` = pmax(0, `Total cost` - `Total grants`)
+  
+) %>% mutate(
+  
+  # Zero EFC status 
+  `Zero EFC status` = ifelse(
+    `EFC`==0, "Zero EFC", "Nonzero EFC"
+  ), 
+  
+  # Receives any grants 
+  `Receives any grants` = ifelse(
+    `Total grants` > 0, "Yes", "No"
+  ), 
+  
+  # Receives any loans 
+  `Receives any loans` = ifelse(
+    `Total loans` > 0, "Yes", "No"
+  )
+  
+) 
+
+#### End #### 
+
 #### Aggregate sums #### 
 
 dollar(sum(studentDF$`Federal grant amount`))
+dollar(sum(studentDF$`VA/DOD grant amount`))
 dollar(sum(studentDF$`State grant amount`))
 dollar(sum(studentDF$`Institutional grant amount`))
 dollar(sum(studentDF$`Private grant amount`))
 dollar(sum(studentDF$`Federal loan amount`))
 dollar(sum(studentDF$`Parent loan amount`))
-
-#### End #### 
-
-#### Turn numeric values into groups ####
-
-studentDF <- studentDF %>% mutate(
-  `Receiving federal grants` = ifelse(`Federal grant amount` > 0, "Yes", "No"), 
-  `Receiving VA/DOD grants` = ifelse(`VA/DOD grant amount` > 0, "Yes", "No"), 
-  `Receiving state grants` = ifelse(`State grant amount` > 0, "Yes", "No"), 
-  `Receiving institutional grants` = ifelse(`Institutional grant amount` > 0, "Yes", "No"), 
-  `Receiving private grants` = ifelse(`Private grant amount` > 0, "Yes", "No"), 
-  `Receiving federal loans` = ifelse(`Federal loan amount` > 0, "Yes", "No"), 
-  `Receiving parent loans` = ifelse(`Parent loan amount` > 0, "Yes", "No")
-) %>% mutate(
-  `Zero EFC status` = ifelse(
-    `EFC`==0, "Zero EFC", "Nonzero EFC"
-  )
-) 
 
 #### End #### 
 
@@ -201,7 +182,7 @@ showDistribution <- function(variableName){
     values_from=`Share`
   )
   
-  print(tempDF)
+  print(as.data.frame(tempDF))
   
   rm(tempDF, totalStudents)
   
@@ -211,7 +192,7 @@ showDistribution <- function(variableName){
 
 #### Write function to display distribution as percentiles ####
 
-showPercentiles <- function(variableName, removeZeros){
+showPercentiles <- function(variableName, removeZeros, USD){
   
   tempDF <- studentDF %>% select(
     all_of(variableName)
@@ -224,7 +205,11 @@ showPercentiles <- function(variableName, removeZeros){
     )
   }
   
-  print(quantile(tempDF$`InterestVar`, probs = seq(.1, .9, by = .1)))
+  if(USD){
+    print(as.data.frame(dollar(quantile(tempDF$`InterestVar`, probs = seq(.1, .9, by = .1)), accuracy=1)))
+  }else{
+    print(as.data.frame(quantile(tempDF$`InterestVar`, probs = seq(.1, .9, by = .1))))
+  }
   
   rm(tempDF)
   
@@ -232,47 +217,71 @@ showPercentiles <- function(variableName, removeZeros){
 
 #### End #### 
 
-#### Run function to display percentages #### 
+# #### Run function to display distributions #### 
+# 
+# showDistribution("Control")
+# showDistribution("Region NPSAS")
+# showDistribution("Race NPSAS")
+# showDistribution("Carnegie NPSAS")
+# showDistribution("Enrollment intensity NPSAS")
+# showDistribution("Gender")
+# showDistribution("Zero-EFC")
+# showPercentiles("EFC", removeZeros=TRUE, USD=TRUE)
+# showDistribution("Tuition jurisdiction")
+# showPercentiles("Tuition and fees paid", removeZeros=TRUE, USD=TRUE)
+# showPercentiles("Age", removeZeros=FALSE, USD=FALSE)
+# showDistribution("Citizenship")
+# showDistribution("Veteran status")
+# showDistribution("Dependency status")
+# showDistribution("Applied for federal aid")
+# showPercentiles("Non-tuition expense budget", removeZeros=FALSE, USD=TRUE)
+# showDistribution("Receives federal grants")
+# showDistribution("Receives VA/DOD grants")
+# showDistribution("Receives state grants")
+# showDistribution("Receives institutional grants")
+# showDistribution("Receives private grants")
+# showDistribution("Receives federal loans")
+# showDistribution("Receives parent loans")
+# showPercentiles("Federal grant amount", removeZeros=TRUE, USD=TRUE)
+# showPercentiles("VA/DOD grant amount", removeZeros=TRUE, USD=TRUE)
+# showPercentiles("State grant amount", removeZeros=TRUE, USD=TRUE)
+# showPercentiles("Institutional grant amount", removeZeros=TRUE, USD=TRUE)
+# showPercentiles("Private grant amount", removeZeros=TRUE, USD=TRUE)
+# showPercentiles("Federal loan amount", removeZeros=TRUE, USD=TRUE)
+# showPercentiles("Parent loan amount", removeZeros=TRUE, USD=TRUE)
+# showDistribution("Parent status")
+# showDistribution("Parental education attainment")
+# showDistribution("High school GPA")
+# showPercentiles("Total cost", removeZeros=FALSE, USD=TRUE)
+# showDistribution("Receives any grants")
+# showPercentiles("Total grants", removeZeros=TRUE, USD=TRUE)
+# showPercentiles("Net price", removeZeros=FALSE, USD=TRUE)
+# showDistribution("Receives any loans")
+# showPercentiles("Total loans", removeZeros=TRUE, USD=TRUE)
+# 
+# #### End #### 
 
-showDistribution("Control")
-showDistribution("Region")
-showDistribution("Race")
-showDistribution("Carnegie NPSAS")
-showDistribution("Enrollment intensity")
-showDistribution("Gender")
-showDistribution("Zero-EFC")
-showPercentiles("EFC", removeZeros=TRUE)
-showDistribution("Tuition jurisdiction")
-showPercentiles("Tuition and fees", removeZeros=TRUE)
-showPercentiles("Age", removeZeros=FALSE)
-showDistribution("Citizenship")
-showDistribution("Dependency status")
-showDistribution("Applied for federal aid")
-showDistribution("Veteran status")
-showPercentiles("Non-tuition expense budget", removeZeros=FALSE)
-showDistribution("Receiving federal grants")
-showDistribution("Receiving VA/DOD grants")
-showDistribution("Receiving state grants")
-showDistribution("Receiving institutional grants")
-showDistribution("Receiving private grants")
-showDistribution("Receiving federal loans")
-showDistribution("Receiving parent loans")
-showPercentiles("Federal grant amount", removeZeros=FALSE)
-showPercentiles("VA/DOD grant amount", removeZeros=FALSE)
-showPercentiles("State grant amount", removeZeros=FALSE)
-showPercentiles("Institutional grant amount", removeZeros=FALSE)
-showPercentiles("Private grant amount", removeZeros=FALSE)
-showPercentiles("Federal loan amount", removeZeros=FALSE)
-showPercentiles("Parent loan amount", removeZeros=FALSE)
-showDistribution("Parent status")
-showDistribution("Parental education attainment")
-showDistribution("High school GPA")
-showPercentiles("Total grants", removeZeros=FALSE)
-showPercentiles("Total loans", removeZeros=FALSE)
-showPercentiles("Total cost", removeZeros=FALSE)
-showPercentiles("Net price", removeZeros=FALSE)
+#### Apply inflation adjustments ####
 
-
+studentDF <- studentDF %>% mutate(
+  
+  # Adjust by inflation: January 2020 to January 2023 
+  `EFC` = `EFC` * 1.159704, # Does it make sense to do this?
+  `Tuition and fees paid` = `Tuition and fees paid` * 1.159704, 
+  `Non-tuition expense budget` = `Non-tuition expense budget` * 1.159704, 
+  `Federal grant amount` = `Federal grant amount` * 1.159704, # Does it make sense to do this?
+  `VA/DOD grant amount` = `VA/DOD grant amount` * 1.159704, 
+  `State grant amount` = `State grant amount` * 1.159704, 
+  `Institutional grant amount` = `Institutional grant amount` * 1.159704, 
+  `Private grant amount` = `Private grant amount` * 1.159704, 
+  `Federal loan amount` = `Federal loan amount` * 1.159704, 
+  `Parent loan amount` = `Parent loan amount` * 1.159704, 
+  `Total grants` = `Total grants` * 1.159704, 
+  `Total loans` = `Total loans` * 1.159704, 
+  `Total cost` = `Total cost` * 1.159704, 
+  `Net price` = `Net price` * 1.159704
+  
+) 
 
 #### End #### 
 
@@ -624,7 +633,11 @@ baselineResults <- data.frame(
   `table4.nonveteran` = c(table4.nonveteran)
 )
 
+setwd("/Users/peter_granville/Fed State Modeling/Model-V1")
+
 write.csv(baselineResults, "Baseline results.csv", row.names=FALSE)
+
+setwd("/Users/peter_granville/Fed State Modeling")
 
 #### End #### 
 
@@ -1510,6 +1523,11 @@ Sys.time()
 
 #### Run simulation for all combinations ####
 
+setwd("/Users/peter_granville/Fed State Modeling/Model-V1")
+
+write.csv(simulationResults, "Simulation results.csv", row.names=FALSE)
+
+setwd("/Users/peter_granville/Fed State Modeling")
 
 #### End #### 
 
