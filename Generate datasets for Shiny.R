@@ -1631,6 +1631,7 @@ for(a in (1:length(inputs.program.goal))){
 }
 
 rm(counter)
+rm(a, b, c, d, e, f, g, h, i, totalCombos)
 
 #### End #### 
 
