@@ -91,21 +91,6 @@ studentDF <- read.csv(
 
 #### End ####
 
-#### Load College Scorecard institution data ####
-
-
-#### End #### 
-
-#### Load state finance data ####
-
-
-#### End #### 
-
-#### Load IPEDS finance data ####
-
-
-#### End #### 
-
 ################################################
 #### Checking validity of studentDF         ####
 ################################################
@@ -285,409 +270,18 @@ studentDF <- studentDF %>% mutate(
 
 #### End #### 
 
-################################################
-#### Run baseline numbers                   ####
-################################################
+#### Group by EFC ####
 
-#### Create baseline dataframe ####
-
-baselineDF <- studentDF 
-
-#### End #### 
-
-#### Turn numeric values into groups #### 
-
-baselineDF <- baselineDF %>% mutate(
-  `Net price group` = ifelse(
-    `Net price`==0, "$0", ifelse(
-      between(`Net price`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Net price`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Net price`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Net price`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
+studentDF <- studentDF %>% mutate(
+  `EFC group` = ifelse(
+    floor(`EFC`)==0, "$0", ifelse(
+      between(floor(`EFC`), 1, 5000), "$1 to $5,000", ifelse(
+        between(floor(`EFC`), 5001, 10000), "$5,001 to $10,000", ifelse(
+          between(floor(`EFC`), 10001, 20000), "$10,001 to $20,000", "Over $20,000"
         )
       )
     )
   )
-)
-
-baselineDF <- baselineDF %>% mutate(
-  `Total loans group` = ifelse(
-    `Total loans`==0, "$0", ifelse(
-      between(`Total loans`, 1, 5000), "$1 to $5,000", ifelse(
-        between(`Total loans`, 5001, 10000), "$5,001 to $10,000", ifelse(
-          between(`Total loans`, 10001, 15000), "$10,001 to $15,000", ifelse(
-            between(`Total loans`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-          )
-        )
-      )
-    )
-  )
-)
-
-#### End #### 
-
-#### Table 1: Total students #### 
-
-table1.students <- sum(baselineDF$Count)
-
-#### End ####
-
-#### Table 2: Net price ####
-
-table2 <- aggregate(
-  data=baselineDF,
-  `Count` ~ `Net price group`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Net price group`, 
-  values_from=`Count`
-) %>% mutate(
-  `$0` = ifelse(is.na(`$0`), 0, `$0`), 
-  `$1 to $5,000` = ifelse(is.na(`$1 to $5,000`), 0, `$1 to $5,000`), 
-  `$5,001 to $10,000` = ifelse(is.na(`$5,001 to $10,000`), 0, `$5,001 to $10,000`), 
-  `$10,001 to $15,000` = ifelse(is.na(`$10,001 to $15,000`), 0, `$10,001 to $15,000`), 
-  `$15,001 to $20,000` = ifelse(is.na(`$15,001 to $20,000`), 0, `$15,001 to $20,000`), 
-  `Above $20,000` = ifelse(is.na(`Above $20,000`), 0, `Above $20,000`)
-) %>% mutate(
-  `Total` = `$0` + `$1 to $5,000` + `$5,001 to $10,000` + `$10,001 to $15,000` + `$15,001 to $20,000` + `Above $20,000`
-) %>% mutate(
-  `Share $0` = `$0` / `Total`, 
-  `Share $1 to $5,000` = `$1 to $5,000` / `Total`, 
-  `Share $5,001 to $10,000` = `$5,001 to $10,000` / `Total`,
-  `Share $10,001 to $15,000` = `$10,001 to $15,000` / `Total`, 
-  `Share $15,001 to $20,000` = `$15,001 to $20,000` / `Total`, 
-  `Share Above $20,000` = `Above $20,000` / `Total`
-)
-
-table2.netprice0 <- table2$`Share $0`[1]
-table2.netprice5000 <- table2$`Share $1 to $5,000`[1]
-table2.netprice10000 <- table2$`Share $5,001 to $10,000`[1]
-table2.netprice15000 <- table2$`Share $10,001 to $15,000`[1]
-table2.netprice20000 <- table2$`Share $15,001 to $20,000`[1]
-table2.netpriceceiling <- table2$`Share Above $20,000`[1]
-
-#### End #### 
-
-#### Table 3: Student loans ####
-
-table3 <- aggregate(
-  data=baselineDF,
-  `Count` ~ `Total loans group`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Total loans group`, 
-  values_from=`Count`
-) %>% mutate(
-  `$0` = ifelse(is.na(`$0`), 0, `$0`), 
-  `$1 to $5,000` = ifelse(is.na(`$1 to $5,000`), 0, `$1 to $5,000`), 
-  `$5,001 to $10,000` = ifelse(is.na(`$5,001 to $10,000`), 0, `$5,001 to $10,000`), 
-  `$10,001 to $15,000` = ifelse(is.na(`$10,001 to $15,000`), 0, `$10,001 to $15,000`), 
-  `$15,001 to $20,000` = ifelse(is.na(`$15,001 to $20,000`), 0, `$15,001 to $20,000`), 
-  `Above $20,000` = ifelse(is.na(`Above $20,000`), 0, `Above $20,000`)
-) %>% mutate(
-  `Total` = `$0` + `$1 to $5,000` + `$5,001 to $10,000` + `$10,001 to $15,000` + `$15,001 to $20,000` + `Above $20,000`
-) %>% mutate(
-  `Share $0` = `$0` / `Total`, 
-  `Share $1 to $5,000` = `$1 to $5,000` / `Total`, 
-  `Share $5,001 to $10,000` = `$5,001 to $10,000` / `Total`,
-  `Share $10,001 to $15,000` = `$10,001 to $15,000` / `Total`, 
-  `Share $15,001 to $20,000` = `$15,001 to $20,000` / `Total`, 
-  `Share Above $20,000` = `Above $20,000` / `Total`
-)
-
-table3.totalloans0 <- table3$`Share $0`[1]
-table3.totalloans5000 <- table3$`Share $1 to $5,000`[1]
-table3.totalloans10000 <- table3$`Share $5,001 to $10,000`[1]
-table3.totalloans15000 <- table3$`Share $10,001 to $15,000`[1]
-table3.totalloans20000 <- table3$`Share $15,001 to $20,000`[1]
-table3.totalloansceiling <- table3$`Share Above $20,000`[1]
-
-#### End #### 
-
-#### Table 4a: Beneficiaries by race ####
-
-table4a <- aggregate(
-  data=baselineDF, 
-  `Count` ~ `Race`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Race`, 
-  values_from=`Count`
-) %>% mutate(
-  `American Indian or Alaska Native` = ifelse(is.na(`American Indian or Alaska Native`), 0, `American Indian or Alaska Native`),
-  `Asian` = ifelse(is.na(`Asian`), 0, `Asian`),
-  `Black or African American` = ifelse(is.na(`Black or African American`), 0, `Black or African American`),
-  `Hispanic or Latino` = ifelse(is.na(`Hispanic or Latino`), 0, `Hispanic or Latino`),
-  `More than one race` = ifelse(is.na(`More than one race`), 0, `More than one race`),
-  `Native Hawaiian/other Pacific Islander` = ifelse(is.na(`Native Hawaiian/other Pacific Islander`), 0, `Native Hawaiian/other Pacific Islander`),
-  `Race/ethnicity unknown` = ifelse(is.na(`Race/ethnicity unknown`), 0, `Race/ethnicity unknown`),
-  `U.S. Nonresident` = ifelse(is.na(`U.S. Nonresident`), 0, `U.S. Nonresident`),
-  `White` = ifelse(is.na(`White`), 0, `White`),
-) %>% mutate(
-  `Total` = `American Indian or Alaska Native` + `Asian` + `Black or African American` + `Hispanic or Latino` + `More than one race` + `Native Hawaiian/other Pacific Islander` + `Race/ethnicity unknown` + `U.S. Nonresident` + `White` 
-) %>% mutate(
-  `Share American Indian or Alaska Native` = `American Indian or Alaska Native` / `Total`,
-  `Share Asian` = `Asian` / `Total`,
-  `Share Black or African American` = `Black or African American` / `Total`,
-  `Share Hispanic or Latino` = `Hispanic or Latino` / `Total`,
-  `Share More than one race` = `More than one race` / `Total`,
-  `Share Native Hawaiian/other Pacific Islander` = `Native Hawaiian/other Pacific Islander` / `Total`,
-  `Share Race/ethnicity unknown` = `Race/ethnicity unknown` / `Total`,
-  `Share U.S. Nonresident` = `U.S. Nonresident` / `Total`,
-  `Share White` = `White` / `Total`,
-)
-
-table4.aian <- table4a$`Share American Indian or Alaska Native`[1]
-table4.asia <- table4a$`Share Asian`[1]
-table4.bkaa <- table4a$`Share Black or African American`[1]
-table4.hisp <- table4a$`Share Hispanic or Latino`[1]
-table4.2mor <- table4a$`Share More than one race`[1]
-table4.nhpi <- table4a$`Share Native Hawaiian/other Pacific Islander`[1]
-table4.unkn <- table4a$`Share Race/ethnicity unknown`[1]
-table4.nonr <- table4a$`Share U.S. Nonresident`[1]
-table4.whit <- table4a$`Share White`[1]
-
-#### End #### 
-
-#### Table 4b: Beneficiaries by gender ####
-
-table4b <- aggregate(
-  data=baselineDF, 
-  `Count` ~ `Gender`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Gender`, 
-  values_from=`Count`
-) %>% mutate(
-  `Male` = ifelse(is.na(`Male`), 0, `Male`),
-  `Female` = ifelse(is.na(`Female`), 0, `Female`),
-) %>% mutate(
-  `Total` = `Male` + `Female` 
-) %>% mutate(
-  `Share Male` = `Male` / `Total`,
-  `Share Female` = `Female` / `Total`,
-)
-
-table4.male <- table4b$`Share Male`[1]
-table4.female <- table4b$`Share Female`[1]
-
-#### End #### 
-
-#### Table 4c: Beneficiaries by first-gen status ####
-
-table4c <- aggregate(
-  data=baselineDF, 
-  `Count` ~ `Parental education attainment`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Parental education attainment`, 
-  values_from=`Count`
-) %>% mutate(
-  `Parents do not have a college degree` = ifelse(is.na(`Parents do not have a college degree`), 0, `Parents do not have a college degree`),
-  `Parents have a college degree` = ifelse(is.na(`Parents have a college degree`), 0, `Parents have a college degree`),
-) %>% mutate(
-  `Total` = `Parents do not have a college degree` + `Parents have a college degree` 
-) %>% mutate(
-  `Share first-gen` = `Parents do not have a college degree` / `Total`,
-  `Share not first-gen` = `Parents have a college degree` / `Total`,
-)
-
-table4.firstgen <- table4c$`Share first-gen`[1]
-table4.notfirstgen <- table4c$`Share not first-gen`[1]
-
-#### End #### 
-
-#### Table 4d: Beneficiaries by dependency status ####
-
-table4d <- aggregate(
-  data=baselineDF, 
-  `Count` ~ `Dependency status`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Dependency status`, 
-  values_from=`Count`
-) %>% mutate(
-  `Dependent` = ifelse(is.na(`Dependent`), 0, `Dependent`),
-  `Independent` = ifelse(is.na(`Independent`), 0, `Independent`),
-) %>% mutate(
-  `Total` = `Dependent` + `Independent` 
-) %>% mutate(
-  `Share Dependent` = `Dependent` / `Total`,
-  `Share Independent` = `Independent` / `Total`,
-)
-
-table4.dependent <- table4d$`Share Dependent`[1]
-table4.independent <- table4d$`Share Independent`[1]
-
-#### End #### 
-
-#### Table 4e: Beneficiaries by zero-EFC status ####
-
-table4e <- aggregate(
-  data=baselineDF, 
-  `Count` ~ `Zero EFC status`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Zero EFC status`, 
-  values_from=`Count`
-) %>% mutate(
-  `Zero EFC` = ifelse(is.na(`Zero EFC`), 0, `Zero EFC`),
-  `Nonzero EFC` = ifelse(is.na(`Nonzero EFC`), 0, `Nonzero EFC`),
-) %>% mutate(
-  `Total` = `Zero EFC` + `Nonzero EFC` 
-) %>% mutate(
-  `Share Zero EFC` = `Zero EFC` / `Total`,
-  `Share Nonzero EFC` = `Nonzero EFC` / `Total`,
-)
-
-table4.zeroEFC <- table4e$`Share Zero EFC`[1]
-table4.nonzeroEFC <- table4e$`Share Nonzero EFC`[1]
-
-#### End #### 
-
-#### Table 4f: Beneficiaries by parent status ####
-
-table4f <- aggregate(
-  data=baselineDF, 
-  `Count` ~ `Parent status`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Parent status`, 
-  values_from=`Count`
-) %>% mutate(
-  `Has dependents` = ifelse(is.na(`Has dependents`), 0, `Has dependents`),
-  `Does not have dependents` = ifelse(is.na(`Does not have dependents`), 0, `Does not have dependents`),
-) %>% mutate(
-  `Total` = `Has dependents` + `Does not have dependents` 
-) %>% mutate(
-  `Share parent` = `Has dependents` / `Total`,
-  `Share nonparent` = `Does not have dependents` / `Total`,
-)
-
-table4.parent <- table4f$`Share parent`[1]
-table4.nonparent <- table4f$`Share nonparent`[1]
-
-#### End #### 
-
-#### Table 4g: Beneficiaries by Veteran status ####
-
-table4g <- aggregate(
-  data=baselineDF, 
-  `Count` ~ `Veteran status`, 
-  FUN=sum
-) %>% pivot_wider(
-  names_from=`Veteran status`, 
-  values_from=`Count`
-) %>% mutate(
-  `Veteran` = ifelse(is.na(`Veteran`), 0, `Veteran`),
-  `Not a veteran` = ifelse(is.na(`Not a veteran`), 0, `Not a veteran`),
-) %>% mutate(
-  `Total` = `Veteran` + `Not a veteran` 
-) %>% mutate(
-  `Share Veteran` = `Veteran` / `Total`,
-  `Share Not a veteran` = `Not a veteran` / `Total`,
-)
-
-table4.veteran <- table4g$`Share Veteran`[1]
-table4.nonveteran <- table4g$`Share Not a veteran`[1]
-
-#### End #### 
-
-#### Return baseline results ####
-
-baselineResults <- data.frame(
-  `table1.students` = c(table1.students),
-  `table2.netprice0` = c(table2.netprice0),
-  `table2.netprice5000` = c(table2.netprice5000),
-  `table2.netprice10000` = c(table2.netprice10000),
-  `table2.netprice15000` = c(table2.netprice15000),
-  `table2.netprice20000` = c(table2.netprice20000),
-  `table2.netpriceceiling` = c(table2.netpriceceiling),
-  `table3.totalloans0` = c(table3.totalloans0),
-  `table3.totalloans5000` = c(table3.totalloans5000),
-  `table3.totalloans10000` = c(table3.totalloans10000),
-  `table3.totalloans15000` = c(table3.totalloans15000),
-  `table3.totalloans20000` = c(table3.totalloans20000),
-  `table3.totalloansceiling` = c(table3.totalloansceiling),
-  `table4.aian` = c(table4.aian),
-  `table4.asia` = c(table4.asia),
-  `table4.bkaa` = c(table4.bkaa),
-  `table4.hisp` = c(table4.hisp),
-  `table4.2mor` = c(table4.2mor),
-  `table4.nhpi` = c(table4.nhpi),
-  `table4.unkn` = c(table4.unkn),
-  `table4.nonr` = c(table4.nonr),
-  `table4.whit` = c(table4.whit),
-  `table4.male` = c(table4.male),
-  `table4.female` = c(table4.female),
-  `table4.firstgen` = c(table4.firstgen),
-  `table4.notfirstgen` = c(table4.notfirstgen),
-  `table4.dependent` = c(table4.dependent),
-  `table4.independent` = c(table4.independent),
-  `table4.zeroEFC` = c(table4.zeroEFC),
-  `table4.nonzeroEFC` = c(table4.nonzeroEFC),
-  `table4.parent` = c(table4.parent),
-  `table4.nonparent` = c(table4.nonparent),
-  `table4.veteran` = c(table4.veteran),
-  `table4.nonveteran` = c(table4.nonveteran)
-)
-
-setwd("/Users/peter_granville/Fed State Modeling/Model-V1")
-
-write.csv(baselineResults, "Baseline results.csv", row.names=FALSE)
-
-setwd("/Users/peter_granville/Fed State Modeling")
-
-#### End #### 
-
-#### Delete objects #### 
-
-rm(
-  baselineDF,
-  table2,
-  table3,
-  table4a,
-  table4b,
-  table4c,
-  table4d,
-  table4e,
-  table4f,
-  table4g, 
-  table1.students,
-  table2.netprice0,
-  table2.netprice5000,
-  table2.netprice10000,
-  table2.netprice15000,
-  table2.netprice20000,
-  table2.netpriceceiling,
-  table3.totalloans0,
-  table3.totalloans5000,
-  table3.totalloans10000,
-  table3.totalloans15000,
-  table3.totalloans20000,
-  table3.totalloansceiling,
-  table4.aian,
-  table4.asia,
-  table4.bkaa,
-  table4.hisp,
-  table4.2mor,
-  table4.nhpi,
-  table4.unkn,
-  table4.nonr,
-  table4.whit,
-  table4.male,
-  table4.female,
-  table4.firstgen,
-  table4.notfirstgen,
-  table4.dependent,
-  table4.independent,
-  table4.zeroEFC,
-  table4.nonzeroEFC,
-  table4.parent,
-  table4.nonparent,
-  table4.veteran,
-  table4.nonveteran
 )
 
 #### End #### 
@@ -701,6 +295,7 @@ runSimulation <- function(
   #### List all inputs ####  
   
   data1, 
+  program.goal,
   elig.carnegie, 
   elig.control, 
   elig.halftime, 
@@ -708,12 +303,30 @@ runSimulation <- function(
   elig.outofstate, 
   elig.noncitizen, 
   elig.fafsa, 
-  elig.gpa,
-  program.amount
+  elig.gpa
   
   #### End #### 
   
 ){
+  
+  # TESTING ONLY
+  # data1 <- studentDF
+  # program.goal <- "Double current federal grant levels"
+  # elig.carnegie <- "Associate's colleges only"
+  # elig.control <- "Public only"
+  # elig.halftime <- "Full-time only"
+  # elig.efc <- "$10,000 or below"
+  # elig.outofstate <- "In-state only" 
+  # elig.noncitizen <- "U.S. citizens or eligible nonciizens only"
+  # elig.fafsa <- "FAFSA completers only"
+  # elig.gpa <- "2.5 or above"
+  # TESTING ONLY
+  
+  #### Make a copy of the original data ####
+  
+  data2 <- data1
+  
+  #### End #### 
   
   #### Establish eligiblity vectors #### 
   
@@ -724,7 +337,7 @@ runSimulation <- function(
   if(elig.carnegie=="Associate's and bachelor's colleges only"){
     vector.carnegie <- c("Associate's", "Baccalaureate")
   }
-  if(elig.carnegie=="All"){
+  if(elig.carnegie=="All institution types"){
     vector.carnegie <- c("Associate's", "Baccalaureate", "Research & Doctoral", "Master's", "Special Focus & other", "Not degree-granting")
   }
 
@@ -735,7 +348,7 @@ runSimulation <- function(
   if(elig.control=="Public and nonprofit"){
     vector.control <- c("Public", "Private nonprofit")
   }
-  if(elig.control=="All"){
+  if(elig.control=="All controls"){
     vector.control <- c("Public", "Private nonprofit", "Private for-profit")
   }
   
@@ -759,7 +372,7 @@ runSimulation <- function(
   if(elig.efc=="$20,000 or below"){
     vector.efc <- c("$0", "$1 to $5,000", "$5,001 to $10,000", "$10,001 to $20,000")
   }
-  if(elig.efc=="All"){
+  if(elig.efc=="All EFC groups"){
     vector.efc <- c("$0", "$1 to $5,000", "$5,001 to $10,000", "$10,001 to $20,000", "Over $20,000")
   }
   
@@ -791,7 +404,7 @@ runSimulation <- function(
   if(elig.gpa=="2.5 or above"){
     vector.gpa <- c("Above 3.5", "Between 3.0 and 3.5", "Between 2.5 and 3.0")
   }
-  if(elig.gpa=="All"){
+  if(elig.gpa=="All GPA groups"){
     vector.gpa <- c("Above 3.5", "Between 3.0 and 3.5", "Between 2.5 and 3.0", "Below 2.5")
   }
   
@@ -799,7 +412,7 @@ runSimulation <- function(
   
   #### Classify by eligibility ####
   
-  data1 <- data1 %>% mutate(
+  data2 <- data2 %>% mutate(
     `Eligible for program` = ifelse(
       (`Carnegie NPSAS` %in% vector.carnegie) & (`Control` %in% vector.control) & (`Enrollment intensity` %in% vector.intensity) & (`EFC group` %in% vector.efc) & (`Tuition jurisdiction` %in% vector.oos) & (`Citizenship` %in% vector.cit) & (`Applied for federal aid` %in% vector.fafsa) & (`High school GPA` %in% vector.gpa), 
       "Eligible", 
@@ -809,180 +422,166 @@ runSimulation <- function(
   
   #### End #### 
   
-  #### Account for grant amount #### 
+  #### Policy goal 1: Tuition set at $0 #### 
   
-  if(program.amount=="$2,000"){
-    coefficient.amount <- 2000
+  if(program.goal=="Eliminate tuition"){
+    
+    data2 <- data2 %>% mutate(
+      `Program amount` = pmax(0, `Tuition and fees paid`)
+    )
+    
   }
-  if(program.amount=="$5,000"){
-    coefficient.amount <- 5000
+  
+  #### End #### 
+  
+  #### Policy goal 2: Net tuition after all grants $0 #### 
+  
+  if(program.goal=="Cover remaining tuition after all other grants"){
+    
+    data2 <- data2 %>% mutate(
+      `Program amount` = pmax(0, `Tuition and fees paid` - `Total grants`)
+    )
+    
   }
-  if(program.amount=="$10,000"){
-    coefficient.amount <- 10000
+  
+  #### End #### 
+  
+  #### Policy goal 3: Double current federal grant levels #### 
+  
+  if(program.goal=="Double current federal grant levels"){
+    
+    data2 <- data2 %>% mutate(
+      `Program amount` = `Federal grant amount`
+    )
+    
   }
-  data1 <- data1 %>% mutate(
+  
+  #### End #### 
+  
+  #### Recalculate total grants, net price, total loans ####
+  
+  data2 <- data2 %>% mutate(
+    
+    # Program amount set to 0 if not eligible for program 
     `Program amount` = ifelse(
-      `Eligible for program`=="Eligible", 
-      coefficient.amount, 
-      0
+      `Eligible for program`=="Eligible", `Program amount`, 0
     )
-  )
-  
-  #### End #### 
-  
-  #### Recalculate net price ####
-  
-  data1 <- data1 %>% mutate(
-    `Total grants` = `Total grants` + `Program amount`
+    
   ) %>% mutate(
-    `Net price` = pmax(0, `Total cost` - `Total grants`), 
-    `Total loans` = pmax(0, `Total loans` - `Program amount`)
-  )
-  
-  #### End #### 
-  
-  #### Turn numeric values into groups #### 
-  
-  data1 <- data1 %>% mutate(
-    `Net price group` = ifelse(
-      `Net price`==0, "$0", ifelse(
-        between(`Net price`, 1, 5000), "$1 to $5,000", ifelse(
-          between(`Net price`, 5001, 10000), "$5,001 to $10,000", ifelse(
-            between(`Net price`, 10001, 15000), "$10,001 to $15,000", ifelse(
-              between(`Net price`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-            )
-          )
-        )
-      )
-    )
-  )
-  
-  data1 <- data1 %>% mutate(
-    `Total loans group` = ifelse(
-      `Total loans`==0, "$0", ifelse(
-        between(`Total loans`, 1, 5000), "$1 to $5,000", ifelse(
-          between(`Total loans`, 5001, 10000), "$5,001 to $10,000", ifelse(
-            between(`Total loans`, 10001, 15000), "$10,001 to $15,000", ifelse(
-              between(`Total loans`, 15001, 20000), "$15,001 to $20,000", "Above $20,000"
-            )
-          )
-        )
-      )
-    )
+    
+    # Increase total grants 
+    `PP Total grants` = `Total grants` + `Program amount`
+    
+  ) %>% mutate(
+    
+    # Recalculate net price
+    `PP Net price` = pmax(0, `Total cost` - `PP Total grants`)
+    
+  ) %>% mutate(
+    
+    # Reduce loans by the program amount 
+    `PP Total loans` = pmax(0, `Total loans` - `Program amount`)
   )
   
   #### End #### 
   
   #### Table 1a: Total recipients, total cost ####
   
-  table1a <- aggregate(
-    data=data1, 
+  table1 <- aggregate(
+    data=data2, 
     cbind(`Count`, `Program amount`) ~ `Eligible for program`, 
     FUN=sum
-  ) %>% filter(
-    `Eligible for program`=="Eligible"
+  ) 
+  
+  if(("Eligible" %in% table1$`Eligible for program`)==FALSE){
+    table1 <- table1 %>% add_row(
+      `Eligible for program` = "Eligible", 
+      `Count` = 0, 
+      `Program amount` = 0
+    )
+  }
+  if(("Not eligible" %in% table1$`Eligible for program`)==FALSE){
+    table1 <- table1 %>% add_row(
+      `Eligible for program` = "Not eligible", 
+      `Count` = 0, 
+      `Program amount` = 0
+    )
+  }
+  
+  table1 <- table1 %>% arrange(
+    `Eligible for program`
   )
   
-  table1.recipients <- table1a$`Count`[1]
-  table1.totalamount <- table1a$`Program amount`[1]
+  table1.recipients <- table1$`Count`[1]
+  table1.nonrecipients <- table1$`Count`[2]
+  table1.totalamount <- table1$`Program amount`[1]
+  
+  rm(table1)
   
   #### End #### 
   
-  #### Table 1b: Share eligible #### 
+  #### Table 2: Net price deciles ####
   
-  table1b <- aggregate(
-    data=data1, 
-    `Count` ~ `Eligible for program`, 
-    FUN=sum
-  ) %>% pivot_wider(
-    names_from=`Eligible for program`, 
-    values_from=`Count`
-  ) %>% mutate(
-    `Eligible` = ifelse(is.na(`Eligible`), 0, `Eligible`), 
-    `Not eligible` = ifelse(is.na(`Not eligible`), 0, `Not eligible`)
-  ) %>% mutate(
-    `Share eligible` = `Eligible` / (`Eligible` + `Not eligible`)
-  )
-  table1.share <- table1b$`Share eligible`[1]
+  deciles.netprice <- quantile(data2$`Net price`, probs = seq(.1, .9, by = .1))
+  deciles.pp.netprice <- quantile(data2$`PP Net price`, probs = seq(.1, .9, by = .1))
   
-  #### End #### 
+  table2.netprice.10 <- deciles.netprice[1]
+  table2.netprice.20 <- deciles.netprice[2]
+  table2.netprice.30 <- deciles.netprice[3]
+  table2.netprice.40 <- deciles.netprice[4]
+  table2.netprice.50 <- deciles.netprice[5]
+  table2.netprice.60 <- deciles.netprice[6]
+  table2.netprice.70 <- deciles.netprice[7]
+  table2.netprice.80 <- deciles.netprice[8]
+  table2.netprice.90 <- deciles.netprice[9]
   
-  #### Table 2: Net price ####
+  table2.pp.netprice.10 <- deciles.pp.netprice[1]
+  table2.pp.netprice.20 <- deciles.pp.netprice[2]
+  table2.pp.netprice.30 <- deciles.pp.netprice[3]
+  table2.pp.netprice.40 <- deciles.pp.netprice[4]
+  table2.pp.netprice.50 <- deciles.pp.netprice[5]
+  table2.pp.netprice.60 <- deciles.pp.netprice[6]
+  table2.pp.netprice.70 <- deciles.pp.netprice[7]
+  table2.pp.netprice.80 <- deciles.pp.netprice[8]
+  table2.pp.netprice.90 <- deciles.pp.netprice[9]
   
-  table2 <- aggregate(
-    data=data1,
-    `Count` ~ `Net price group`, 
-    FUN=sum
-  ) %>% pivot_wider(
-    names_from=`Net price group`, 
-    values_from=`Count`
-  ) %>% mutate(
-    `$0` = ifelse(is.na(`$0`), 0, `$0`), 
-    `$1 to $5,000` = ifelse(is.na(`$1 to $5,000`), 0, `$1 to $5,000`), 
-    `$5,001 to $10,000` = ifelse(is.na(`$5,001 to $10,000`), 0, `$5,001 to $10,000`), 
-    `$10,001 to $15,000` = ifelse(is.na(`$10,001 to $15,000`), 0, `$10,001 to $15,000`), 
-    `$15,001 to $20,000` = ifelse(is.na(`$15,001 to $20,000`), 0, `$15,001 to $20,000`), 
-    `Above $20,000` = ifelse(is.na(`Above $20,000`), 0, `Above $20,000`)
-  ) %>% mutate(
-    `Total` = `$0` + `$1 to $5,000` + `$5,001 to $10,000` + `$10,001 to $15,000` + `$15,001 to $20,000` + `Above $20,000`
-  ) %>% mutate(
-    `Share $0` = `$0` / `Total`, 
-    `Share $1 to $5,000` = `$1 to $5,000` / `Total`, 
-    `Share $5,001 to $10,000` = `$5,001 to $10,000` / `Total`,
-    `Share $10,001 to $15,000` = `$10,001 to $15,000` / `Total`, 
-    `Share $15,001 to $20,000` = `$15,001 to $20,000` / `Total`, 
-    `Share Above $20,000` = `Above $20,000` / `Total`
-  )
-  
-  table2.netprice0 <- table2$`Share $0`[1]
-  table2.netprice5000 <- table2$`Share $1 to $5,000`[1]
-  table2.netprice10000 <- table2$`Share $5,001 to $10,000`[1]
-  table2.netprice15000 <- table2$`Share $10,001 to $15,000`[1]
-  table2.netprice20000 <- table2$`Share $15,001 to $20,000`[1]
-  table2.netpriceceiling <- table2$`Share Above $20,000`[1]
+  rm(deciles.netprice, deciles.pp.netprice)
   
   #### End #### 
   
-  #### Table 3: Student loans ####
+  #### Table 2: Total loans deciles ####
   
-  table3 <- aggregate(
-    data=data1,
-    `Count` ~ `Total loans group`, 
-    FUN=sum
-  ) %>% pivot_wider(
-    names_from=`Total loans group`, 
-    values_from=`Count`
-  ) %>% mutate(
-    `$0` = ifelse(is.na(`$0`), 0, `$0`), 
-    `$1 to $5,000` = ifelse(is.na(`$1 to $5,000`), 0, `$1 to $5,000`), 
-    `$5,001 to $10,000` = ifelse(is.na(`$5,001 to $10,000`), 0, `$5,001 to $10,000`), 
-    `$10,001 to $15,000` = ifelse(is.na(`$10,001 to $15,000`), 0, `$10,001 to $15,000`), 
-    `$15,001 to $20,000` = ifelse(is.na(`$15,001 to $20,000`), 0, `$15,001 to $20,000`), 
-    `Above $20,000` = ifelse(is.na(`Above $20,000`), 0, `Above $20,000`)
-  ) %>% mutate(
-    `Total` = `$0` + `$1 to $5,000` + `$5,001 to $10,000` + `$10,001 to $15,000` + `$15,001 to $20,000` + `Above $20,000`
-  ) %>% mutate(
-    `Share $0` = `$0` / `Total`, 
-    `Share $1 to $5,000` = `$1 to $5,000` / `Total`, 
-    `Share $5,001 to $10,000` = `$5,001 to $10,000` / `Total`,
-    `Share $10,001 to $15,000` = `$10,001 to $15,000` / `Total`, 
-    `Share $15,001 to $20,000` = `$15,001 to $20,000` / `Total`, 
-    `Share Above $20,000` = `Above $20,000` / `Total`
-  )
+  deciles.totalloans <- quantile(data2$`Total loans`, probs = seq(.1, .9, by = .1))
+  deciles.pp.totalloans <- quantile(data2$`PP Total loans`, probs = seq(.1, .9, by = .1))
   
-  table3.totalloans0 <- table3$`Share $0`[1]
-  table3.totalloans5000 <- table3$`Share $1 to $5,000`[1]
-  table3.totalloans10000 <- table3$`Share $5,001 to $10,000`[1]
-  table3.totalloans15000 <- table3$`Share $10,001 to $15,000`[1]
-  table3.totalloans20000 <- table3$`Share $15,001 to $20,000`[1]
-  table3.totalloansceiling <- table3$`Share Above $20,000`[1]
+  table2.totalloans.10 <- deciles.totalloans[1]
+  table2.totalloans.20 <- deciles.totalloans[2]
+  table2.totalloans.30 <- deciles.totalloans[3]
+  table2.totalloans.40 <- deciles.totalloans[4]
+  table2.totalloans.50 <- deciles.totalloans[5]
+  table2.totalloans.60 <- deciles.totalloans[6]
+  table2.totalloans.70 <- deciles.totalloans[7]
+  table2.totalloans.80 <- deciles.totalloans[8]
+  table2.totalloans.90 <- deciles.totalloans[9]
+  
+  table2.pp.totalloans.10 <- deciles.pp.totalloans[1]
+  table2.pp.totalloans.20 <- deciles.pp.totalloans[2]
+  table2.pp.totalloans.30 <- deciles.pp.totalloans[3]
+  table2.pp.totalloans.40 <- deciles.pp.totalloans[4]
+  table2.pp.totalloans.50 <- deciles.pp.totalloans[5]
+  table2.pp.totalloans.60 <- deciles.pp.totalloans[6]
+  table2.pp.totalloans.70 <- deciles.pp.totalloans[7]
+  table2.pp.totalloans.80 <- deciles.pp.totalloans[8]
+  table2.pp.totalloans.90 <- deciles.pp.totalloans[9]
+  
+  rm(deciles.totalloans, deciles.pp.totalloans)
   
   #### End #### 
   
-  #### Table 4a: Beneficiaries by race ####
+  #### Table 3a: Beneficiaries by race ####
   
-  table4a <- aggregate(
-    data=data1, 
+  table3a <- aggregate(
+    data=data2, 
     `Count` ~ `Eligible for program` + `Race`, 
     FUN=sum
   ) %>% pivot_wider(
@@ -998,37 +597,54 @@ runSimulation <- function(
     `Native Hawaiian/other Pacific Islander` = ifelse(is.na(`Native Hawaiian/other Pacific Islander`), 0, `Native Hawaiian/other Pacific Islander`),
     `Race/ethnicity unknown` = ifelse(is.na(`Race/ethnicity unknown`), 0, `Race/ethnicity unknown`),
     `U.S. Nonresident` = ifelse(is.na(`U.S. Nonresident`), 0, `U.S. Nonresident`),
-    `White` = ifelse(is.na(`White`), 0, `White`),
-  ) %>% mutate(
-    `Total` = `American Indian or Alaska Native` + `Asian` + `Black or African American` + `Hispanic or Latino` + `More than one race` + `Native Hawaiian/other Pacific Islander` + `Race/ethnicity unknown` + `U.S. Nonresident` + `White` 
-  ) %>% mutate(
-    `Share American Indian or Alaska Native` = `American Indian or Alaska Native` / `Total`,
-    `Share Asian` = `Asian` / `Total`,
-    `Share Black or African American` = `Black or African American` / `Total`,
-    `Share Hispanic or Latino` = `Hispanic or Latino` / `Total`,
-    `Share More than one race` = `More than one race` / `Total`,
-    `Share Native Hawaiian/other Pacific Islander` = `Native Hawaiian/other Pacific Islander` / `Total`,
-    `Share Race/ethnicity unknown` = `Race/ethnicity unknown` / `Total`,
-    `Share U.S. Nonresident` = `U.S. Nonresident` / `Total`,
-    `Share White` = `White` / `Total`,
+    `White` = ifelse(is.na(`White`), 0, `White`)
+  ) 
+  
+  if(("Eligible" %in% table3a$`Eligible for program`)==FALSE){
+    table3a <- table3a %>% add_row(
+      `Eligible for program` = "Eligible", 
+      `Count` = 0
+    )
+  }
+  if(("Not eligible" %in% table3a$`Eligible for program`)==FALSE){
+    table3a <- table3a %>% add_row(
+      `Eligible for program` = "Not eligible", 
+      `Count` = 0
+    )
+  }
+  
+  table3a <- table3a %>% arrange(
+    `Eligible for program`
   )
   
-  table4.aian <- table4a$`Share American Indian or Alaska Native`[1]
-  table4.asia <- table4a$`Share Asian`[1]
-  table4.bkaa <- table4a$`Share Black or African American`[1]
-  table4.hisp <- table4a$`Share Hispanic or Latino`[1]
-  table4.2mor <- table4a$`Share More than one race`[1]
-  table4.nhpi <- table4a$`Share Native Hawaiian/other Pacific Islander`[1]
-  table4.unkn <- table4a$`Share Race/ethnicity unknown`[1]
-  table4.nonr <- table4a$`Share U.S. Nonresident`[1]
-  table4.whit <- table4a$`Share White`[1]
+  table3.aian.eligible <- table3a$`American Indian or Alaska Native`[1]
+  table3.asia.eligible <- table3a$`Asian`[1]
+  table3.bkaa.eligible <- table3a$`Black or African American`[1]
+  table3.hisp.eligible <- table3a$`Hispanic or Latino`[1]
+  table3.2mor.eligible <- table3a$`More than one race`[1]
+  table3.nhpi.eligible <- table3a$`Native Hawaiian/other Pacific Islander`[1]
+  table3.unkn.eligible <- table3a$`Race/ethnicity unknown`[1]
+  table3.nonr.eligible <- table3a$`U.S. Nonresident`[1]
+  table3.whit.eligible <- table3a$`White`[1]
+  
+  table3.aian.ineligible <- table3a$`American Indian or Alaska Native`[2]
+  table3.asia.ineligible <- table3a$`Asian`[2]
+  table3.bkaa.ineligible <- table3a$`Black or African American`[2]
+  table3.hisp.ineligible <- table3a$`Hispanic or Latino`[2]
+  table3.2mor.ineligible <- table3a$`More than one race`[2]
+  table3.nhpi.ineligible <- table3a$`Native Hawaiian/other Pacific Islander`[2]
+  table3.unkn.ineligible <- table3a$`Race/ethnicity unknown`[2]
+  table3.nonr.ineligible <- table3a$`U.S. Nonresident`[2]
+  table3.whit.ineligible <- table3a$`White`[2]
+  
+  rm(table3a)
   
   #### End #### 
   
-  #### Table 4b: Beneficiaries by gender ####
+  #### Table 3b: Beneficiaries by gender ####
   
-  table4b <- aggregate(
-    data=data1, 
+  table3b <- aggregate(
+    data=data2, 
     `Count` ~ `Eligible for program` + `Gender`, 
     FUN=sum
   ) %>% pivot_wider(
@@ -1037,23 +653,40 @@ runSimulation <- function(
     values_from=`Count`
   ) %>% mutate(
     `Male` = ifelse(is.na(`Male`), 0, `Male`),
-    `Female` = ifelse(is.na(`Female`), 0, `Female`),
-  ) %>% mutate(
-    `Total` = `Male` + `Female` 
-  ) %>% mutate(
-    `Share Male` = `Male` / `Total`,
-    `Share Female` = `Female` / `Total`,
+    `Female` = ifelse(is.na(`Female`), 0, `Female`)
+  ) 
+  
+  if(("Eligible" %in% table3b$`Eligible for program`)==FALSE){
+    table3b <- table3b %>% add_row(
+      `Eligible for program` = "Eligible", 
+      `Count` = 0
+    )
+  }
+  if(("Not eligible" %in% table3b$`Eligible for program`)==FALSE){
+    table3b <- table3b %>% add_row(
+      `Eligible for program` = "Not eligible", 
+      `Count` = 0
+    )
+  }
+  
+  table3b <- table3b %>% arrange(
+    `Eligible for program`
   )
   
-  table4.male <- table4b$`Share Male`[1]
-  table4.female <- table4b$`Share Female`[1]
+  table3.male.eligible <- table3b$`Male`[1]
+  table3.female.eligible <- table3b$`Female`[1]
+  
+  table3.male.ineligible <- table3b$`Male`[2]
+  table3.female.ineligible <- table3b$`Female`[2]
+  
+  rm(table3b)
   
   #### End #### 
   
-  #### Table 4c: Beneficiaries by first-gen status ####
+  #### Table 3c: Beneficiaries by first-gen status ####
   
-  table4c <- aggregate(
-    data=data1, 
+  table3c <- aggregate(
+    data=data2, 
     `Count` ~ `Eligible for program` + `Parental education attainment`, 
     FUN=sum
   ) %>% pivot_wider(
@@ -1062,23 +695,40 @@ runSimulation <- function(
     values_from=`Count`
   ) %>% mutate(
     `Parents do not have a college degree` = ifelse(is.na(`Parents do not have a college degree`), 0, `Parents do not have a college degree`),
-    `Parents have a college degree` = ifelse(is.na(`Parents have a college degree`), 0, `Parents have a college degree`),
-  ) %>% mutate(
-    `Total` = `Parents do not have a college degree` + `Parents have a college degree` 
-  ) %>% mutate(
-    `Share first-gen` = `Parents do not have a college degree` / `Total`,
-    `Share not first-gen` = `Parents have a college degree` / `Total`,
+    `Parents have a college degree` = ifelse(is.na(`Parents have a college degree`), 0, `Parents have a college degree`)
+  ) 
+  
+  if(("Eligible" %in% table3c$`Eligible for program`)==FALSE){
+    table3c <- table3c %>% add_row(
+      `Eligible for program` = "Eligible", 
+      `Count` = 0
+    )
+  }
+  if(("Not eligible" %in% table3c$`Eligible for program`)==FALSE){
+    table3c <- table3c %>% add_row(
+      `Eligible for program` = "Not eligible", 
+      `Count` = 0
+    )
+  }
+  
+  table3c <- table3c %>% arrange(
+    `Eligible for program`
   )
   
-  table4.firstgen <- table4c$`Share first-gen`[1]
-  table4.notfirstgen <- table4c$`Share not first-gen`[1]
+  table3.firstgen.eligible <- table3c$`Parents do not have a college degree`[1]
+  table3.notfirstgen.eligible <- table3c$`Parents have a college degree`[1]
+  
+  table3.firstgen.ineligible <- table3c$`Parents do not have a college degree`[2]
+  table3.notfirstgen.ineligible <- table3c$`Parents have a college degree`[2]
+  
+  rm(table3c)
   
   #### End #### 
   
-  #### Table 4d: Beneficiaries by dependency status ####
+  #### Table 3d: Beneficiaries by dependency status ####
   
-  table4d <- aggregate(
-    data=data1, 
+  table3d <- aggregate(
+    data=data2, 
     `Count` ~ `Eligible for program` + `Dependency status`, 
     FUN=sum
   ) %>% pivot_wider(
@@ -1087,23 +737,40 @@ runSimulation <- function(
     values_from=`Count`
   ) %>% mutate(
     `Dependent` = ifelse(is.na(`Dependent`), 0, `Dependent`),
-    `Independent` = ifelse(is.na(`Independent`), 0, `Independent`),
-  ) %>% mutate(
-    `Total` = `Dependent` + `Independent` 
-  ) %>% mutate(
-    `Share Dependent` = `Dependent` / `Total`,
-    `Share Independent` = `Independent` / `Total`,
+    `Independent` = ifelse(is.na(`Independent`), 0, `Independent`)
+  ) 
+  
+  if(("Eligible" %in% table3d$`Eligible for program`)==FALSE){
+    table3d <- table3d %>% add_row(
+      `Eligible for program` = "Eligible", 
+      `Count` = 0
+    )
+  }
+  if(("Not eligible" %in% table3d$`Eligible for program`)==FALSE){
+    table3d <- table3d %>% add_row(
+      `Eligible for program` = "Not eligible", 
+      `Count` = 0
+    )
+  }
+  
+  table3d <- table3d %>% arrange(
+    `Eligible for program`
   )
   
-  table4.dependent <- table4d$`Share Dependent`[1]
-  table4.independent <- table4d$`Share Independent`[1]
+  table3.dependent.eligible <- table3d$`Dependent`[1]
+  table3.independent.eligible <- table3d$`Independent`[1]
+  
+  table3.dependent.ineligible <- table3d$`Dependent`[2]
+  table3.independent.ineligible <- table3d$`Independent`[2]
+  
+  rm(table3d)
   
   #### End #### 
   
-  #### Table 4e: Beneficiaries by zero-EFC status ####
+  #### Table 3e: Beneficiaries by zero-EFC status ####
   
-  table4e <- aggregate(
-    data=data1, 
+  table3e <- aggregate(
+    data=data2, 
     `Count` ~ `Eligible for program` + `Zero EFC status`, 
     FUN=sum
   ) %>% pivot_wider(
@@ -1112,23 +779,40 @@ runSimulation <- function(
     values_from=`Count`
   ) %>% mutate(
     `Zero EFC` = ifelse(is.na(`Zero EFC`), 0, `Zero EFC`),
-    `Nonzero EFC` = ifelse(is.na(`Nonzero EFC`), 0, `Nonzero EFC`),
-  ) %>% mutate(
-    `Total` = `Zero EFC` + `Nonzero EFC` 
-  ) %>% mutate(
-    `Share Zero EFC` = `Zero EFC` / `Total`,
-    `Share Nonzero EFC` = `Nonzero EFC` / `Total`,
+    `Nonzero EFC` = ifelse(is.na(`Nonzero EFC`), 0, `Nonzero EFC`)
   )
   
-  table4.zeroEFC <- table4e$`Share Zero EFC`[1]
-  table4.nonzeroEFC <- table4e$`Share Nonzero EFC`[1]
+  if(("Eligible" %in% table3e$`Eligible for program`)==FALSE){
+    table3e <- table3e %>% add_row(
+      `Eligible for program` = "Eligible", 
+      `Count` = 0
+    )
+  }
+  if(("Not eligible" %in% table3e$`Eligible for program`)==FALSE){
+    table3e <- table3e %>% add_row(
+      `Eligible for program` = "Not eligible", 
+      `Count` = 0
+    )
+  }
+  
+  table3e <- table3e %>% arrange(
+    `Eligible for program`
+  )
+  
+  table3.zeroEFC.eligible <- table3e$`Zero EFC`[1]
+  table3.nonzeroEFC.eligible <- table3e$`Nonzero EFC`[1]
+  
+  table3.zeroEFC.ineligible <- table3e$`Zero EFC`[2]
+  table3.nonzeroEFC.ineligible <- table3e$`Nonzero EFC`[2]
+  
+  rm(table3e)
   
   #### End #### 
   
-  #### Table 4f: Beneficiaries by parent status ####
+  #### Table 3f: Beneficiaries by parent status ####
   
-  table4f <- aggregate(
-    data=data1, 
+  table3f <- aggregate(
+    data=data2, 
     `Count` ~ `Eligible for program` + `Parent status`, 
     FUN=sum
   ) %>% pivot_wider(
@@ -1137,23 +821,40 @@ runSimulation <- function(
     values_from=`Count`
   ) %>% mutate(
     `Has dependents` = ifelse(is.na(`Has dependents`), 0, `Has dependents`),
-    `Does not have dependents` = ifelse(is.na(`Does not have dependents`), 0, `Does not have dependents`),
-  ) %>% mutate(
-    `Total` = `Has dependents` + `Does not have dependents` 
-  ) %>% mutate(
-    `Share parent` = `Has dependents` / `Total`,
-    `Share nonparent` = `Does not have dependents` / `Total`,
+    `Does not have dependents` = ifelse(is.na(`Does not have dependents`), 0, `Does not have dependents`)
   )
   
-  table4.parent <- table4f$`Share parent`[1]
-  table4.nonparent <- table4f$`Share nonparent`[1]
+  if(("Eligible" %in% table3f$`Eligible for program`)==FALSE){
+    table3f <- table3f %>% add_row(
+      `Eligible for program` = "Eligible", 
+      `Count` = 0
+    )
+  }
+  if(("Not eligible" %in% table3f$`Eligible for program`)==FALSE){
+    table3f <- table3f %>% add_row(
+      `Eligible for program` = "Not eligible", 
+      `Count` = 0
+    )
+  }
+  
+  table3f <- table3f %>% arrange(
+    `Eligible for program`
+  )
+  
+  table3.parent.eligible <- table3f$`Has dependents`[1]
+  table3.nonparent.eligible <- table3f$`Does not have dependents`[1]
+  
+  table3.parent.ineligible <- table3f$`Has dependents`[2]
+  table3.nonparent.ineligible <- table3f$`Does not have dependents`[2]
+  
+  rm(table3f)
   
   #### End #### 
   
-  #### Table 4g: Beneficiaries by Veteran status ####
+  #### Table 3g: Beneficiaries by Veteran status ####
   
-  table4g <- aggregate(
-    data=data1, 
+  table3g <- aggregate(
+    data=data2, 
     `Count` ~ `Eligible for program` + `Veteran status`, 
     FUN=sum
   ) %>% pivot_wider(
@@ -1162,23 +863,40 @@ runSimulation <- function(
     values_from=`Count`
   ) %>% mutate(
     `Veteran` = ifelse(is.na(`Veteran`), 0, `Veteran`),
-    `Not a veteran` = ifelse(is.na(`Not a veteran`), 0, `Not a veteran`),
-  ) %>% mutate(
-    `Total` = `Veteran` + `Not a veteran` 
-  ) %>% mutate(
-    `Share Veteran` = `Veteran` / `Total`,
-    `Share Not a veteran` = `Not a veteran` / `Total`,
+    `Not a veteran` = ifelse(is.na(`Not a veteran`), 0, `Not a veteran`)
+  ) 
+  
+  if(("Eligible" %in% table3g$`Eligible for program`)==FALSE){
+    table3g <- table3g %>% add_row(
+      `Eligible for program` = "Eligible", 
+      `Count` = 0
+    )
+  }
+  if(("Not eligible" %in% table3g$`Eligible for program`)==FALSE){
+    table3g <- table3g %>% add_row(
+      `Eligible for program` = "Not eligible", 
+      `Count` = 0
+    )
+  }
+  
+  table3g <- table3g %>% arrange(
+    `Eligible for program`
   )
   
-  table4.veteran <- table4g$`Share Veteran`[1]
-  table4.nonveteran <- table4g$`Share Not a veteran`[1]
+  table3.veteran.eligible <- table3g$`Veteran`[1]
+  table3.nonveteran.eligible <- table3g$`Not a veteran`[1]
+  
+  table3.veteran.ineligible <- table3g$`Veteran`[2]
+  table3.nonveteran.ineligible <- table3g$`Not a veteran`[2]
+  
+  rm(table3g)
   
   #### End #### 
   
-  #### Table 5: Dollars by state ####
+  #### Table 4: Dollars by state ####
   
-  table5 <- aggregate(
-    data=data1, 
+  table4 <- aggregate(
+    data=data2, 
     `Program amount` ~ `STABBR`, 
     FUN=sum
   ) %>% mutate(
@@ -1188,71 +906,75 @@ runSimulation <- function(
     values_from=`Program amount`
   ) 
   
-  table5.AK <- table5$`AK`[1]
-  table5.AL <- table5$`AL`[1]
-  table5.AR <- table5$`AR`[1]
-  table5.AS <- table5$`AS`[1]
-  table5.AZ <- table5$`AZ`[1]
-  table5.CA <- table5$`CA`[1]
-  table5.CO <- table5$`CO`[1]
-  table5.CT <- table5$`CT`[1]
-  table5.DC <- table5$`DC`[1]
-  table5.DE <- table5$`DE`[1]
-  table5.FL <- table5$`FL`[1]
-  table5.FM <- table5$`FM`[1]
-  table5.GA <- table5$`GA`[1]
-  table5.GU <- table5$`GU`[1]
-  table5.HI <- table5$`HI`[1]
-  table5.IA <- table5$`IA`[1]
-  table5.ID <- table5$`ID`[1]
-  table5.IL <- table5$`IL`[1]
-  table5.IN <- table5$`IN`[1]
-  table5.KS <- table5$`KS`[1]
-  table5.KY <- table5$`KY`[1]
-  table5.LA <- table5$`LA`[1]
-  table5.MA <- table5$`MA`[1]
-  table5.MD <- table5$`MD`[1]
-  table5.ME <- table5$`ME`[1]
-  table5.MH <- table5$`MH`[1]
-  table5.MI <- table5$`MI`[1]
-  table5.MN <- table5$`MN`[1]
-  table5.MO <- table5$`MO`[1]
-  table5.MP <- table5$`MP`[1]
-  table5.MS <- table5$`MS`[1]
-  table5.MT <- table5$`MT`[1]
-  table5.NC <- table5$`NC`[1]
-  table5.ND <- table5$`ND`[1]
-  table5.NE <- table5$`NE`[1]
-  table5.NH <- table5$`NH`[1]
-  table5.NJ <- table5$`NJ`[1]
-  table5.NM <- table5$`NM`[1]
-  table5.NV <- table5$`NV`[1]
-  table5.NY <- table5$`NY`[1]
-  table5.OH <- table5$`OH`[1]
-  table5.OK <- table5$`OK`[1]
-  table5.OR <- table5$`OR`[1]
-  table5.PA <- table5$`PA`[1]
-  table5.PR <- table5$`PR`[1]
-  table5.PW <- table5$`PW`[1]
-  table5.RI <- table5$`RI`[1]
-  table5.SC <- table5$`SC`[1]
-  table5.SD <- table5$`SD`[1]
-  table5.TN <- table5$`TN`[1]
-  table5.TX <- table5$`TX`[1]
-  table5.UT <- table5$`UT`[1]
-  table5.VA <- table5$`VA`[1]
-  table5.VI <- table5$`VI`[1]
-  table5.VT <- table5$`VT`[1]
-  table5.WA <- table5$`WA`[1]
-  table5.WI <- table5$`WI`[1]
-  table5.WV <- table5$`WV`[1]
-  table5.WY <- table5$`WY`[1]
+  table4.AK <- table4$`AK`[1]
+  table4.AL <- table4$`AL`[1]
+  table4.AR <- table4$`AR`[1]
+  table4.AS <- table4$`AS`[1]
+  table4.AZ <- table4$`AZ`[1]
+  table4.CA <- table4$`CA`[1]
+  table4.CO <- table4$`CO`[1]
+  table4.CT <- table4$`CT`[1]
+  table4.DC <- table4$`DC`[1]
+  table4.DE <- table4$`DE`[1]
+  table4.FL <- table4$`FL`[1]
+  table4.FM <- table4$`FM`[1]
+  table4.GA <- table4$`GA`[1]
+  table4.GU <- table4$`GU`[1]
+  table4.HI <- table4$`HI`[1]
+  table4.IA <- table4$`IA`[1]
+  table4.ID <- table4$`ID`[1]
+  table4.IL <- table4$`IL`[1]
+  table4.IN <- table4$`IN`[1]
+  table4.KS <- table4$`KS`[1]
+  table4.KY <- table4$`KY`[1]
+  table4.LA <- table4$`LA`[1]
+  table4.MA <- table4$`MA`[1]
+  table4.MD <- table4$`MD`[1]
+  table4.ME <- table4$`ME`[1]
+  table4.MH <- table4$`MH`[1]
+  table4.MI <- table4$`MI`[1]
+  table4.MN <- table4$`MN`[1]
+  table4.MO <- table4$`MO`[1]
+  table4.MP <- table4$`MP`[1]
+  table4.MS <- table4$`MS`[1]
+  table4.MT <- table4$`MT`[1]
+  table4.NC <- table4$`NC`[1]
+  table4.ND <- table4$`ND`[1]
+  table4.NE <- table4$`NE`[1]
+  table4.NH <- table4$`NH`[1]
+  table4.NJ <- table4$`NJ`[1]
+  table4.NM <- table4$`NM`[1]
+  table4.NV <- table4$`NV`[1]
+  table4.NY <- table4$`NY`[1]
+  table4.OH <- table4$`OH`[1]
+  table4.OK <- table4$`OK`[1]
+  table4.OR <- table4$`OR`[1]
+  table4.PA <- table4$`PA`[1]
+  table4.PR <- table4$`PR`[1]
+  table4.PW <- table4$`PW`[1]
+  table4.RI <- table4$`RI`[1]
+  table4.SC <- table4$`SC`[1]
+  table4.SD <- table4$`SD`[1]
+  table4.TN <- table4$`TN`[1]
+  table4.TX <- table4$`TX`[1]
+  table4.UT <- table4$`UT`[1]
+  table4.VA <- table4$`VA`[1]
+  table4.VI <- table4$`VI`[1]
+  table4.VT <- table4$`VT`[1]
+  table4.WA <- table4$`WA`[1]
+  table4.WI <- table4$`WI`[1]
+  table4.WV <- table4$`WV`[1]
+  table4.WY <- table4$`WY`[1]
+  
+  rm(table4)
   
   #### End #### 
   
   #### Return simulation results #### 
   
   simuResults <- data.frame(
+    
+    # Inputs 
     `elig.carnegie` = c(elig.carnegie),
     `elig.control` = c(elig.control),
     `elig.halftime` = c(elig.halftime),
@@ -1261,101 +983,157 @@ runSimulation <- function(
     `elig.noncitizen` = c(elig.noncitizen),
     `elig.fafsa` = c(elig.fafsa),
     `elig.gpa` = c(elig.gpa),
+    `program.goal` = c(program.goal),
+    
+    # Outputs: Table 1
     `table1.recipients` = c(table1.recipients),
+    `table1.nonrecipients` = c(table1.nonrecipients),
     `table1.totalamount` = c(table1.totalamount),
-    `table1.share` = c(table1.share),
-    `table2.netprice0` = c(table2.netprice0),
-    `table2.netprice5000` = c(table2.netprice5000),
-    `table2.netprice10000` = c(table2.netprice10000),
-    `table2.netprice15000` = c(table2.netprice15000),
-    `table2.netprice20000` = c(table2.netprice20000),
-    `table2.netpriceceiling` = c(table2.netpriceceiling),
-    `table3.totalloans0` = c(table3.totalloans0),
-    `table3.totalloans5000` = c(table3.totalloans5000),
-    `table3.totalloans10000` = c(table3.totalloans10000),
-    `table3.totalloans15000` = c(table3.totalloans15000),
-    `table3.totalloans20000` = c(table3.totalloans20000),
-    `table3.totalloansceiling` = c(table3.totalloansceiling),
-    `table4.aian` = c(table4.aian),
-    `table4.asia` = c(table4.asia),
-    `table4.bkaa` = c(table4.bkaa),
-    `table4.hisp` = c(table4.hisp),
-    `table4.2mor` = c(table4.2mor),
-    `table4.nhpi` = c(table4.nhpi),
-    `table4.unkn` = c(table4.unkn),
-    `table4.nonr` = c(table4.nonr),
-    `table4.whit` = c(table4.whit),
-    `table4.male` = c(table4.male),
-    `table4.female` = c(table4.female),
-    `table4.firstgen` = c(table4.firstgen),
-    `table4.notfirstgen` = c(table4.notfirstgen),
-    `table4.dependent` = c(table4.dependent),
-    `table4.independent` = c(table4.independent),
-    `table4.zeroEFC` = c(table4.zeroEFC),
-    `table4.nonzeroEFC` = c(table4.nonzeroEFC),
-    `table4.parent` = c(table4.parent),
-    `table4.nonparent` = c(table4.nonparent),
-    `table4.veteran` = c(table4.veteran),
-    `table4.nonveteran` = c(table4.nonveteran),
-    `table5.AK` = c(table5.AK),
-    `table5.AL` = c(table5.AL),
-    `table5.AR` = c(table5.AR),
-    `table5.AS` = c(table5.AS),
-    `table5.AZ` = c(table5.AZ),
-    `table5.CA` = c(table5.CA),
-    `table5.CO` = c(table5.CO),
-    `table5.CT` = c(table5.CT),
-    `table5.DC` = c(table5.DC),
-    `table5.DE` = c(table5.DE),
-    `table5.FL` = c(table5.FL),
-    `table5.FM` = c(table5.FM),
-    `table5.GA` = c(table5.GA),
-    `table5.GU` = c(table5.GU),
-    `table5.HI` = c(table5.HI),
-    `table5.IA` = c(table5.IA),
-    `table5.ID` = c(table5.ID),
-    `table5.IL` = c(table5.IL),
-    `table5.IN` = c(table5.IN),
-    `table5.KS` = c(table5.KS),
-    `table5.KY` = c(table5.KY),
-    `table5.LA` = c(table5.LA),
-    `table5.MA` = c(table5.MA),
-    `table5.MD` = c(table5.MD),
-    `table5.ME` = c(table5.ME),
-    `table5.MH` = c(table5.MH),
-    `table5.MI` = c(table5.MI),
-    `table5.MN` = c(table5.MN),
-    `table5.MO` = c(table5.MO),
-    `table5.MP` = c(table5.MP),
-    `table5.MS` = c(table5.MS),
-    `table5.MT` = c(table5.MT),
-    `table5.NC` = c(table5.NC),
-    `table5.ND` = c(table5.ND),
-    `table5.NE` = c(table5.NE),
-    `table5.NH` = c(table5.NH),
-    `table5.NJ` = c(table5.NJ),
-    `table5.NM` = c(table5.NM),
-    `table5.NV` = c(table5.NV),
-    `table5.NY` = c(table5.NY),
-    `table5.OH` = c(table5.OH),
-    `table5.OK` = c(table5.OK),
-    `table5.OR` = c(table5.OR),
-    `table5.PA` = c(table5.PA),
-    `table5.PR` = c(table5.PR),
-    `table5.PW` = c(table5.PW),
-    `table5.RI` = c(table5.RI),
-    `table5.SC` = c(table5.SC),
-    `table5.SD` = c(table5.SD),
-    `table5.TN` = c(table5.TN),
-    `table5.TX` = c(table5.TX),
-    `table5.UT` = c(table5.UT),
-    `table5.VA` = c(table5.VA),
-    `table5.VI` = c(table5.VI),
-    `table5.VT` = c(table5.VT),
-    `table5.WA` = c(table5.WA),
-    `table5.WI` = c(table5.WI),
-    `table5.WV` = c(table5.WV),
-    `table5.WY` = c(table5.WY)
+    
+    # Outputs: Table 2
+    `table2.netprice.10` = c(`table2.netprice.10`),
+    `table2.netprice.20` = c(`table2.netprice.20`),
+    `table2.netprice.30` = c(`table2.netprice.30`),
+    `table2.netprice.40` = c(`table2.netprice.40`),
+    `table2.netprice.50` = c(`table2.netprice.50`),
+    `table2.netprice.60` = c(`table2.netprice.60`),
+    `table2.netprice.70` = c(`table2.netprice.70`),
+    `table2.netprice.80` = c(`table2.netprice.80`),
+    `table2.netprice.90` = c(`table2.netprice.90`),
+    `table2.pp.netprice.10` = c(`table2.pp.netprice.10`),
+    `table2.pp.netprice.20` = c(`table2.pp.netprice.20`),
+    `table2.pp.netprice.30` = c(`table2.pp.netprice.30`),
+    `table2.pp.netprice.40` = c(`table2.pp.netprice.40`),
+    `table2.pp.netprice.50` = c(`table2.pp.netprice.50`),
+    `table2.pp.netprice.60` = c(`table2.pp.netprice.60`),
+    `table2.pp.netprice.70` = c(`table2.pp.netprice.70`),
+    `table2.pp.netprice.80` = c(`table2.pp.netprice.80`),
+    `table2.pp.netprice.90` = c(`table2.pp.netprice.90`),
+    `table2.totalloans.10` = c(`table2.totalloans.10`),
+    `table2.totalloans.20` = c(`table2.totalloans.20`),
+    `table2.totalloans.30` = c(`table2.totalloans.30`),
+    `table2.totalloans.40` = c(`table2.totalloans.40`),
+    `table2.totalloans.50` = c(`table2.totalloans.50`),
+    `table2.totalloans.60` = c(`table2.totalloans.60`),
+    `table2.totalloans.70` = c(`table2.totalloans.70`),
+    `table2.totalloans.80` = c(`table2.totalloans.80`),
+    `table2.totalloans.90` = c(`table2.totalloans.90`),
+    `table2.pp.totalloans.10` = c(`table2.pp.totalloans.10`),
+    `table2.pp.totalloans.20` = c(`table2.pp.totalloans.20`),
+    `table2.pp.totalloans.30` = c(`table2.pp.totalloans.30`),
+    `table2.pp.totalloans.40` = c(`table2.pp.totalloans.40`),
+    `table2.pp.totalloans.50` = c(`table2.pp.totalloans.50`),
+    `table2.pp.totalloans.60` = c(`table2.pp.totalloans.60`),
+    `table2.pp.totalloans.70` = c(`table2.pp.totalloans.70`),
+    `table2.pp.totalloans.80` = c(`table2.pp.totalloans.80`),
+    `table2.pp.totalloans.90` = c(`table2.pp.totalloans.90`),
+    
+    # Outputs: Table 3 (eligible)
+    `table3.aian.eligible` = c(table3.aian.eligible),
+    `table3.asia.eligible` = c(table3.asia.eligible),
+    `table3.bkaa.eligible` = c(table3.bkaa.eligible),
+    `table3.hisp.eligible` = c(table3.hisp.eligible),
+    `table3.2mor.eligible` = c(table3.2mor.eligible),
+    `table3.nhpi.eligible` = c(table3.nhpi.eligible),
+    `table3.unkn.eligible` = c(table3.unkn.eligible),
+    `table3.nonr.eligible` = c(table3.nonr.eligible),
+    `table3.whit.eligible` = c(table3.whit.eligible),
+    `table3.male.eligible` = c(table3.male.eligible),
+    `table3.female.eligible` = c(table3.female.eligible),
+    `table3.firstgen.eligible` = c(table3.firstgen.eligible),
+    `table3.notfirstgen.eligible` = c(table3.notfirstgen.eligible),
+    `table3.dependent.eligible` = c(table3.dependent.eligible),
+    `table3.independent.eligible` = c(table3.independent.eligible),
+    `table3.zeroEFC.eligible` = c(table3.zeroEFC.eligible),
+    `table3.nonzeroEFC.eligible` = c(table3.nonzeroEFC.eligible),
+    `table3.parent.eligible` = c(table3.parent.eligible),
+    `table3.nonparent.eligible` = c(table3.nonparent.eligible),
+    `table3.veteran.eligible` = c(table3.veteran.eligible),
+    `table3.nonveteran.eligible` = c(table3.nonveteran.eligible),
+    
+    # Outputs: Table 3 (ineligible)
+    `table3.aian.ineligible` = c(table3.aian.ineligible),
+    `table3.asia.ineligible` = c(table3.asia.ineligible),
+    `table3.bkaa.ineligible` = c(table3.bkaa.ineligible),
+    `table3.hisp.ineligible` = c(table3.hisp.ineligible),
+    `table3.2mor.ineligible` = c(table3.2mor.ineligible),
+    `table3.nhpi.ineligible` = c(table3.nhpi.ineligible),
+    `table3.unkn.ineligible` = c(table3.unkn.ineligible),
+    `table3.nonr.ineligible` = c(table3.nonr.ineligible),
+    `table3.whit.ineligible` = c(table3.whit.ineligible),
+    `table3.male.ineligible` = c(table3.male.ineligible),
+    `table3.female.ineligible` = c(table3.female.ineligible),
+    `table3.firstgen.ineligible` = c(table3.firstgen.ineligible),
+    `table3.notfirstgen.ineligible` = c(table3.notfirstgen.ineligible),
+    `table3.dependent.ineligible` = c(table3.dependent.ineligible),
+    `table3.independent.ineligible` = c(table3.independent.ineligible),
+    `table3.zeroEFC.ineligible` = c(table3.zeroEFC.ineligible),
+    `table3.nonzeroEFC.ineligible` = c(table3.nonzeroEFC.ineligible),
+    `table3.parent.ineligible` = c(table3.parent.ineligible),
+    `table3.nonparent.ineligible` = c(table3.nonparent.ineligible),
+    `table3.veteran.ineligible` = c(table3.veteran.ineligible),
+    `table3.nonveteran.ineligible` = c(table3.nonveteran.ineligible),
+    
+    # Table 4: Total dollars by state 
+    `table4.AK` = c(table4.AK),
+    `table4.AL` = c(table4.AL),
+    `table4.AR` = c(table4.AR),
+    `table4.AS` = c(table4.AS),
+    `table4.AZ` = c(table4.AZ),
+    `table4.CA` = c(table4.CA),
+    `table4.CO` = c(table4.CO),
+    `table4.CT` = c(table4.CT),
+    `table4.DC` = c(table4.DC),
+    `table4.DE` = c(table4.DE),
+    `table4.FL` = c(table4.FL),
+    `table4.FM` = c(table4.FM),
+    `table4.GA` = c(table4.GA),
+    `table4.GU` = c(table4.GU),
+    `table4.HI` = c(table4.HI),
+    `table4.IA` = c(table4.IA),
+    `table4.ID` = c(table4.ID),
+    `table4.IL` = c(table4.IL),
+    `table4.IN` = c(table4.IN),
+    `table4.KS` = c(table4.KS),
+    `table4.KY` = c(table4.KY),
+    `table4.LA` = c(table4.LA),
+    `table4.MA` = c(table4.MA),
+    `table4.MD` = c(table4.MD),
+    `table4.ME` = c(table4.ME),
+    `table4.MH` = c(table4.MH),
+    `table4.MI` = c(table4.MI),
+    `table4.MN` = c(table4.MN),
+    `table4.MO` = c(table4.MO),
+    `table4.MP` = c(table4.MP),
+    `table4.MS` = c(table4.MS),
+    `table4.MT` = c(table4.MT),
+    `table4.NC` = c(table4.NC),
+    `table4.ND` = c(table4.ND),
+    `table4.NE` = c(table4.NE),
+    `table4.NH` = c(table4.NH),
+    `table4.NJ` = c(table4.NJ),
+    `table4.NM` = c(table4.NM),
+    `table4.NV` = c(table4.NV),
+    `table4.NY` = c(table4.NY),
+    `table4.OH` = c(table4.OH),
+    `table4.OK` = c(table4.OK),
+    `table4.OR` = c(table4.OR),
+    `table4.PA` = c(table4.PA),
+    `table4.PR` = c(table4.PR),
+    `table4.PW` = c(table4.PW),
+    `table4.RI` = c(table4.RI),
+    `table4.SC` = c(table4.SC),
+    `table4.SD` = c(table4.SD),
+    `table4.TN` = c(table4.TN),
+    `table4.TX` = c(table4.TX),
+    `table4.UT` = c(table4.UT),
+    `table4.VA` = c(table4.VA),
+    `table4.VI` = c(table4.VI),
+    `table4.VT` = c(table4.VT),
+    `table4.WA` = c(table4.WA),
+    `table4.WI` = c(table4.WI),
+    `table4.WV` = c(table4.WV),
+    `table4.WY` = c(table4.WY)
   )
   
   return(simuResults)
@@ -1366,130 +1144,169 @@ runSimulation <- function(
   #### Delete objects #### 
   
   rm(
-    coefficient.amount,
-    vector.carnegie,
-    vector.control,
-    vector.intensity,
-    vector.efc,
-    vector.oos,
-    vector.cit,
-    vector.fafsa,
-    vector.gpa, 
-    table1a,
-    table1b,
-    table2,
-    table3,
-    table4a,
-    table4b,
-    table4c,
-    table4d,
-    table4e,
-    table4f,
-    table4g, 
-    elig.carnegie,
-    elig.control,
-    elig.halftime,
-    elig.efc,
-    elig.outofstate,
-    elig.noncitizen,
-    elig.fafsa,
-    elig.gpa,
-    program.amount,
-    table1.recipients,
-    table1.totalamount,
-    table1.share,
-    table2.netprice0,
-    table2.netprice5000,
-    table2.netprice10000,
-    table2.netprice15000,
-    table2.netprice20000,
-    table2.netpriceceiling,
-    table3.totalloans0,
-    table3.totalloans5000,
-    table3.totalloans10000,
-    table3.totalloans15000,
-    table3.totalloans20000,
-    table3.totalloansceiling,
-    table4.aian,
-    table4.asia,
-    table4.bkaa,
-    table4.hisp,
-    table4.2mor,
-    table4.nhpi,
-    table4.unkn,
-    table4.nonr,
-    table4.whit,
-    table4.male,
-    table4.female,
-    table4.firstgen,
-    table4.notfirstgen,
-    table4.dependent,
-    table4.independent,
-    table4.zeroEFC,
-    table4.nonzeroEFC,
-    table4.parent,
-    table4.nonparent,
-    table4.veteran,
-    table4.nonveteran,
-    table5.AK,
-    table5.AL,
-    table5.AR,
-    table5.AS,
-    table5.AZ,
-    table5.CA,
-    table5.CO,
-    table5.CT,
-    table5.DC,
-    table5.DE,
-    table5.FL,
-    table5.FM,
-    table5.GA,
-    table5.GU,
-    table5.HI,
-    table5.IA,
-    table5.ID,
-    table5.IL,
-    table5.IN,
-    table5.KS,
-    table5.KY,
-    table5.LA,
-    table5.MA,
-    table5.MD,
-    table5.ME,
-    table5.MH,
-    table5.MI,
-    table5.MN,
-    table5.MO,
-    table5.MP,
-    table5.MS,
-    table5.MT,
-    table5.NC,
-    table5.ND,
-    table5.NE,
-    table5.NH,
-    table5.NJ,
-    table5.NM,
-    table5.NV,
-    table5.NY,
-    table5.OH,
-    table5.OK,
-    table5.OR,
-    table5.PA,
-    table5.PR,
-    table5.PW,
-    table5.RI,
-    table5.SC,
-    table5.SD,
-    table5.TN,
-    table5.TX,
-    table5.UT,
-    table5.VA,
-    table5.VI,
-    table5.VT,
-    table5.WA,
-    table5.WI,
-    table5.WV,
-    table5.WY
+    
+    # Temporary dataframe 
+    data2, 
+    
+    # Eligibility vectors 
+    `vector.carnegie`, 
+    `vector.cit`,
+    `vector.control`, 
+    `vector.efc`, 
+    `vector.fafsa`, 
+    `vector.gpa`, 
+    `vector.intensity`, 
+    `vector.oos`,
+    
+    # Outputs: Table 1
+    `table1.recipients`,
+    `table1.nonrecipients`,
+    `table1.totalamount`,
+    
+    # Outputs: Table 2
+    `table2.netprice.10`,
+    `table2.netprice.20`,
+    `table2.netprice.30`,
+    `table2.netprice.40`,
+    `table2.netprice.50`,
+    `table2.netprice.60`,
+    `table2.netprice.70`,
+    `table2.netprice.80`,
+    `table2.netprice.90`,
+    `table2.pp.netprice.10`,
+    `table2.pp.netprice.20`,
+    `table2.pp.netprice.30`,
+    `table2.pp.netprice.40`,
+    `table2.pp.netprice.50`,
+    `table2.pp.netprice.60`,
+    `table2.pp.netprice.70`,
+    `table2.pp.netprice.80`,
+    `table2.pp.netprice.90`,
+    `table2.totalloans.10`,
+    `table2.totalloans.20`,
+    `table2.totalloans.30`,
+    `table2.totalloans.40`,
+    `table2.totalloans.50`,
+    `table2.totalloans.60`,
+    `table2.totalloans.70`,
+    `table2.totalloans.80`,
+    `table2.totalloans.90`,
+    `table2.pp.totalloans.10`,
+    `table2.pp.totalloans.20`,
+    `table2.pp.totalloans.30`,
+    `table2.pp.totalloans.40`,
+    `table2.pp.totalloans.50`,
+    `table2.pp.totalloans.60`,
+    `table2.pp.totalloans.70`,
+    `table2.pp.totalloans.80`,
+    `table2.pp.totalloans.90`,
+    
+    # Outputs: Table 3 (eligible)
+    `table3.aian.eligible`,
+    `table3.asia.eligible`,
+    `table3.bkaa.eligible`,
+    `table3.hisp.eligible`,
+    `table3.2mor.eligible`,
+    `table3.nhpi.eligible`,
+    `table3.unkn.eligible`,
+    `table3.nonr.eligible`,
+    `table3.whit.eligible`,
+    `table3.male.eligible`,
+    `table3.female.eligible`,
+    `table3.firstgen.eligible`,
+    `table3.notfirstgen.eligible`,
+    `table3.dependent.eligible`,
+    `table3.independent.eligible`,
+    `table3.zeroEFC.eligible`,
+    `table3.nonzeroEFC.eligible`,
+    `table3.parent.eligible`,
+    `table3.nonparent.eligible`,
+    `table3.veteran.eligible`,
+    `table3.nonveteran.eligible`,
+    
+    # Outputs: Table 3 (ineligible)
+    `table3.aian.ineligible`,
+    `table3.asia.ineligible`,
+    `table3.bkaa.ineligible`,
+    `table3.hisp.ineligible`,
+    `table3.2mor.ineligible`,
+    `table3.nhpi.ineligible`,
+    `table3.unkn.ineligible`,
+    `table3.nonr.ineligible`,
+    `table3.whit.ineligible`,
+    `table3.male.ineligible`,
+    `table3.female.ineligible`,
+    `table3.firstgen.ineligible`,
+    `table3.notfirstgen.ineligible`,
+    `table3.dependent.ineligible`,
+    `table3.independent.ineligible`,
+    `table3.zeroEFC.ineligible`,
+    `table3.nonzeroEFC.ineligible`,
+    `table3.parent.ineligible`,
+    `table3.nonparent.ineligible`,
+    `table3.veteran.ineligible`,
+    `table3.nonveteran.ineligible`,
+    
+    # Table 4: Total dollars by state 
+    `table4.AK`,
+    `table4.AL`,
+    `table4.AR`,
+    `table4.AS`,
+    `table4.AZ`,
+    `table4.CA`,
+    `table4.CO`,
+    `table4.CT`,
+    `table4.DC`,
+    `table4.DE`,
+    `table4.FL`,
+    `table4.FM`,
+    `table4.GA`,
+    `table4.GU`,
+    `table4.HI`,
+    `table4.IA`,
+    `table4.ID`,
+    `table4.IL`,
+    `table4.IN`,
+    `table4.KS`,
+    `table4.KY`,
+    `table4.LA`,
+    `table4.MA`,
+    `table4.MD`,
+    `table4.ME`,
+    `table4.MH`,
+    `table4.MI`,
+    `table4.MN`,
+    `table4.MO`,
+    `table4.MP`,
+    `table4.MS`,
+    `table4.MT`,
+    `table4.NC`,
+    `table4.ND`,
+    `table4.NE`,
+    `table4.NH`,
+    `table4.NJ`,
+    `table4.NM`,
+    `table4.NV`,
+    `table4.NY`,
+    `table4.OH`,
+    `table4.OK`,
+    `table4.OR`,
+    `table4.PA`,
+    `table4.PR`,
+    `table4.PW`,
+    `table4.RI`,
+    `table4.SC`,
+    `table4.SD`,
+    `table4.TN`,
+    `table4.TX`,
+    `table4.UT`,
+    `table4.VA`,
+    `table4.VI`,
+    `table4.VT`,
+    `table4.WA`,
+    `table4.WI`,
+    `table4.WV`,
+    `table4.WY` 
   )
   
   #### End #### 
@@ -1500,28 +1317,324 @@ runSimulation <- function(
 #### Run results                            ####
 ################################################
 
-#### Test simulation #### 
+# #### Test simulation #### 
+# 
+# Sys.time()
+# 
+# test <- runSimulation(
+#   data1=studentDF, 
+#   program.goal="Double current federal grant levels",
+#   elig.carnegie="Associate's colleges only", 
+#   elig.control="Public only", 
+#   elig.halftime="Full-time and part-time", 
+#   elig.efc="All EFC groups", 
+#   elig.outofstate="In-state only", 
+#   elig.noncitizen="U.S. citizens or eligible nonciizens only", 
+#   elig.fafsa="FAFSA completers only", 
+#   elig.gpa="All GPA groups"
+# )
+# 
+# Sys.time()
+# 
+# #### End #### 
 
-Sys.time()
+#### Establish possible combinations ####
 
-test <- runSimulation(
-  data1=studentDF, 
-  elig.carnegie="Associate's colleges only", 
-  elig.control="Public only", 
-  elig.halftime="All enrollment intensity", 
-  elig.efc="All", 
-  elig.outofstate="In-state only", 
-  elig.noncitizen="U.S. citizens or eligible nonciizens only", 
-  elig.fafsa="FAFSA completers only", 
-  elig.gpa="All",
-  program.amount="$5,000"
+inputs.program.goal <- c(
+  "Eliminate tuition", 
+  "Cover remaining tuition after all other grants", 
+  "Double current federal grant levels"
 )
 
-Sys.time()
+inputs.elig.carnegie <- c(
+  "Associate's colleges only", 
+  "Associate's and bachelor's colleges only", 
+  "All institution types"
+)
+
+inputs.elig.control <- c(
+  "Public only", 
+  "Public and nonprofit", 
+  "All controls"
+)
+
+inputs.elig.halftime <- c(
+  "Full-time only", 
+  "Full-time and part-time"
+)
+
+inputs.elig.efc <- c(
+  "$0 only", 
+  # "$5,000 or below", 
+  "$10,000 or below", 
+  # "$20,000 or below",
+  "All EFC groups"
+)
+
+inputs.elig.outofstate <- c(
+  "In-state only"
+  # , 
+  # "In-state and out-of-state"
+)
+
+inputs.elig.noncitizen <- c(
+  "U.S. citizens or eligible noncitizens only"
+  # , 
+  # "All statuses"
+)
+
+inputs.elig.fafsa <- c(
+  "FAFSA completers only"
+  # ,
+  # "Completers and non-completers"
+)
+
+inputs.elig.gpa <- c(
+  # "3.0 or above", 
+  "2.5 or above"
+  # , 
+  # "All GPA groups"
+)
+
+#### End #### 
+
+#### Count total combinations ####
+
+totalCombos <- length(
+  inputs.program.goal
+) * length(
+  inputs.elig.carnegie
+) * length(
+  inputs.elig.control
+) * length(
+  inputs.elig.halftime
+) * length(
+  inputs.elig.efc
+) * length(
+  inputs.elig.outofstate
+) * length(
+  inputs.elig.noncitizen
+) * length(
+  inputs.elig.fafsa
+) * length(
+  inputs.elig.gpa
+)
+
+#### End #### 
+
+#### Make an empty dataframe ####
+
+simulationResults <- data.frame(
+  
+  # Inputs 
+  `elig.carnegie` = character(), 
+  `elig.control` = character(), 
+  `elig.halftime` = character(), 
+  `elig.efc` = character(), 
+  `elig.outofstate` = character(), 
+  `elig.noncitizen` = character(), 
+  `elig.fafsa` = character(), 
+  `elig.gpa` = character(), 
+  `program.goal` = character(), 
+  
+  # Outputs: Table 1
+  `table1.recipients` = numeric(), 
+  `table1.nonrecipients` = numeric(), 
+  `table1.totalamount` = numeric(), 
+  
+  # Outputs: Table 2
+  `table2.netprice.10` = numeric(), 
+  `table2.netprice.20` = numeric(), 
+  `table2.netprice.30` = numeric(), 
+  `table2.netprice.40` = numeric(), 
+  `table2.netprice.50` = numeric(), 
+  `table2.netprice.60` = numeric(), 
+  `table2.netprice.70` = numeric(), 
+  `table2.netprice.80` = numeric(), 
+  `table2.netprice.90` = numeric(), 
+  `table2.pp.netprice.10` = numeric(), 
+  `table2.pp.netprice.20` = numeric(), 
+  `table2.pp.netprice.30` = numeric(), 
+  `table2.pp.netprice.40` = numeric(), 
+  `table2.pp.netprice.50` = numeric(), 
+  `table2.pp.netprice.60` = numeric(), 
+  `table2.pp.netprice.70` = numeric(), 
+  `table2.pp.netprice.80` = numeric(), 
+  `table2.pp.netprice.90` = numeric(), 
+  `table2.totalloans.10` = numeric(), 
+  `table2.totalloans.20` = numeric(), 
+  `table2.totalloans.30` = numeric(), 
+  `table2.totalloans.40` = numeric(), 
+  `table2.totalloans.50` = numeric(), 
+  `table2.totalloans.60` = numeric(), 
+  `table2.totalloans.70` = numeric(), 
+  `table2.totalloans.80` = numeric(), 
+  `table2.totalloans.90` = numeric(), 
+  `table2.pp.totalloans.10` = numeric(), 
+  `table2.pp.totalloans.20` = numeric(), 
+  `table2.pp.totalloans.30` = numeric(), 
+  `table2.pp.totalloans.40` = numeric(), 
+  `table2.pp.totalloans.50` = numeric(), 
+  `table2.pp.totalloans.60` = numeric(), 
+  `table2.pp.totalloans.70` = numeric(), 
+  `table2.pp.totalloans.80` = numeric(), 
+  `table2.pp.totalloans.90` = numeric(), 
+  
+  # Outputs: Table 3 (eligible)
+  `table3.aian.eligible` = numeric(), 
+  `table3.asia.eligible` = numeric(), 
+  `table3.bkaa.eligible` = numeric(), 
+  `table3.hisp.eligible` = numeric(), 
+  `table3.2mor.eligible` = numeric(), 
+  `table3.nhpi.eligible` = numeric(), 
+  `table3.unkn.eligible` = numeric(), 
+  `table3.nonr.eligible` = numeric(), 
+  `table3.whit.eligible` = numeric(), 
+  `table3.male.eligible` = numeric(), 
+  `table3.female.eligible` = numeric(), 
+  `table3.firstgen.eligible` = numeric(), 
+  `table3.notfirstgen.eligible` = numeric(), 
+  `table3.dependent.eligible` = numeric(), 
+  `table3.independent.eligible` = numeric(), 
+  `table3.zeroEFC.eligible` = numeric(), 
+  `table3.nonzeroEFC.eligible` = numeric(), 
+  `table3.parent.eligible` = numeric(), 
+  `table3.nonparent.eligible` = numeric(), 
+  `table3.veteran.eligible` = numeric(), 
+  `table3.nonveteran.eligible` = numeric(), 
+  
+  # Outputs: Table 3 (ineligible)
+  `table3.aian.ineligible` = numeric(), 
+  `table3.asia.ineligible` = numeric(), 
+  `table3.bkaa.ineligible` = numeric(), 
+  `table3.hisp.ineligible` = numeric(), 
+  `table3.2mor.ineligible` = numeric(), 
+  `table3.nhpi.ineligible` = numeric(), 
+  `table3.unkn.ineligible` = numeric(), 
+  `table3.nonr.ineligible` = numeric(), 
+  `table3.whit.ineligible` = numeric(), 
+  `table3.male.ineligible` = numeric(), 
+  `table3.female.ineligible` = numeric(), 
+  `table3.firstgen.ineligible` = numeric(), 
+  `table3.notfirstgen.ineligible` = numeric(), 
+  `table3.dependent.ineligible` = numeric(), 
+  `table3.independent.ineligible` = numeric(), 
+  `table3.zeroEFC.ineligible` = numeric(), 
+  `table3.nonzeroEFC.ineligible` = numeric(), 
+  `table3.parent.ineligible` = numeric(), 
+  `table3.nonparent.ineligible` = numeric(), 
+  `table3.veteran.ineligible` = numeric(), 
+  `table3.nonveteran.ineligible` = numeric(), 
+  
+  # Table 4: Total dollars by state 
+  `table4.AK` = numeric(), 
+  `table4.AL` = numeric(), 
+  `table4.AR` = numeric(), 
+  `table4.AS` = numeric(), 
+  `table4.AZ` = numeric(), 
+  `table4.CA` = numeric(), 
+  `table4.CO` = numeric(), 
+  `table4.CT` = numeric(), 
+  `table4.DC` = numeric(), 
+  `table4.DE` = numeric(), 
+  `table4.FL` = numeric(), 
+  `table4.FM` = numeric(), 
+  `table4.GA` = numeric(), 
+  `table4.GU` = numeric(), 
+  `table4.HI` = numeric(), 
+  `table4.IA` = numeric(), 
+  `table4.ID` = numeric(), 
+  `table4.IL` = numeric(), 
+  `table4.IN` = numeric(), 
+  `table4.KS` = numeric(), 
+  `table4.KY` = numeric(), 
+  `table4.LA` = numeric(), 
+  `table4.MA` = numeric(), 
+  `table4.MD` = numeric(), 
+  `table4.ME` = numeric(), 
+  `table4.MH` = numeric(), 
+  `table4.MI` = numeric(), 
+  `table4.MN` = numeric(), 
+  `table4.MO` = numeric(), 
+  `table4.MP` = numeric(), 
+  `table4.MS` = numeric(), 
+  `table4.MT` = numeric(), 
+  `table4.NC` = numeric(), 
+  `table4.ND` = numeric(), 
+  `table4.NE` = numeric(), 
+  `table4.NH` = numeric(), 
+  `table4.NJ` = numeric(), 
+  `table4.NM` = numeric(), 
+  `table4.NV` = numeric(), 
+  `table4.NY` = numeric(), 
+  `table4.OH` = numeric(), 
+  `table4.OK` = numeric(), 
+  `table4.OR` = numeric(), 
+  `table4.PA` = numeric(), 
+  `table4.PR` = numeric(), 
+  `table4.PW` = numeric(), 
+  `table4.RI` = numeric(), 
+  `table4.SC` = numeric(), 
+  `table4.SD` = numeric(), 
+  `table4.TN` = numeric(), 
+  `table4.TX` = numeric(), 
+  `table4.UT` = numeric(), 
+  `table4.VA` = numeric(), 
+  `table4.VI` = numeric(), 
+  `table4.VT` = numeric(), 
+  `table4.WA` = numeric(), 
+  `table4.WI` = numeric(), 
+  `table4.WV` = numeric(), 
+  `table4.WY` = numeric()
+)
 
 #### End #### 
 
 #### Run simulation for all combinations ####
+
+counter <- 1
+
+for(a in (1:length(inputs.program.goal))){
+  for(b in (1:length(inputs.elig.carnegie))){
+    for(c in (1:length(inputs.elig.control))){
+      for(d in (1:length(inputs.elig.halftime))){
+        for(e in (1:length(inputs.elig.efc))){
+          for(f in (1:length(inputs.elig.outofstate))){
+            for(g in (1:length(inputs.elig.noncitizen))){
+              for(h in (1:length(inputs.elig.fafsa))){
+                for(i in (1:length(inputs.elig.gpa))){
+                  print(paste("Number ", counter, " out of ", totalCombos, " at ", Sys.time(), ".", sep=""))
+                  simulationResults <- rbind(
+                    simulationResults, 
+                    runSimulation(
+                      data1 = studentDF, 
+                      program.goal = inputs.program.goal[a],
+                      elig.carnegie = inputs.elig.carnegie[b], 
+                      elig.control = inputs.elig.control[c], 
+                      elig.halftime = inputs.elig.halftime[d], 
+                      elig.efc = inputs.elig.efc[e], 
+                      elig.outofstate = inputs.elig.outofstate[f], 
+                      elig.noncitizen = inputs.elig.noncitizen[g], 
+                      elig.fafsa = inputs.elig.fafsa[h], 
+                      elig.gpa = inputs.elig.gpa[i]
+                    )
+                  )
+                  counter <- counter + 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+rm(counter)
+
+#### End #### 
+
+#### Save results for use by app #### 
 
 setwd("/Users/peter_granville/Fed State Modeling/Model-V1")
 
