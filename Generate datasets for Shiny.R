@@ -7,7 +7,7 @@ library(tidyverse)
 #### End ####
 
 ################################################
-#### Load daatsets                          ####
+#### Load datasets                          ####
 ################################################
 
 #### Write function to remove columns ####
@@ -19,11 +19,7 @@ removeColumns <- function(data1){
     # Remove variables we don't need 
     -(`Effy index`), 
     -(`Student index`), 
-    -(`Effy-student index`), 
-    -(`High school GPA >= 2.0`),
-    -(`High school GPA >= 2.5`),
-    -(`High school GPA >= 3.0`),
-    -(`High school GPA >= 3.5`)
+    -(`Effy-student index`)
     
   ) %>% mutate(
     
@@ -37,59 +33,1094 @@ removeColumns <- function(data1){
 
 #### End #### 
 
-# #### Load procesed output (LONG WAY: 20 MIN) ####
+#### Load procesed output (LONG WAY: 90+ MIN) ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Postprocessing data")
+
+for(i in (1:305)){
+
+  print(Sys.time())
+
+  print(paste("Merging dataset ", i, ".", sep=""))
+
+  if(i==1){
+    studentDF <- removeColumns(read.csv(
+      paste("Set-", i, ".csv", sep=""),
+      header=TRUE,
+      check.names=FALSE
+    )) %>% mutate(
+      `Source file number` = rep(i)
+    )
+  }else{
+    tempDF <- removeColumns(read.csv(
+      paste("Set-", i, ".csv", sep=""),
+      header=TRUE,
+      check.names=FALSE
+    )) %>% mutate(
+      `Source file number` = rep(i)
+    )
+    studentDF <- rbind(
+      studentDF,
+      tempDF
+    )
+    rm(tempDF)
+  }
+
+}
+rm(i, removeColumns)
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling")
+
+write.csv(studentDF, "All merged student data.csv", row.names=FALSE)
+
+#### End ####
+
+# #### Load processed output (SHORT WAY: 2 MIN) ####
 # 
-# setwd("/Users/peter_granville/Fed State Modeling/Postprocessing data")
+# setwd("/Volumes/TOSHIBA EXT/Fed State Modeling")
 # 
-# for(i in (1:176)){
-# 
-#   print(Sys.time())
-# 
-#   print(paste("Merging dataset ", i, ".", sep=""))
-# 
-#   if(i==1){
-#     studentDF <- removeColumns(read.csv(
-#       paste("Set-", i, ".csv", sep=""),
-#       header=TRUE,
-#       check.names=FALSE
-#     )) %>% mutate(
-#       `Source file number` = rep(i)
-#     )
-#   }else{
-#     tempDF <- removeColumns(read.csv(
-#       paste("Set-", i, ".csv", sep=""),
-#       header=TRUE,
-#       check.names=FALSE
-#     )) %>% mutate(
-#       `Source file number` = rep(i)
-#     )
-#     studentDF <- rbind(
-#       studentDF,
-#       tempDF
-#     )
-#     rm(tempDF)
-#   }
-# 
-# }
-# rm(i, removeColumns)
-# 
-# setwd("/Users/peter_granville/Fed State Modeling")
-# 
-# write.csv(studentDF, "All merged student data.csv", row.names=FALSE)
-# 
-# setwd("/Users/peter_granville/Fed State Modeling")
+# studentDF <- read.csv(
+#   "All merged student data.csv",
+#   header=TRUE,
+#   check.names=FALSE
+# )
 # 
 # #### End ####
 
-#### Load processed output (SHORT WAY: 2 MIN) ####
+################################################
+#### Validity Check Set 1: SDS vs EFFY      ####
+#### (To make sure nothing got messed up)   ####
+################################################
 
-studentDF <- read.csv(
-  "All merged student data.csv",
-  header=TRUE,
-  check.names=FALSE
+#### Re-load EFFY ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS data")
+
+hd <- read.csv("hd2024.csv", header=TRUE) %>% select(
+  `UNITID`, 
+  `INSTNM`,
+  `CONTROL`,
+  `STABBR`, 
+  `OBEREG`,
+  `C21BASIC`
+)
+importC18BASIC <- read.csv("hd2023.csv", header=TRUE) %>% select(
+  `UNITID`, 
+  `C18BASIC`
+)
+hd <- left_join(x=hd, y=importC18BASIC, by="UNITID")
+rm(importC18BASIC)
+hd <- hd %>% mutate(
+  `C18BASIC` = ifelse(
+    is.na(`C18BASIC`), 
+    `C21BASIC`, 
+    `C18BASIC`
+  )
+) %>% select(
+  -(`C21BASIC`)
 )
 
-#### End ####
+hdControl <- data.frame(
+  `CONTROL` = numeric(), 
+  `Control` = character()
+) %>% add_row(
+  `CONTROL` = 1, `Control` = "Public"
+) %>% add_row(
+  `CONTROL` = 2, `Control` = "Private nonprofit"
+) %>% add_row(
+  `CONTROL` = 3, `Control` = "Private for-profit"
+)
+hd <- left_join(x=hd, y=hdControl, by="CONTROL") %>% select(-(`CONTROL`))
+rm(hdControl)
+
+hdRegion <- data.frame(
+  `OBEREG` = numeric(), 
+  `Region` = character()
+) %>% add_row(
+  `OBEREG` = 1, `Region` = "New England (CT ME MA NH RI VT)"
+) %>% add_row(
+  `OBEREG` = 2, `Region` = "Mideast (DE DC MD NJ NY PA)"
+) %>% add_row(
+  `OBEREG` = 3, `Region` = "Great Lakes (IL IN MI OH WI)"
+) %>% add_row(
+  `OBEREG` = 4, `Region` = "Plains (IA KS MN MO NE ND SD)"
+) %>% add_row(
+  `OBEREG` = 5, `Region` = "South East (AL AR FL GA KY LA MS NC SC TN VA WV)"
+) %>% add_row(
+  `OBEREG` = 6, `Region` = "Southwest (AZ NM OK TX)"
+) %>% add_row(
+  `OBEREG` = 7, `Region` = "Rocky Mountains (CO ID MT UT WY)"
+) %>% add_row(
+  `OBEREG` = 8, `Region` = "Far West (AK CA HI NV OR WA)"
+) %>% add_row(
+  `OBEREG` = 9, `Region` = "Other U.S. jurisdictions"
+) %>% add_row(
+  `OBEREG` = 0, `Region` = "Other U.S. jurisdictions"
+) 
+hd <- left_join(x=hd, y=hdRegion, by="OBEREG") %>% select(-(`OBEREG`))
+rm(hdRegion)
+
+cost1 <- read.csv("cost1_2024.csv", header=TRUE) %>% select(
+  `UNITID`, 
+  `TUITVARY`
+) 
+
+cost1tuition <- data.frame(
+  `TUITVARY` = numeric(),
+  `Tuition policy` = character(), 
+  check.names=FALSE
+) %>% add_row(
+  `TUITVARY` = 1, 
+  `Tuition policy` = "Varies tuition by in-state status"
+) %>% add_row(
+  `TUITVARY` = 2, 
+  `Tuition policy` = "Does not vary tuition by in-state status"
+) %>% add_row(
+  `TUITVARY` = -1, 
+  `Tuition policy` = "Does not vary tuition by in-state status" # Imputing for "not reported"
+) %>% add_row(
+  `TUITVARY` = -2, 
+  `Tuition policy` = "Does not vary tuition by in-state status" # Imputing for "not applicable"
+)
+cost1 <- left_join(x=cost1, y=cost1tuition, by="TUITVARY") %>% select(-(`TUITVARY`))
+rm(cost1tuition)
+
+effy <- read.csv("effy2024.csv", header=TRUE) %>% select(
+  `UNITID`,
+  `EFFYALEV`,
+  `EFYTOTLT`,
+  `EFYTOTLM`,
+  `EFYTOTLW`,
+  `EFYAIANT`,
+  `EFYAIANM`,
+  `EFYAIANW`,
+  `EFYASIAT`,
+  `EFYASIAM`,
+  `EFYASIAW`,
+  `EFYBKAAT`,
+  `EFYBKAAM`,
+  `EFYBKAAW`,
+  `EFYHISPT`,
+  `EFYHISPM`,
+  `EFYHISPW`,
+  `EFYNHPIT`,
+  `EFYNHPIM`,
+  `EFYNHPIW`,
+  `EFYWHITT`,
+  `EFYWHITM`,
+  `EFYWHITW`,
+  `EFY2MORT`,
+  `EFY2MORM`,
+  `EFY2MORW`,
+  `EFYUNKNT`,
+  `EFYUNKNM`,
+  `EFYUNKNW`,
+  `EFYNRALT`,
+  `EFYNRALM`,
+  `EFYNRALW`,
+  `EFYGUUN`,
+  `EFYGUAN`,
+  `EFYGUTOT`,
+  `EFYGUKN`
+) %>% filter(
+  `EFFYALEV` %in% c(
+    24, #	Full-time students, Undergraduate, Degree/certificate-seeking, First-time
+    39, #	Full-time students, Undergraduate, Other degree/certificate-seeking, Transfer-ins
+    40, #	Full-time students, Undergraduate, Other degree/certificate-seeking, Continuing
+    31, #	Full-time students, Undergraduate, Non-degree/certificate-seeking
+    44, #	Part-time students, Undergraduate, Degree/certificate-seeking, First-time
+    59, #	Part-time students, Undergraduate, Other degree/certificate-seeking, Transfer-ins
+    60, #	Part-time students, Undergraduate, Other degree/certificate-seeking, Continuing
+    51  #	Part-time students, Undergraduate, Non-degree/certificate-seeking
+  )
+) %>% pivot_longer(
+  cols=c(`EFYTOTLT`,
+         `EFYTOTLM`,
+         `EFYTOTLW`,
+         `EFYAIANT`,
+         `EFYAIANM`,
+         `EFYAIANW`,
+         `EFYASIAT`,
+         `EFYASIAM`,
+         `EFYASIAW`,
+         `EFYBKAAT`,
+         `EFYBKAAM`,
+         `EFYBKAAW`,
+         `EFYHISPT`,
+         `EFYHISPM`,
+         `EFYHISPW`,
+         `EFYNHPIT`,
+         `EFYNHPIM`,
+         `EFYNHPIW`,
+         `EFYWHITT`,
+         `EFYWHITM`,
+         `EFYWHITW`,
+         `EFY2MORT`,
+         `EFY2MORM`,
+         `EFY2MORW`,
+         `EFYUNKNT`,
+         `EFYUNKNM`,
+         `EFYUNKNW`,
+         `EFYNRALT`,
+         `EFYNRALM`,
+         `EFYNRALW`,
+         `EFYGUUN`,
+         `EFYGUAN`,
+         `EFYGUTOT`,
+         `EFYGUKN`), 
+  names_to="Total name", 
+  values_to="Student count"
+)
+
+effyLabs <- data.frame(
+  `Total name` = character(), 
+  `Race` = character(), 
+  `Gender` = character(), 
+  check.names=FALSE
+) %>% add_row(
+  `Total name`="EFYTOTLT", `Race`="Total", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYTOTLM", `Race`="Total", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYTOTLW", `Race`="Total", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYAIANT", `Race`="American Indian or Alaska Native", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYAIANM", `Race`="American Indian or Alaska Native", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYAIANW", `Race`="American Indian or Alaska Native", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYASIAT", `Race`="Asian", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYASIAM", `Race`="Asian", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYASIAW", `Race`="Asian", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYBKAAT", `Race`="Black or African American", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYBKAAM", `Race`="Black or African American", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYBKAAW", `Race`="Black or African American", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYHISPT", `Race`="Hispanic or Latino", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYHISPM", `Race`="Hispanic or Latino", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYHISPW", `Race`="Hispanic or Latino", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYNHPIT", `Race`="Native Hawaiian/other Pacific Islander", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYNHPIM", `Race`="Native Hawaiian/other Pacific Islander", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYNHPIW", `Race`="Native Hawaiian/other Pacific Islander", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYWHITT", `Race`="White", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYWHITM", `Race`="White", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYWHITW", `Race`="White", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFY2MORT", `Race`="More than one race", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFY2MORM", `Race`="More than one race", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFY2MORW", `Race`="More than one race", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYUNKNT", `Race`="Race/ethnicity unknown", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYUNKNM", `Race`="Race/ethnicity unknown", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYUNKNW", `Race`="Race/ethnicity unknown", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYNRALT", `Race`="U.S. Nonresident", `Gender`="Total"
+) %>% add_row(
+  `Total name`="EFYNRALM", `Race`="U.S. Nonresident", `Gender`="Male"
+) %>% add_row(
+  `Total name`="EFYNRALW", `Race`="U.S. Nonresident", `Gender`="Female"
+) %>% add_row(
+  `Total name`="EFYGUUN", `Race`="Total", `Gender`="Gender unknown"
+) %>% add_row(
+  `Total name`="EFYGUAN", `Race`="Total", `Gender`="Another gender"
+) %>% add_row(
+  `Total name`="EFYGUTOT", `Race`="Total", `Gender`="Total of gender unknown and another gender"
+) %>% add_row(
+  `Total name`="EFYGUKN", `Race`="Total", `Gender`="Total gender reported as one of the mutually exclusive binary categories (Men/Women)"
+)
+
+effy <- left_join(x=effy, y=effyLabs, by="Total name")
+rm(effyLabs)
+effy <- effy %>% mutate(
+  `Enrollment intensity` = ifelse(
+    `EFFYALEV` %in% c(
+      24, #	Full-time students, Undergraduate, Degree/certificate-seeking, First-time
+      39, #	Full-time students, Undergraduate, Other degree/certificate-seeking, Transfer-ins
+      40, #	Full-time students, Undergraduate, Other degree/certificate-seeking, Continuing
+      31  #	Full-time students, Undergraduate, Non-degree/certificate-seeking
+    ), 
+    "Full-time", 
+    "Part-time"
+  )
+)
+
+# I've confirmed that there is no additional information gained from these categories: 
+effy <- effy %>% filter(
+  (`Total name` %in% c(
+    "EFYGUAN", "EFYGUKN", "EFYGUTOT", "EFYGUUN", "EFYTOTLT", "EFYTOTLM", "EFYTOTLW"
+  ))==FALSE
+)
+
+# We also do not want Male + Female totals, since they are duplicative. 
+effy <- effy %>% filter(
+  (`Total name` %in% c(
+    "EFY2MORT", "EFYAIANT", "EFYASIAT", "EFYBKAAT", "EFYHISPT", "EFYNHPIT", "EFYNRALT", "EFYUNKNT", "EFYWHITT"
+  ))==FALSE
+)
+
+effy <- effy %>% filter(
+  `Student count` > 0
+)
+
+effy <- effy %>% mutate(
+  `Index` = (1:nrow(effy))
+)
+
+effy <- left_join(x=effy, y=hd, by="UNITID")
+
+effy <- left_join(x=effy, y=cost1, by="UNITID")
+
+effy <- effy %>% mutate(
+  `Enrollment intensity NPSAS` = ifelse(`Enrollment intensity`=="Full-time", "Exclusively full-time", "Exclusively part-time")
+) %>% mutate(
+  `Region NPSAS` = ifelse(`Region`=="Other U.S. jurisdictions", "Puerto Rico", `Region`)
+) 
+
+carnegieNPSAS <- data.frame(
+  `C18BASIC` = c(-2, (1:33)), 
+  `Carnegie NPSAS` = rep(NA, 34), 
+  check.names=FALSE
+) %>% mutate(
+  `Carnegie NPSAS` = ifelse(`C18BASIC` %in% c(1, 2, 3, 4, 5, 6, 7, 8, 9, 14), "Associate's", `Carnegie NPSAS`)
+) %>% mutate(
+  `Carnegie NPSAS` = ifelse(`C18BASIC` %in% c(15, 16, 17), "Research & Doctoral", `Carnegie NPSAS`)
+) %>% mutate(
+  `Carnegie NPSAS` = ifelse(`C18BASIC` %in% c(18, 19, 20), "Master's", `Carnegie NPSAS`)
+) %>% mutate(
+  `Carnegie NPSAS` = ifelse(`C18BASIC` %in% c(21, 22, 23), "Baccalaureate", `Carnegie NPSAS`)
+) %>% mutate(
+  `Carnegie NPSAS` = ifelse(`C18BASIC` %in% c(10, 11, 12, 13, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33), "Special Focus & other", `Carnegie NPSAS`)
+) %>% mutate(
+  `Carnegie NPSAS` = ifelse(`C18BASIC` %in% c(-2), "Not degree-granting", `Carnegie NPSAS`)
+) 
+
+effy <- left_join(x=effy, y=carnegieNPSAS, by="C18BASIC")
+rm(carnegieNPSAS)
+
+# Only doing this because of replicability issues, 1-18-2026 
+effy <- effy %>% mutate(
+  `Race NPSAS` = ifelse(
+    `Race` %in% c("U.S. Nonresident", "Race/ethnicity unknown"), 
+    "Native Hawaiian/other Pacific Islander", 
+    `Race`
+  )  
+)
+
+#### End #### 
+
+#### Write function to compare effy and studentDF ####
+
+compareTwo <- function(varName){
+  
+  effy2 <- effy %>% select(
+    all_of(
+      c(
+        "Student count", 
+        varName
+      )
+    )
+  )
+  names(effy2)[2] <- "Comparison variable"
+  
+  agg1 <- aggregate(
+    data=effy2, 
+    `Student count` ~ `Comparison variable`, 
+    FUN=sum
+  ) %>% rename(
+    `effy count` = `Student count`
+  ) %>% mutate(
+    `effy count` = comma(`effy count`)
+  )
+  
+  studentDF2 <- studentDF %>% select(
+    all_of(
+      c(
+        "UNITID", 
+        varName
+      )
+    )
+  )
+  names(studentDF2)[2] <- "Comparison variable"
+  
+  agg2 <- aggregate(
+    data=studentDF2, 
+    `UNITID` ~ `Comparison variable`, 
+    FUN=length
+  ) %>% rename(
+    `studentDF count` = `UNITID`
+  ) %>% mutate(
+    `studentDF count` = comma(`studentDF count`)
+  )
+  
+  agg3 <- full_join(x=agg1, y=agg2, by="Comparison variable")
+  return(agg3)
+  
+  rm(effy2, studentDF2, agg1, agg2, agg3)
+  
+}
+
+#### End #### 
+
+#### Run compareTwo ####
+
+compareTwo("Race")
+compareTwo("Race NPSAS")
+compareTwo("Gender")
+compareTwo("Enrollment intensity NPSAS")
+compareTwo("STABBR")
+compareTwo("Carnegie NPSAS")
+compareTwo("Control")
+compareTwo("Region NPSAS")
+compareTwo("Tuition policy")
+
+#### End #### 
+
+#### Remove files no longer needed ####
+
+rm(hd, cost1, effy)
+
+#### End #### 
+
+################################################
+#### Validity Check Set 2: By STABBR and    ####
+#### UNITID (to see if the distributions    ####
+#### are weird for certain places)          ####
+################################################
+
+#### Write function to track studentDF ####
+
+compareMost <- function(varName, stateOrCollege, ABTrigger, ABValue){
+  
+  tempDF <- studentDF %>% select(
+    all_of(
+      c(
+        "UNITID", 
+        "INSTNM", 
+        "STABBR", 
+        varName
+      )
+    )
+  )
+  names(tempDF)[4] <- "Comparison variable"
+  
+  if(ABTrigger==TRUE){
+    tempDF <- tempDF %>% mutate(
+      `Comparison variable` = ifelse(
+        `Comparison variable` >= ABValue,
+        paste("Over ", ABValue, sep=""),
+        paste("Under ", ABValue, sep="")
+      )
+    )
+  }
+  
+  if(stateOrCollege=="State"){
+    numerator <- aggregate(
+      data=tempDF, 
+      `UNITID` ~ `STABBR` + `Comparison variable`, 
+      FUN=length
+    ) %>% pivot_wider(
+      id_cols=c(`STABBR`), 
+      names_from=`Comparison variable`, 
+      values_from=`UNITID`
+    )
+    denominator <- aggregate(
+      data=tempDF, 
+      `UNITID` ~ `STABBR`, 
+      FUN=length
+    ) 
+    percentages <- full_join(x=numerator, y=denominator, by="STABBR")
+  }else{
+    numerator <- aggregate(
+      data=tempDF, 
+      `UNITID` ~ `INSTNM` + `STABBR` + `Comparison variable`, 
+      FUN=length
+    ) %>% pivot_wider(
+      id_cols=c(`INSTNM`, `STABBR`), 
+      names_from=`Comparison variable`, 
+      values_from=`UNITID`
+    )
+    denominator <- aggregate(
+      data=tempDF, 
+      `UNITID` ~ `INSTNM` + `STABBR`, 
+      FUN=length
+    ) 
+    percentages <- full_join(x=numerator, y=denominator, by=c("INSTNM", "STABBR"))
+  }
+  
+  percentages[is.na(percentages)] <- 0 
+  
+  return(percentages)
+  rm(percentages, numerator, denominator, tempDF)
+  
+}
+
+#### End #### 
+
+#### Compare Zero-EFC by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Zero-EFC", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Zero-EFC` = `Zero-EFC` / `UNITID`,
+  `Nonzero-EFC` = `Nonzero-EFC` / `UNITID`
+) %>% arrange(
+  desc(`Zero-EFC`)
+) %>% mutate(
+  `Zero-EFC` = percent(`Zero-EFC`, accuracy=0.1), 
+  `Nonzero-EFC` = percent(`Nonzero-EFC`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Zero-EFC", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Zero-EFC` = `Zero-EFC` / `UNITID`,
+  `Nonzero-EFC` = `Nonzero-EFC` / `UNITID`
+) %>% arrange(
+  desc(`Zero-EFC`)
+) %>% mutate(
+  `Zero-EFC` = percent(`Zero-EFC`, accuracy=0.1), 
+  `Nonzero-EFC` = percent(`Nonzero-EFC`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare tuition jurisdiction by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Tuition jurisdiction", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `In-state tuition` = `In-state tuition` / `UNITID`,
+  `Out-of-state tuition` = `Out-of-state tuition` / `UNITID`, 
+  `No differential tuition charged` = `No differential tuition charged` / `UNITID`
+) %>% arrange(
+  desc(`In-state tuition`), desc(`Out-of-state tuition`)
+) %>% mutate(
+  `In-state tuition` = percent(`In-state tuition`, accuracy=0.1), 
+  `Out-of-state tuition` = percent(`Out-of-state tuition`, accuracy=0.1), 
+  `No differential tuition charged` = percent(`No differential tuition charged`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Tuition jurisdiction", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `In-state tuition` = `In-state tuition` / `UNITID`,
+  `Out-of-state tuition` = `Out-of-state tuition` / `UNITID`, 
+  `No differential tuition charged` = `No differential tuition charged` / `UNITID`
+) %>% arrange(
+  desc(`In-state tuition`), desc(`Out-of-state tuition`)
+) %>% mutate(
+  `In-state tuition` = percent(`In-state tuition`, accuracy=0.1), 
+  `Out-of-state tuition` = percent(`Out-of-state tuition`, accuracy=0.1), 
+  `No differential tuition charged` = percent(`No differential tuition charged`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare age by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Age", 
+  stateOrCollege = "State",
+  ABTrigger = TRUE,
+  ABValue = 25
+) %>% mutate(
+  `Over 25` = `Over 25` / `UNITID`,
+  `Under 25` = `Under 25` / `UNITID`
+) %>% arrange(
+  desc(`Over 25`), desc(`Under 25`)
+) %>% mutate(
+  `Over 25` = percent(`Over 25`, accuracy=0.1), 
+  `Under 25` = percent(`Under 25`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Age", 
+  stateOrCollege = "College",
+  ABTrigger = TRUE,
+  ABValue = 25
+) %>% mutate(
+  `Over 25` = `Over 25` / `UNITID`,
+  `Under 25` = `Under 25` / `UNITID`
+) %>% arrange(
+  desc(`Over 25`), desc(`Under 25`)
+) %>% mutate(
+  `Over 25` = percent(`Over 25`, accuracy=0.1), 
+  `Under 25` = percent(`Under 25`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare citizenship by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Citizenship", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Citizen or eligible non-citizen` = `Citizen or eligible non-citizen` / `UNITID`,
+  `Non-citizen` = `Non-citizen` / `UNITID`
+) %>% arrange(
+  desc(`Citizen or eligible non-citizen`)
+) %>% mutate(
+  `Citizen or eligible non-citizen` = percent(`Citizen or eligible non-citizen`, accuracy=0.1), 
+  `Non-citizen` = percent(`Non-citizen`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Citizenship", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Citizen or eligible non-citizen` = `Citizen or eligible non-citizen` / `UNITID`,
+  `Non-citizen` = `Non-citizen` / `UNITID`
+) %>% arrange(
+  desc(`Citizen or eligible non-citizen`)
+) %>% mutate(
+  `Citizen or eligible non-citizen` = percent(`Citizen or eligible non-citizen`, accuracy=0.1), 
+  `Non-citizen` = percent(`Non-citizen`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare veteran status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Veteran status", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Veteran` = `Veteran` / `UNITID`,
+  `Not a veteran` = `Not a veteran` / `UNITID`
+) %>% arrange(
+  desc(`Veteran`)
+) %>% mutate(
+  `Veteran` = percent(`Veteran`, accuracy=0.1), 
+  `Not a veteran` = percent(`Not a veteran`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Veteran status", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Veteran` = `Veteran` / `UNITID`,
+  `Not a veteran` = `Not a veteran` / `UNITID`
+) %>% arrange(
+  desc(`Veteran`)
+) %>% mutate(
+  `Veteran` = percent(`Veteran`, accuracy=0.1), 
+  `Not a veteran` = percent(`Not a veteran`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare dependency status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Dependency status", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Dependent` = `Dependent` / `UNITID`,
+  `Independent` = `Independent` / `UNITID`
+) %>% arrange(
+  desc(`Dependent`)
+) %>% mutate(
+  `Dependent` = percent(`Dependent`, accuracy=0.1), 
+  `Independent` = percent(`Independent`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Dependency status", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Dependent` = `Dependent` / `UNITID`,
+  `Independent` = `Independent` / `UNITID`
+) %>% arrange(
+  desc(`Dependent`)
+) %>% mutate(
+  `Dependent` = percent(`Dependent`, accuracy=0.1), 
+  `Independent` = percent(`Independent`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare FAFSA completion status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Applied for federal aid", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Applied for federal aid", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare federal grant recipient status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Receives federal grants", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Receives federal grants", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare VA/DOD grant recipient status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Receives VA/DOD grants", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Receives VA/DOD grants", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare state grant recipient status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Receives state grants", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Receives state grants", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare institutional grant recipient status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Receives institutional grants", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Receives institutional grants", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare private grant recipient status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Receives private grants", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Receives private grants", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare federal loan recipient status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Receives federal loans", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Receives federal loans", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare parent loan recipient status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Receives parent loans", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Receives parent loans", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Yes` = `Yes` / `UNITID`,
+  `No` = `No` / `UNITID`
+) %>% arrange(
+  desc(`Yes`)
+) %>% mutate(
+  `Yes` = percent(`Yes`, accuracy=0.1), 
+  `No` = percent(`No`, accuracy=0.1)
+)
+
+##### End #### 
+
+#### Compare parent status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Parent status", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Has dependents` = `Has dependents` / `UNITID`,
+  `Does not have dependents` = `Does not have dependents` / `UNITID`
+) %>% arrange(
+  desc(`Has dependents`)
+) %>% mutate(
+  `Has dependents` = percent(`Has dependents`, accuracy=0.1), 
+  `Does not have dependents` = percent(`Does not have dependents`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Parent status", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Has dependents` = `Has dependents` / `UNITID`,
+  `Does not have dependents` = `Does not have dependents` / `UNITID`
+) %>% arrange(
+  desc(`Has dependents`)
+) %>% mutate(
+  `Has dependents` = percent(`Has dependents`, accuracy=0.1), 
+  `Does not have dependents` = percent(`Does not have dependents`, accuracy=0.1)
+)
+
+##### End ####
+
+#### Compare parental education status by state and college #### 
+
+compare1 <- compareMost(
+  varName = "Parental education attainment", 
+  stateOrCollege = "State",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Parents have a college degree` = `Parents have a college degree` / `UNITID`,
+  `Parents do not have a college degree` = `Parents do not have a college degree` / `UNITID`
+) %>% arrange(
+  desc(`Parents have a college degree`)
+) %>% mutate(
+  `Parents have a college degree` = percent(`Parents have a college degree`, accuracy=0.1), 
+  `Parents do not have a college degree` = percent(`Parents do not have a college degree`, accuracy=0.1)
+)
+
+compare1 <- compareMost(
+  varName = "Parental education attainment", 
+  stateOrCollege = "College",
+  ABTrigger = FALSE,
+  ABValue = 0
+) %>% mutate(
+  `Parents have a college degree` = `Parents have a college degree` / `UNITID`,
+  `Parents do not have a college degree` = `Parents do not have a college degree` / `UNITID`
+) %>% arrange(
+  desc(`Parents have a college degree`)
+) %>% mutate(
+  `Parents have a college degree` = percent(`Parents have a college degree`, accuracy=0.1), 
+  `Parents do not have a college degree` = percent(`Parents do not have a college degree`, accuracy=0.1)
+)
+
+##### End #### 
 
 ################################################
 #### Checking validity of studentDF         ####
@@ -236,7 +1267,6 @@ showPercentiles <- function(variableName, removeZeros, USD){
 # showPercentiles("Parent loan amount", removeZeros=TRUE, USD=TRUE)
 # showDistribution("Parent status")
 # showDistribution("Parental education attainment")
-# showDistribution("High school GPA")
 # showPercentiles("Total cost", removeZeros=FALSE, USD=TRUE)
 # showDistribution("Receives any grants")
 # showPercentiles("Total grants", removeZeros=TRUE, USD=TRUE)
@@ -302,8 +1332,7 @@ runSimulation <- function(
   elig.efc, 
   elig.outofstate, 
   elig.noncitizen, 
-  elig.fafsa, 
-  elig.gpa
+  elig.fafsa
   
   #### End #### 
   
@@ -319,7 +1348,6 @@ runSimulation <- function(
   # elig.outofstate <- "In-state only" 
   # elig.noncitizen <- "U.S. citizens or eligible nonciizens only"
   # elig.fafsa <- "FAFSA completers only"
-  # elig.gpa <- "2.5 or above"
   # TESTING ONLY
   
   #### Make a copy of the original data ####
@@ -397,24 +1425,13 @@ runSimulation <- function(
     vector.fafsa <- c("Yes", "No")
   }
 
-  # GPA 
-  if(elig.gpa=="3.0 or above"){
-    vector.gpa <- c("Above 3.5", "Between 3.0 and 3.5")
-  }
-  if(elig.gpa=="2.5 or above"){
-    vector.gpa <- c("Above 3.5", "Between 3.0 and 3.5", "Between 2.5 and 3.0")
-  }
-  if(elig.gpa=="All GPA groups"){
-    vector.gpa <- c("Above 3.5", "Between 3.0 and 3.5", "Between 2.5 and 3.0", "Below 2.5")
-  }
-  
   #### End #### 
   
   #### Classify by eligibility ####
   
   data2 <- data2 %>% mutate(
     `Eligible for program` = ifelse(
-      (`Carnegie NPSAS` %in% vector.carnegie) & (`Control` %in% vector.control) & (`Enrollment intensity` %in% vector.intensity) & (`EFC group` %in% vector.efc) & (`Tuition jurisdiction` %in% vector.oos) & (`Citizenship` %in% vector.cit) & (`Applied for federal aid` %in% vector.fafsa) & (`High school GPA` %in% vector.gpa), 
+      (`Carnegie NPSAS` %in% vector.carnegie) & (`Control` %in% vector.control) & (`Enrollment intensity` %in% vector.intensity) & (`EFC group` %in% vector.efc) & (`Tuition jurisdiction` %in% vector.oos) & (`Citizenship` %in% vector.cit) & (`Applied for federal aid` %in% vector.fafsa), 
       "Eligible", 
       "Not eligible"
     )
@@ -982,7 +1999,6 @@ runSimulation <- function(
     `elig.outofstate` = c(elig.outofstate),
     `elig.noncitizen` = c(elig.noncitizen),
     `elig.fafsa` = c(elig.fafsa),
-    `elig.gpa` = c(elig.gpa),
     `program.goal` = c(program.goal),
     
     # Outputs: Table 1
@@ -1154,7 +2170,6 @@ runSimulation <- function(
     `vector.control`, 
     `vector.efc`, 
     `vector.fafsa`, 
-    `vector.gpa`, 
     `vector.intensity`, 
     `vector.oos`,
     
@@ -1330,8 +2345,7 @@ runSimulation <- function(
 #   elig.efc="All EFC groups", 
 #   elig.outofstate="In-state only", 
 #   elig.noncitizen="U.S. citizens or eligible nonciizens only", 
-#   elig.fafsa="FAFSA completers only", 
-#   elig.gpa="All GPA groups"
+#   elig.fafsa="FAFSA completers only"
 # )
 # 
 # Sys.time()
@@ -1389,13 +2403,6 @@ inputs.elig.fafsa <- c(
   # "Completers and non-completers"
 )
 
-inputs.elig.gpa <- c(
-  # "3.0 or above", 
-  "2.5 or above"
-  # , 
-  # "All GPA groups"
-)
-
 #### End #### 
 
 #### Count total combinations ####
@@ -1416,9 +2423,7 @@ totalCombos <- length(
   inputs.elig.noncitizen
 ) * length(
   inputs.elig.fafsa
-) * length(
-  inputs.elig.gpa
-)
+) 
 
 #### End #### 
 
@@ -1434,7 +2439,6 @@ simulationResults <- data.frame(
   `elig.outofstate` = character(), 
   `elig.noncitizen` = character(), 
   `elig.fafsa` = character(), 
-  `elig.gpa` = character(), 
   `program.goal` = character(), 
   
   # Outputs: Table 1
@@ -1602,25 +2606,22 @@ for(a in (1:length(inputs.program.goal))){
           for(f in (1:length(inputs.elig.outofstate))){
             for(g in (1:length(inputs.elig.noncitizen))){
               for(h in (1:length(inputs.elig.fafsa))){
-                for(i in (1:length(inputs.elig.gpa))){
-                  print(paste("Number ", counter, " out of ", totalCombos, " at ", Sys.time(), ".", sep=""))
-                  simulationResults <- rbind(
-                    simulationResults, 
-                    runSimulation(
-                      data1 = studentDF, 
-                      program.goal = inputs.program.goal[a],
-                      elig.carnegie = inputs.elig.carnegie[b], 
-                      elig.control = inputs.elig.control[c], 
-                      elig.halftime = inputs.elig.halftime[d], 
-                      elig.efc = inputs.elig.efc[e], 
-                      elig.outofstate = inputs.elig.outofstate[f], 
-                      elig.noncitizen = inputs.elig.noncitizen[g], 
-                      elig.fafsa = inputs.elig.fafsa[h], 
-                      elig.gpa = inputs.elig.gpa[i]
-                    )
+                print(paste("Number ", counter, " out of ", totalCombos, " at ", Sys.time(), ".", sep=""))
+                simulationResults <- rbind(
+                  simulationResults, 
+                  runSimulation(
+                    data1 = studentDF, 
+                    program.goal = inputs.program.goal[a],
+                    elig.carnegie = inputs.elig.carnegie[b], 
+                    elig.control = inputs.elig.control[c], 
+                    elig.halftime = inputs.elig.halftime[d], 
+                    elig.efc = inputs.elig.efc[e], 
+                    elig.outofstate = inputs.elig.outofstate[f], 
+                    elig.noncitizen = inputs.elig.noncitizen[g], 
+                    elig.fafsa = inputs.elig.fafsa[h]
                   )
-                  counter <- counter + 1
-                }
+                )
+                counter <- counter + 1
               }
             }
           }
