@@ -2,6 +2,7 @@
 #### Setup ####
 
 library(scales)
+library(readxl)
 library(tidyverse)
 
 #### End #### 
@@ -807,18 +808,37 @@ setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS data")
 
 hd <- read.csv("hd2024.csv", header=TRUE) %>% select(
   `UNITID`, 
+  `OPEID`,
   `INSTNM`,
   `CONTROL`,
   `STABBR`, 
   `OBEREG`,
   `C21BASIC`
+) %>% mutate(
+  `OPEID` = as.character(`OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==1, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==2, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==3, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==4, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==5, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==6, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==7, paste("0", `OPEID`, sep=""), `OPEID`)
 )
+
 importC18BASIC <- read.csv("hd2023.csv", header=TRUE) %>% select(
   `UNITID`, 
   `C18BASIC`
 )
 hd <- left_join(x=hd, y=importC18BASIC, by="UNITID")
 rm(importC18BASIC)
+
 hd <- hd %>% mutate(
   `C18BASIC` = ifelse(
     is.na(`C18BASIC`), 
@@ -1149,7 +1169,7 @@ effy <- effy %>% mutate(
 #   rm(tempSTU, tempEFFY)
 #   
 # }
-# rm(i)
+# rm(i, effy)
 # 
 # #### End #### 
 
@@ -1315,7 +1335,7 @@ studentList <- studentList %>% select(
   -(`2 Digits`),
   -(`Race substitution`)
 )
- 
+
 #### End #### 
 
 #############################################
@@ -1841,9 +1861,9 @@ cost2 <- read.csv(
   `In-state share` = `In-state students` / (`In-state students` + `Out-of-state students`)
 )
 
-# This is just for testing (1-19-2026), it will be redundant when running the full dataset 
 cost2 <- cost2 %>% filter(
-  `UNITID` %in% studentList$UNITID
+  `UNITID` %in% studentList$UNITID, 
+  is.na(`In-state share`)==FALSE
 )
 
 varyTuition <- studentList %>% filter(
@@ -1852,7 +1872,7 @@ varyTuition <- studentList %>% filter(
 )
 
 for(i in (1:length(unique(varyTuition$UNITID)))){
-
+  
   if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(varyTuition$UNITID))), " colleges.", sep=""))}
   
   tempDF <- studentList %>% filter(
@@ -1903,12 +1923,45 @@ for(i in (1:length(unique(varyTuition$UNITID)))){
   )
   correct.share <- correct.share$`In-state share`[1]
   
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
   tempDF <- tempDF %>% mutate(
     `Expected` = c(
-      rep("In-state tuition", round(student.count * correct.share)), 
-      rep("Out-of-state tuition", round(student.count * (1-correct.share)))
+      rep("In-state tuition", val1count), 
+      rep("Out-of-state tuition", val2count)
     )
   )
+  rm(val1count, val2count)
+  
   tempDF <- tempDF %>% filter(
     `Expected` != `Actual`
   )
@@ -2292,6 +2345,12 @@ studentList <- studentList %>% mutate(
 
 #### End ####
 
+#### Save current dataset in case reset is needed ####
+
+studentListSave <- studentList
+
+#### End ####
+
 #### Regression 4: Predict Age ####
 
 studentList <- processRegression(
@@ -2441,6 +2500,653 @@ studentList <- studentList %>% mutate(
 # showPercentiles("Age", removeZeros=FALSE)
 # 
 # #### End #### 
+
+#### Integrate IPEDS data on age ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
+
+ageLookup <- data.frame(
+  `EFBAGE` = numeric(), 
+  `Age group` = character(), 
+  check.names=FALSE
+)
+
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=3, `Age group`="24 and under")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=4, `Age group`="24 and under")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=5, `Age group`="24 and under")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=6, `Age group`="25 to 34")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=8, `Age group`="25 to 34")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=9, `Age group`="25 to 34")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=10, `Age group`="35 to 49")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=11, `Age group`="35 to 49")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=12, `Age group`="50 and older")
+ageLookup <- ageLookup %>% add_row(`EFBAGE`=13, `Age group`="50 and older")
+
+efb <- read.csv(
+  "ef2023b_rv.csv", 
+  header=TRUE
+) %>% select(
+  `UNITID`,  #	Unique identification number of the institution
+  `EFBAGE`,  #	Age category
+  `LSTUDY`,  #	Level of student
+  `EFAGE09`  #	Grand total
+) %>% filter(
+  `LSTUDY`==2, # Undergraduate
+  `EFBAGE` %in% c(
+    3, #	Age under 18
+    4, #	Age 18-19
+    5, # Age 20-21
+    6, # Age 22-24
+    8, # Age 25-29
+    9, # Age 30-34
+    10, # Age 35-39
+    11, # Age 40-49
+    12, # Age 50-64
+    13  # Age 65 and over
+  )
+) %>% select(
+  -(`LSTUDY`)
+) 
+efb <- left_join(x=efb, y=ageLookup, by="EFBAGE")
+rm(ageLookup)
+
+efb <- aggregate(
+  data=efb, 
+  `EFAGE09` ~ `UNITID` + `Age group`, 
+  FUN=sum
+) %>% pivot_wider(
+  id_cols=c(`UNITID`), 
+  names_from=`Age group`, 
+  values_from=`EFAGE09`
+) %>% mutate(
+  `24 and under` = ifelse(is.na(`24 and under`), 0, `24 and under`), 
+  `25 to 34` = ifelse(is.na(`25 to 34`), 0, `25 to 34`), 
+  `35 to 49` = ifelse(is.na(`35 to 49`), 0, `35 to 49`), 
+  `50 and older` = ifelse(is.na(`50 and older`), 0, `50 and older`)
+) %>% mutate(
+  `Total` = `24 and under` + `25 to 34` + `35 to 49` + `50 and older`
+) %>% mutate(
+  `Share 24 and under` = `24 and under` / `Total`, 
+  `Share 25 to 34` = `25 to 34` / `Total`, 
+  `Share 35 to 49` = `35 to 49` / `Total`, 
+  `Share 50 and older` = `50 and older` / `Total`
+) %>% select(
+  -(`24 and under`), 
+  -(`25 to 34`), 
+  -(`35 to 49`), 
+  -(`50 and older`),
+  -(`Total`)
+)
+
+#### End #### 
+
+#### Age distributions from NPSAS ####
+
+# Powerstats: itozkh
+under25distribution <- c(
+  rep(17, 11), 
+  rep(18, 146), 
+  rep(19, 211), 
+  rep(20, 192), 
+  rep(21, 174), 
+  rep(22, 122), 
+  rep(23, 83), 
+  rep(24, 62)
+)
+
+# Powerstats: vgohgf
+over25distribution <- c(
+  rep(27.5, 387), 
+  rep(32.5, 215), 
+  rep(37.5, 144), 
+  rep(42.5, 93), 
+  rep(47.5, 67), 
+  rep(52.5, 44), 
+  rep(57.5, 26), 
+  rep(62.5, 13), 
+  rep(67.5, 11)
+)
+
+# Powerstats: haolxu
+under35distribution <- c(
+  rep(25, 167), 
+  rep(26, 138), 
+  rep(27, 123), 
+  rep(28, 117), 
+  rep(29, 98), 
+  rep(30, 84), 
+  rep(31, 80), 
+  rep(32, 71), 
+  rep(33, 65), 
+  rep(34, 58)
+)
+
+# Powerstats: toksvi
+over35distribution <- c(
+  rep(37.5, 361), 
+  rep(42.5, 234), 
+  rep(47.5, 169),
+  rep(52.5, 110),
+  rep(57.5, 65), 
+  rep(62.5, 33), 
+  rep(67.5, 29)
+)
+
+# Powerstats: rcsjhi
+under50distribution <- c(
+  rep(36, 307), 
+  rep(39, 233), 
+  rep(42, 188), 
+  rep(45, 148), 
+  rep(48, 124)
+)
+
+# Powerstats: dfcnvm
+over50distribution <- c(
+  rep(51, 303), 
+  rep(54, 232), 
+  rep(57, 161), 
+  rep(60, 107),
+  rep(64, 75),
+  rep(66, 45), 
+  rep(69, 30), 
+  rep(72, 22), 
+  rep(75, 24)
+)
+
+#### End #### 
+
+#### Over/under 25 ####
+
+studentList <- studentList %>% mutate(
+  `Over/under 25` = ifelse(
+    `Age` < 25, 
+    "Under 25", 
+    "Over 25"
+  )
+)
+
+efb2 <- efb %>% filter(
+  `UNITID` %in% studentList$UNITID,
+  is.na(`Share 24 and under`)==FALSE
+)
+
+for(i in (1:length(unique(efb2$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(efb2$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(efb2$UNITID)[i]
+  ) %>% rename(
+    `Actual` = `Over/under 25`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # Descending order because "over" comes before "under" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Under 25"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Over 25"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Under 25` / (`Under 25` + `Over 25`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- efb2 %>% filter(
+    `UNITID` == unique(efb2$UNITID)[i]
+  )
+  correct.share <- correct.share$`Share 24 and under`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  }
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Under 25", val1count), 
+      rep("Over 25", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Under 25"
+    }else{
+      imputed.label <- "Over 25"
+    }
+    studentList <- studentList %>% mutate(
+      `Over/under 25` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Over/under 25`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(i)
+
+studentList <- studentList %>% mutate(
+  `Age` = ifelse(
+    (`Over/under 25`=="Under 25") & (`Age` >= 25), 
+    sample(under25distribution, replace=TRUE),  
+    `Age`
+  )
+) %>% mutate(
+  `Age` = ifelse(
+    (`Over/under 25`=="Over 25") & (`Age` < 25), 
+    sample(over25distribution, replace=TRUE),  
+    `Age`
+  )
+)
+
+#### End #### 
+
+#### Over/under 35 ####
+
+efb <- efb %>% select(
+  -(`Share 24 and under`)
+) %>% mutate(
+  `Remaining total` = `Share 25 to 34` + `Share 35 to 49` + `Share 50 and older`
+) %>% mutate(
+  `Share 25 to 34` = `Share 25 to 34` / `Remaining total`, 
+  `Share 35 to 49` = `Share 35 to 49` / `Remaining total`,
+  `Share 50 and older` = `Share 50 and older` / `Remaining total`
+) %>% select(
+  -(`Remaining total`)
+) %>% rename(
+  `Share 34 and under` = `Share 25 to 34`
+) 
+
+studentList <- studentList %>% mutate(
+  `Over/under 35` = ifelse(
+    `Age` < 35, 
+    "Under 35", 
+    "Over 35"
+  )
+)
+
+efb2 <- efb %>% filter(
+  `UNITID` %in% studentList$UNITID,
+  is.na(`Share 34 and under`)==FALSE
+)
+
+for(i in (1:length(unique(efb2$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(efb2$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(efb2$UNITID)[i], 
+    `Age` >= 25
+  ) %>% rename(
+    `Actual` = `Over/under 35`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # Descending order because "over" comes before "under" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Under 35"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Over 35"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Under 35` / (`Under 35` + `Over 35`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- efb2 %>% filter(
+    `UNITID` == unique(efb2$UNITID)[i]
+  )
+  correct.share <- correct.share$`Share 34 and under`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  }
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Under 35", val1count), 
+      rep("Over 35", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Under 35"
+    }else{
+      imputed.label <- "Over 35"
+    }
+    studentList <- studentList %>% mutate(
+      `Over/under 35` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Over/under 35`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(i)
+
+studentList <- studentList %>% mutate(
+  `Age` = ifelse(
+    (`Over/under 35`=="Under 35") & (`Age` >= 35), 
+    sample(under35distribution, replace=TRUE),  
+    `Age`
+  )
+) %>% mutate(
+  `Age` = ifelse(
+    (`Over/under 35`=="Over 35") & (`Age` < 35), 
+    sample(over35distribution, replace=TRUE),  
+    `Age`
+  )
+)
+
+#### End #### 
+
+#### Over/under 50 ####
+
+efb <- efb %>% select(
+  -(`Share 34 and under`)
+) %>% mutate(
+  `Remaining total` = `Share 35 to 49` + `Share 50 and older`
+) %>% mutate(
+  `Share 35 to 49` = `Share 35 to 49` / `Remaining total`,
+  `Share 50 and older` = `Share 50 and older` / `Remaining total`
+) %>% select(
+  -(`Remaining total`)
+) %>% rename(
+  `Share 49 and under` = `Share 35 to 49`
+) 
+
+studentList <- studentList %>% mutate(
+  `Over/under 50` = ifelse(
+    `Age` < 50, 
+    "Under 50", 
+    "Over 50"
+  )
+)
+
+efb2 <- efb %>% filter(
+  `UNITID` %in% studentList$UNITID,
+  is.na(`Share 49 and under`)==FALSE
+)
+
+for(i in (1:length(unique(efb2$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(efb2$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(efb2$UNITID)[i], 
+    `Age` >= 25
+  ) %>% rename(
+    `Actual` = `Over/under 50`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # Descending order because "over" comes before "under" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Under 50"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Over 50"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Under 50` / (`Under 50` + `Over 50`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- efb2 %>% filter(
+    `UNITID` == unique(efb2$UNITID)[i]
+  )
+  correct.share <- correct.share$`Share 49 and under`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  }
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Under 50", val1count), 
+      rep("Over 50", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Under 50"
+    }else{
+      imputed.label <- "Over 50"
+    }
+    studentList <- studentList %>% mutate(
+      `Over/under 50` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Over/under 50`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(i)
+
+studentList <- studentList %>% mutate(
+  `Age` = ifelse(
+    (`Over/under 50`=="Under 50") & (`Age` >= 50), 
+    sample(under50distribution, replace=TRUE),  
+    `Age`
+  )
+) %>% mutate(
+  `Age` = ifelse(
+    (`Over/under 50`=="Over 50") & (`Age` < 50), 
+    sample(over50distribution, replace=TRUE),  
+    `Age`
+  )
+)
+
+#### End ####
+
+#### Remove objects that are no longer needed ####
+
+studentList <- studentList %>% select(
+  -(`Over/under 25`), 
+  -(`Over/under 35`),
+  -(`Over/under 50`)
+)
+
+rm(efb, efb2, 
+   over25distribution, under25distribution, 
+   over35distribution, under35distribution, 
+   over50distribution, under50distribution
+)
+
+#### End #### 
+
+#### Save current dataset in case reset is needed ####
+
+studentListSave <- studentList
+
+#### End ####
 
 #### Regression 5: Predict Citizenship ####
 
@@ -2620,6 +3326,208 @@ studentList <- studentList %>% mutate(
 # 
 # #### End #### 
 
+#### Integrate College Scorecard and IPEDS data on veteran status ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
+
+# Data source 1: If it's in College Scorecard, we use it 
+
+cs1 <- read.csv(
+  "Most-Recent-Cohorts-Institution-Apr2025.csv", 
+  header=TRUE
+) %>% select(
+  `UNITID`, # This is reported at the OPEID level but it's fine to use by UNITID
+  `VETERAN`
+) %>% mutate(
+  `VETERAN` = as.numeric(`VETERAN`)
+) %>% rename(
+  `Veteran share 1` = `VETERAN`
+)
+
+# Data source 2: If it's not in College Scorecard, we use IPEDS 
+
+vet1 <- read.csv(
+  "sfav2324.csv", 
+  header=TRUE
+) %>% select(
+  `UNITID`,  # Unique identification number of the institution
+  `UGPO9_N`, # Number receiving Post-9/11 GI Bill Benefits - undergraduate students
+  `UGDOD_N`  # Number receiving Department of Defense Tuition Assistance Program benefits - undergraduate students
+) %>% mutate(
+  `UGCOMB` = pmax(`UGPO9_N`, `UGDOD_N`, 0, na.rm=TRUE)
+) %>% select(
+  -(`UGPO9_N`),
+  -(`UGDOD_N`)
+)
+
+sfa1 <- read.csv(
+  "sfa2324.csv", 
+  header=TRUE
+) %>% select(
+  `UNITID`, # Unique identification number of the institution
+  `SCUGRAD` # Total number of undergraduates - financial aid cohort
+)
+
+vet1 <- full_join(
+  x=vet1, 
+  y=sfa1, 
+  by="UNITID"
+) %>% mutate(
+  `Veteran share 2` = pmin(`UGCOMB` / `SCUGRAD`, 1)
+) %>% select(
+  -(`UGCOMB`), 
+  -(`SCUGRAD`)
+)
+rm(sfa1)
+
+veteranShares <- full_join(
+  x=cs1, 
+  y=vet1,
+  by="UNITID"
+)
+rm(cs1, vet1)
+
+veteranShares <- veteranShares %>% mutate(
+  `Veteran share` = ifelse(
+    is.na(`Veteran share 1`)==FALSE, 
+    `Veteran share 1`, 
+    `Veteran share 2`
+  )
+) %>% select(
+  -(`Veteran share 1`), 
+  -(`Veteran share 2`)
+)
+
+veteranShares <- veteranShares %>% filter(
+  `UNITID` %in% studentList$UNITID, 
+  is.na(`Veteran share`)==FALSE
+)
+
+for(i in (1:length(unique(veteranShares$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(veteranShares$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(veteranShares$UNITID)[i]
+  ) %>% rename(
+    `Actual` = `Veteran status`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # Need this because "Not a veteran" comes before "Veteran" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Veteran"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Not a veteran"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Veteran` / (`Veteran` + `Not a veteran`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- veteranShares %>% filter(
+    `UNITID` == unique(veteranShares$UNITID)[i]
+  )
+  correct.share <- correct.share$`Veteran share`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Veteran", val1count), 
+      rep("Not a veteran", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Veteran"
+    }else{
+      imputed.label <- "Not a veteran"
+    }
+    studentList <- studentList %>% mutate(
+      `Veteran status` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Veteran status`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(veteranShares, i)
+
+#### End #### 
+
+#### Save current dataset in case reset is needed ####
+
+studentListSave <- studentList
+
+#### End ####
+
 #### Regression 7: Predict Dependency Status ####
 
 studentList <- processRegression(
@@ -2710,6 +3618,146 @@ studentList <- studentList %>% mutate(
 # showDistribution("Dependency status")
 # 
 # #### End #### 
+
+#### Integrate College Scorecard and IPEDS data on dependency status ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
+
+dependencyStatus <- read.csv(
+  "Most-Recent-Cohorts-Institution-Apr2025.csv", 
+  header=TRUE
+) %>% select(
+  `UNITID`,   # This is reported at the OPEID level but it's fine to use by UNITID
+  `DEPENDENT`
+) %>% mutate(
+  `DEPENDENT` = as.numeric(`DEPENDENT`)
+) %>% rename(
+  `Dependent share` = `DEPENDENT`
+)
+
+dependencyStatus <- dependencyStatus %>% filter(
+  `UNITID` %in% studentList$UNITID, 
+  is.na(`Dependent share`)==FALSE
+)
+
+for(i in (1:length(unique(dependencyStatus$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(dependencyStatus$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(dependencyStatus$UNITID)[i]
+  ) %>% rename(
+    `Actual` = `Dependency status`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  
+  tempDF <- tempDF %>% arrange(
+    `Actual`, 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Dependent"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Independent"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Dependent` / (`Dependent` + `Independent`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- dependencyStatus %>% filter(
+    `UNITID` == unique(dependencyStatus$UNITID)[i]
+  )
+  correct.share <- correct.share$`Dependent share`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Dependent", val1count), 
+      rep("Independent", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Dependent"
+    }else{
+      imputed.label <- "Independent"
+    }
+    studentList <- studentList %>% mutate(
+      `Dependency status` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Dependency status`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(dependencyStatus, i)
+
+#### End #### 
 
 #### Regression 8: Applied for Federal Aid ####
 
@@ -2965,6 +4013,41 @@ studentListSave <- studentList
 
 #### End ####
 
+#### Load IPEDS data on financial aid receipt percentages ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
+
+finAidData <- read.csv(
+  "sfa2324.csv", 
+  header=TRUE
+) %>% select(
+  # Here, we're using full-time first-time undergraduates as a stand-in for others
+  `UNITID`,    #  Unique identification number of the institution
+  `FGRNT_P`,   #	Percent of full-time first-time undergraduates awarded federal grant aid
+  `SGRNT_P`,   #	Percent of full-time first-time undergraduates awarded state/local grant aid
+  `IGRNT_P`,   #	Percent of full-time first-time undergraduates awarded institutional grant aid
+  `FLOAN_P`    #	Percent of full-time first-time undergraduates awarded federal student loans
+) %>% mutate(
+  `FGRNT_P` = `FGRNT_P` / 100,
+  `SGRNT_P` = `SGRNT_P` / 100,
+  `IGRNT_P` = `IGRNT_P` / 100,
+  `FLOAN_P` = `FLOAN_P` / 100
+) %>% rename(
+  `Federal grant receipt share` = `FGRNT_P`,
+  `State grant receipt share` = `SGRNT_P`,
+  `Institutional grant receipt share` = `IGRNT_P`,
+  `Federal loan receipt share` = `FLOAN_P`
+)
+
+fedGrantReceipt <- finAidData %>% select(`UNITID`, `Federal grant receipt share`)
+staGrantReceipt <- finAidData %>% select(`UNITID`, `State grant receipt share`)
+insGrantReceipt <- finAidData %>% select(`UNITID`, `Institutional grant receipt share`)
+fedLoanReceipt <- finAidData %>% select(`UNITID`, `Federal loan receipt share`)
+
+rm(finAidData)
+
+#### End #### 
+
 #### Regression 10: Receives Federal Grants ####
 
 studentList <- processRegression(
@@ -3051,6 +4134,132 @@ studentList <- studentList %>% mutate(
 # showDistribution("Receives federal grants")
 # 
 # #### End #### 
+
+#### Integrate data on share receiving federal grants ####
+
+fedGrantReceipt <- fedGrantReceipt %>% filter(
+  `UNITID` %in% studentList$UNITID, 
+  is.na(`Federal grant receipt share`)==FALSE
+)
+
+for(i in (1:length(unique(fedGrantReceipt$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(fedGrantReceipt$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(fedGrantReceipt$UNITID)[i]
+  ) %>% rename(
+    `Actual` = `Receives federal grants`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # "No" comes before "Yes" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Yes"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="No"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Yes` / (`Yes` + `No`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- fedGrantReceipt %>% filter(
+    `UNITID` == unique(fedGrantReceipt$UNITID)[i]
+  )
+  correct.share <- correct.share$`Federal grant receipt share`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Yes", val1count), 
+      rep("No", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Yes"
+    }else{
+      imputed.label <- "No"
+    }
+    studentList <- studentList %>% mutate(
+      `Receives federal grants` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Receives federal grants`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(fedGrantReceipt, i)
+
+#### End #### 
 
 #### Regression 11A: Receives VA/DOD Grants (veterans) ####
 
@@ -3304,6 +4513,132 @@ studentList <- processRegression(
 # 
 # #### End #### 
 
+#### Integrate data on share receiving state grants ####
+
+staGrantReceipt <- staGrantReceipt %>% filter(
+  `UNITID` %in% studentList$UNITID, 
+  is.na(`State grant receipt share`)==FALSE
+)
+
+for(i in (1:length(unique(staGrantReceipt$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(staGrantReceipt$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(staGrantReceipt$UNITID)[i]
+  ) %>% rename(
+    `Actual` = `Receives state grants`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # "No" comes before "Yes" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Yes"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="No"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Yes` / (`Yes` + `No`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- staGrantReceipt %>% filter(
+    `UNITID` == unique(staGrantReceipt$UNITID)[i]
+  )
+  correct.share <- correct.share$`State grant receipt share`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Yes", val1count), 
+      rep("No", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Yes"
+    }else{
+      imputed.label <- "No"
+    }
+    studentList <- studentList %>% mutate(
+      `Receives state grants` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Receives state grants`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(staGrantReceipt, i)
+
+#### End #### 
+
 #### Regression 13: Receives Institutional Grants ####
 
 studentList <- processRegression(
@@ -3384,6 +4719,132 @@ studentList <- processRegression(
 # showDistribution("Receives institutional grants")
 # 
 # #### End #### 
+
+#### Integrate data on share receiving institutional grants ####
+
+insGrantReceipt <- insGrantReceipt %>% filter(
+  `UNITID` %in% studentList$UNITID, 
+  is.na(`Institutional grant receipt share`)==FALSE
+)
+
+for(i in (1:length(unique(insGrantReceipt$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(insGrantReceipt$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(insGrantReceipt$UNITID)[i]
+  ) %>% rename(
+    `Actual` = `Receives institutional grants`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # "No" comes before "Yes" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Yes"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="No"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Yes` / (`Yes` + `No`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- insGrantReceipt %>% filter(
+    `UNITID` == unique(insGrantReceipt$UNITID)[i]
+  )
+  correct.share <- correct.share$`Institutional grant receipt share`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Yes", val1count), 
+      rep("No", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Yes"
+    }else{
+      imputed.label <- "No"
+    }
+    studentList <- studentList %>% mutate(
+      `Receives institutional grants` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Receives institutional grants`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(insGrantReceipt, i)
+
+#### End #### 
 
 #### Regression 14: Receives Private Grants ####
 
@@ -3553,6 +5014,132 @@ studentList <- studentList %>% mutate(
 # 
 # #### End #### 
 
+#### Integrate data on share receiving federal loans ####
+
+fedLoanReceipt <- fedLoanReceipt %>% filter(
+  `UNITID` %in% studentList$UNITID, 
+  is.na(`Federal loan receipt share`)==FALSE
+)
+
+for(i in (1:length(unique(fedLoanReceipt$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(fedLoanReceipt$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(fedLoanReceipt$UNITID)[i]
+  ) %>% rename(
+    `Actual` = `Receives federal loans`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # "No" comes before "Yes" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Yes"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="No"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Yes` / (`Yes` + `No`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- fedLoanReceipt %>% filter(
+    `UNITID` == unique(fedLoanReceipt$UNITID)[i]
+  )
+  correct.share <- correct.share$`Federal loan receipt share`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Yes", val1count), 
+      rep("No", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Yes"
+    }else{
+      imputed.label <- "No"
+    }
+    studentList <- studentList %>% mutate(
+      `Receives federal loans` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Receives federal loans`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(fedLoanReceipt, i)
+
+#### End #### 
+
 #### Regression 16: Receives Parent Loans ####
 
 studentList <- processRegression(
@@ -3640,6 +5227,265 @@ studentList <- studentList %>% mutate(
 # 
 # #### End #### 
 
+#### Load data on share receiving Parent PLUS loans ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
+
+ay2425 <- read_excel("dl-dashboard-ay2024-2025-q4.xls", sheet="Award Year Summary", skip=6) %>% select(
+  `OPE ID`, 
+  `Recipients...21`, 
+  `$ of Disbursements...25`
+) %>% mutate(
+  `Year` = rep("2024-25")
+)
+ay2324 <- read_excel("dl-dashboard-ay2023-2024-q4.xls", sheet="Award Year Summary", skip=6) %>% select(
+  `OPE ID`, 
+  `Recipients...21`, 
+  `$ of Disbursements...25`
+) %>% mutate(
+  `Year` = rep("2023-24")
+)
+ay2223 <- read_excel("dl-dashboard-ay2022-2023-q4.xls", sheet="Award Year Summary", skip=6) %>% select(
+  `OPE ID`, 
+  `Recipients...21`, 
+  `$ of Disbursements...25`
+) %>% mutate(
+  `Year` = rep("2022-23")
+)
+
+ayAll <- rbind(
+  ay2425, ay2324, ay2223
+) %>% rename(
+  `OPEID` = `OPE ID`, 
+  `Parent PLUS recipients` = `Recipients...21`,
+  `Parent PLUS disbursements` = `$ of Disbursements...25`
+) %>% mutate(
+  `Parent PLUS recipients` = as.numeric(`Parent PLUS recipients`), 
+  `Parent PLUS disbursements` = as.numeric(`Parent PLUS disbursements`)
+)
+rm(ay2425, ay2324, ay2223)
+
+# Using 2023-24 as a proxy for 2024-25
+sfa2425 <- read.csv("sfa2324.csv", header=TRUE) %>% select(`UNITID`, `SCUGRAD`) %>% mutate(`Year` = rep("2024-25"))
+sfa2324 <- read.csv("sfa2324.csv", header=TRUE) %>% select(`UNITID`, `SCUGRAD`) %>% mutate(`Year` = rep("2023-24"))
+sfa2223 <- read.csv("sfa2223_RV.csv", header=TRUE) %>% select(`UNITID`, `SCUGRAD`) %>% mutate(`Year` = rep("2022-23"))
+sfaAll <- rbind(sfa2425, sfa2324, sfa2223)
+rm(sfa2425, sfa2324, sfa2223)
+
+# Using 2024 as a proxy for 2025
+hd2025 <- read.csv("hd2024.csv", header=TRUE) %>% select(`UNITID`, `OPEID`) %>% mutate(`Year` = rep("2024-25"))
+hd2024 <- read.csv("hd2024.csv", header=TRUE) %>% select(`UNITID`, `OPEID`) %>% mutate(`Year` = rep("2023-24"))
+hd2023 <- read.csv("hd2023.csv", header=TRUE) %>% select(`UNITID`, `OPEID`) %>% mutate(`Year` = rep("2022-23"))
+hdAll <- rbind(hd2025, hd2024, hd2023)
+rm(hd2025, hd2024, hd2023)
+
+undergrads <- left_join(x=sfaAll, y=hdAll, by=c("UNITID", "Year"))
+rm(sfaAll, hdAll)
+
+undergrads <- undergrads %>% mutate(
+  `SCUGRAD` = ifelse(
+    is.na(`SCUGRAD`), 
+    0, 
+    `SCUGRAD`
+  )
+)
+
+undergrads <- aggregate(
+  data=undergrads, 
+  `SCUGRAD` ~ `OPEID` + `Year`,
+  FUN=sum
+) %>% filter(
+  `OPEID` != -2
+) %>% mutate(
+  `OPEID` = as.character(`OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==1, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==2, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==3, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==4, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==5, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==6, paste("0", `OPEID`, sep=""), `OPEID`)
+) %>% mutate(
+  `OPEID` = ifelse(nchar(`OPEID`)==7, paste("0", `OPEID`, sep=""), `OPEID`)
+)
+
+ayAll <- left_join(x=ayAll, y=undergrads, by=c("OPEID", "Year"))
+rm(undergrads)
+
+# Share who receive Parent PLUS
+parentPlusShare <- ayAll %>% filter(
+  `SCUGRAD` != 0, 
+  is.na(`SCUGRAD`)==FALSE,
+  is.na(`Parent PLUS recipients`)==FALSE
+) %>% mutate(
+  `Share of undergraduates receiving Parent PLUS` = pmin(`Parent PLUS recipients` / `SCUGRAD`, 1)
+) %>% mutate(
+  `Share of undergraduates receiving Parent PLUS` = ifelse(
+    is.na(`Share of undergraduates receiving Parent PLUS`), 
+    0, 
+    `Share of undergraduates receiving Parent PLUS`
+  )
+) %>% select(
+  -(`SCUGRAD`), 
+  -(`Parent PLUS recipients`)
+)
+
+# Average Parent PLUS loan 
+averageParentPlus <- ayAll %>% filter(
+  `Parent PLUS recipients` != 0, 
+  is.na(`Parent PLUS disbursements`)==FALSE,
+  is.na(`Parent PLUS recipients`)==FALSE
+) %>% mutate(
+  `Average Parent PLUS loan` = `Parent PLUS disbursements` / `Parent PLUS recipients`
+)
+
+# Take average of years 
+parentPlusShare <- aggregate(
+  data=parentPlusShare, 
+  `Share of undergraduates receiving Parent PLUS` ~ `OPEID`, 
+  FUN=mean
+)
+averageParentPlus <- aggregate(
+  data=averageParentPlus, 
+  `Average Parent PLUS loan` ~ `OPEID`,
+  FUN=mean
+)
+
+rm(ayAll)
+
+#### End #### 
+
+#### Integrate data on Parent PLUS ####
+
+parentPlusShare <- parentPlusShare %>% filter(
+  `OPEID` %in% studentList$OPEID, 
+  is.na(`Share of undergraduates receiving Parent PLUS`)==FALSE
+)
+
+for(i in (1:length(unique(parentPlusShare$OPEID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(parentPlusShare$OPEID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `OPEID` == unique(parentPlusShare$OPEID)[i]
+  ) %>% rename(
+    `Actual` = `Receives parent loans`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  
+  tempDF <- tempDF %>% arrange(
+    desc(`Actual`), # "No" comes before "Yes" alphabetically 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `OPEID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`OPEID`
+  )
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Yes"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="No"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `Yes` / (`Yes` + `No`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- parentPlusShare %>% filter(
+    `OPEID` == unique(parentPlusShare$OPEID)[i]
+  )
+  correct.share <- correct.share$`Share of undergraduates receiving Parent PLUS`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("Yes", val1count), 
+      rep("No", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "Yes"
+    }else{
+      imputed.label <- "No"
+    }
+    studentList <- studentList %>% mutate(
+      `Receives parent loans` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `Receives parent loans`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(parentPlusShare, i)
+
+#### End #### 
+
 #############################################
 #### Predictions from regressions: Set 3 ####
 #############################################
@@ -3649,6 +5495,41 @@ studentList <- studentList %>% mutate(
 studentListSave <- studentList
 
 #### End ####
+
+#### Load IPEDS data on financial aid averages ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
+
+finAidData <- read.csv(
+  "sfa2324.csv", 
+  header=TRUE
+) %>% select(
+  # Here, we're using full-time first-time undergraduates as a stand-in for others
+  `UNITID`,    #  Unique identification number of the institution
+  `FGRNT_A`,   #	Average amount of federal grant aid awarded to full-time first-time undergraduates
+  `SGRNT_A`,   #	Average amount of state/local grant aid awarded to full-time first-time undergraduates
+  `IGRNT_A`,   #	Average amount of institutional grant aid awarded to full-time first-time undergraduates
+  `FLOAN_A`    #	Average amount of federal student loans awarded to full-time first-time undergraduates
+) %>% mutate(
+  `FGRNT_A` = `FGRNT_A` / 100,
+  `SGRNT_A` = `SGRNT_A` / 100,
+  `IGRNT_A` = `IGRNT_A` / 100,
+  `FLOAN_A` = `FLOAN_A` / 100
+) %>% rename(
+  `Average federal grant` = `FGRNT_A`,
+  `Average state grant` = `SGRNT_A`,
+  `Average institutional grant` = `IGRNT_A`,
+  `Average federal loan` = `FLOAN_A`
+)
+
+fedGrantAverage <- finAidData %>% select(`UNITID`, `Average federal grant`)
+staGrantAverage <- finAidData %>% select(`UNITID`, `Average state grant`)
+insGrantAverage <- finAidData %>% select(`UNITID`, `Average institutional grant`)
+fedLoanAverage <- finAidData %>% select(`UNITID`, `Average federal loan`)
+
+rm(finAidData)
+
+#### End #### 
 
 #### Regression 17: Federal Grant Amount ####
 
@@ -3806,12 +5687,61 @@ studentList <- studentList %>% mutate(
 )
 
 #### End #### 
- 
+
 # #### Check federal grant amount distribution ####
 # 
 # showPercentiles("Federal grant amount", removeZeros=TRUE)
 # 
 # #### End #### 
+
+#### Integrate IPEDS data on average federal grant ####
+
+fedGrantAverage <- fedGrantAverage %>% rename(
+  `Average federal grant (IPEDS)` = `Average federal grant`
+)
+
+fullTimers <- studentList %>% filter(
+  `Enrollment intensity NPSAS`=="Exclusively full-time", 
+  `Receives federal grants`=="Yes"
+)
+fullTimers <- aggregate(
+  data=fullTimers, 
+  `Federal grant amount` ~ `UNITID`, 
+  FUN=mean
+) %>% rename(
+  `Average federal grant (SDS)` = `Federal grant amount`
+)
+
+ratios <- inner_join(x=fedGrantAverage, y=fullTimers, by="UNITID")
+rm(fedGrantAverage, fullTimers)
+
+ratios <- ratios %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    (is.na(`Average federal grant (IPEDS)`)==FALSE) & (is.na(`Average federal grant (SDS)`)==FALSE) & (`Average federal grant (SDS)` > 0), 
+    `Average federal grant (IPEDS)` / `Average federal grant (SDS)`, 
+    NA
+  )
+) %>% select(
+  `UNITID`,
+  `Ratio, IPEDS to SDS`
+)
+
+studentList <- left_join(x=studentList, y=ratios, by="UNITID")
+rm(ratios)
+
+studentList <- studentList %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    is.na(`Ratio, IPEDS to SDS`), 
+    1,
+    `Ratio, IPEDS to SDS`
+  )
+) %>% mutate(
+  `Federal grant amount` = `Federal grant amount` * `Ratio, IPEDS to SDS`
+) %>% select(
+  -(`Ratio, IPEDS to SDS`)
+)
+
+#### End #### 
 
 #### Regression 18: VA/DOD Grant Amount ####
 
@@ -3967,6 +5897,80 @@ studentList <- studentList %>% mutate(
 # showPercentiles("VA/DOD grant amount", removeZeros=TRUE)
 # 
 # #### End #### 
+
+#### Integrate data on total VA/DOD grants ####
+
+# Doing total grants because we don't really have the average amounts per student
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
+
+sfav <- read.csv(
+  "sfav2324.csv", 
+  header=TRUE
+) %>% select(
+  `UNITID`, 
+  `UGPO9_T`, #	Total amount of Post-9/11 GI Bill Benefits awarded - undergraduate students
+  `UGDOD_T`  #	Total amount of Department of Defense Tuition Assistance Program benefits  awarded - undergraduate students
+) %>% mutate(
+  `UGPO9_T` = ifelse(
+    is.na(`UGPO9_T`), 
+    0, 
+    `UGPO9_T`
+  ), 
+  `UGDOD_T` = ifelse(
+    is.na(`UGDOD_T`), 
+    0, 
+    `UGDOD_T`
+  )
+) %>% mutate(
+  `Total VA/DOD grants` = `UGPO9_T` + `UGDOD_T`
+) %>% select(
+  -(`UGPO9_T`), 
+  -(`UGDOD_T`)
+)
+
+sfav <- sfav %>% rename(
+  `Total VA/DOD grants (IPEDS)` = `Total VA/DOD grants`
+)
+
+totalVADOD <- aggregate(
+  data=studentList, 
+  `VA/DOD grant amount` ~ `UNITID`, 
+  FUN=sum
+) %>% rename(
+  `Total VA/DOD grants (SDS)` = `VA/DOD grant amount`
+)
+
+ratios <- inner_join(x=sfav, y=totalVADOD, by="UNITID")
+rm(sfav, totalVADOD)
+
+ratios <- ratios %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    (is.na(`Total VA/DOD grants (IPEDS)`)==FALSE) & (is.na(`Total VA/DOD grants (SDS)`)==FALSE) & (`Total VA/DOD grants (SDS)` > 0), 
+    `Total VA/DOD grants (IPEDS)` / `Total VA/DOD grants (SDS)`, 
+    NA
+  )
+) %>% select(
+  `UNITID`,
+  `Ratio, IPEDS to SDS`
+)
+
+studentList <- left_join(x=studentList, y=ratios, by="UNITID")
+rm(ratios)
+
+studentList <- studentList %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    is.na(`Ratio, IPEDS to SDS`), 
+    1,
+    `Ratio, IPEDS to SDS`
+  )
+) %>% mutate(
+  `VA/DOD grant amount` = `VA/DOD grant amount` * `Ratio, IPEDS to SDS`
+) %>% select(
+  -(`Ratio, IPEDS to SDS`)
+)
+
+#### End #### 
 
 #### Regression 19: State Grant Amount ####
 
@@ -4130,6 +6134,55 @@ studentList <- studentList %>% mutate(
 # showPercentiles("State grant amount", removeZeros=TRUE)
 # 
 # #### End #### 
+
+#### Integrate IPEDS data on average state grant ####
+
+staGrantAverage <- staGrantAverage %>% rename(
+  `Average state grant (IPEDS)` = `Average state grant`
+)
+
+fullTimers <- studentList %>% filter(
+  `Enrollment intensity NPSAS`=="Exclusively full-time", 
+  `Receives state grants`=="Yes"
+)
+fullTimers <- aggregate(
+  data=fullTimers, 
+  `State grant amount` ~ `UNITID`, 
+  FUN=mean
+) %>% rename(
+  `Average state grant (SDS)` = `State grant amount`
+)
+
+ratios <- inner_join(x=staGrantAverage, y=fullTimers, by="UNITID")
+rm(staGrantAverage, fullTimers)
+
+ratios <- ratios %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    (is.na(`Average state grant (IPEDS)`)==FALSE) & (is.na(`Average state grant (SDS)`)==FALSE) & (`Average state grant (SDS)` > 0), 
+    `Average state grant (IPEDS)` / `Average state grant (SDS)`, 
+    NA
+  )
+) %>% select(
+  `UNITID`,
+  `Ratio, IPEDS to SDS`
+)
+
+studentList <- left_join(x=studentList, y=ratios, by="UNITID")
+rm(ratios)
+
+studentList <- studentList %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    is.na(`Ratio, IPEDS to SDS`), 
+    1,
+    `Ratio, IPEDS to SDS`
+  )
+) %>% mutate(
+  `State grant amount` = `State grant amount` * `Ratio, IPEDS to SDS`
+) %>% select(
+  -(`Ratio, IPEDS to SDS`)
+)
+
+#### End #### 
 
 #### Regression 20: Institutional Grant Amount ####
 
@@ -4297,6 +6350,55 @@ studentList <- studentList %>% mutate(
 # showPercentiles("Institutional grant amount", removeZeros=TRUE)
 # 
 # #### End #### 
+
+#### Integrate IPEDS data on average institutional grant ####
+
+insGrantAverage <- insGrantAverage %>% rename(
+  `Average institutional grant (IPEDS)` = `Average institutional grant`
+)
+
+fullTimers <- studentList %>% filter(
+  `Enrollment intensity NPSAS`=="Exclusively full-time", 
+  `Receives institutional grants`=="Yes"
+)
+fullTimers <- aggregate(
+  data=fullTimers, 
+  `Institutional grant amount` ~ `UNITID`, 
+  FUN=mean
+) %>% rename(
+  `Average institutional grant (SDS)` = `Institutional grant amount`
+)
+
+ratios <- inner_join(x=insGrantAverage, y=fullTimers, by="UNITID")
+rm(insGrantAverage, fullTimers)
+
+ratios <- ratios %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    (is.na(`Average institutional grant (IPEDS)`)==FALSE) & (is.na(`Average institutional grant (SDS)`)==FALSE) & (`Average institutional grant (SDS)` > 0), 
+    `Average institutional grant (IPEDS)` / `Average institutional grant (SDS)`, 
+    NA
+  )
+) %>% select(
+  `UNITID`,
+  `Ratio, IPEDS to SDS`
+)
+
+studentList <- left_join(x=studentList, y=ratios, by="UNITID")
+rm(ratios)
+
+studentList <- studentList %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    is.na(`Ratio, IPEDS to SDS`), 
+    1,
+    `Ratio, IPEDS to SDS`
+  )
+) %>% mutate(
+  `Institutional grant amount` = `Institutional grant amount` * `Ratio, IPEDS to SDS`
+) %>% select(
+  -(`Ratio, IPEDS to SDS`)
+)
+
+#### End #### 
 
 #### Regression 21: Private Grant Amount ####
 
@@ -4617,6 +6719,55 @@ studentList <- studentList %>% mutate(
 # 
 # #### End #### 
 
+#### Integrate IPEDS data on average federal loan ####
+
+fedLoanAverage <- fedLoanAverage %>% rename(
+  `Average federal loan (IPEDS)` = `Average federal loan`
+)
+
+fullTimers <- studentList %>% filter(
+  `Enrollment intensity NPSAS`=="Exclusively full-time", 
+  `Receives federal loans`=="Yes"
+)
+fullTimers <- aggregate(
+  data=fullTimers, 
+  `Federal loan amount` ~ `UNITID`, 
+  FUN=mean
+) %>% rename(
+  `Average federal loan (SDS)` = `Federal loan amount`
+)
+
+ratios <- inner_join(x=fedLoanAverage, y=fullTimers, by="UNITID")
+rm(fedLoanAverage, fullTimers)
+
+ratios <- ratios %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    (is.na(`Average federal loan (IPEDS)`)==FALSE) & (is.na(`Average federal loan (SDS)`)==FALSE) & (`Average federal loan (SDS)` > 0), 
+    `Average federal loan (IPEDS)` / `Average federal loan (SDS)`, 
+    NA
+  )
+) %>% select(
+  `UNITID`,
+  `Ratio, IPEDS to SDS`
+)
+
+studentList <- left_join(x=studentList, y=ratios, by="UNITID")
+rm(ratios)
+
+studentList <- studentList %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    is.na(`Ratio, IPEDS to SDS`), 
+    1,
+    `Ratio, IPEDS to SDS`
+  )
+) %>% mutate(
+  `Federal loan amount` = `Federal loan amount` * `Ratio, IPEDS to SDS`
+) %>% select(
+  -(`Ratio, IPEDS to SDS`)
+)
+
+#### End #### 
+
 #### Regression 23: Parent Loan Amount ####
 
 studentList <- processRegression(
@@ -4779,6 +6930,54 @@ studentList <- studentList %>% mutate(
 # showPercentiles("Parent loan amount", removeZeros=TRUE)
 # 
 # #### End #### 
+
+#### Integrate IPEDS data on average federal grant ####
+
+averageParentPlus <- averageParentPlus %>% rename(
+  `Average Parent PLUS loan (FSA)` = `Average Parent PLUS loan`
+)
+
+parentPlusRecipients <- studentList %>% filter(
+  `Receives parent loans`=="Yes"
+)
+parentPlusRecipients <- aggregate(
+  data=parentPlusRecipients, 
+  `Parent loan amount` ~ `OPEID`, 
+  FUN=mean
+) %>% rename(
+  `Average Parent PLUS loan (SDS)` = `Parent loan amount`
+)
+
+ratios <- inner_join(x=averageParentPlus, y=parentPlusRecipients, by="OPEID")
+rm(averageParentPlus, parentPlusRecipients)
+
+ratios <- ratios %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    (is.na(`Average Parent PLUS loan (FSA)`)==FALSE) & (is.na(`Average Parent PLUS loan (SDS)`)==FALSE) & (`Average Parent PLUS loan (SDS)` > 0), 
+    `Average Parent PLUS loan (FSA)` / `Average Parent PLUS loan (SDS)`, 
+    NA
+  )
+) %>% select(
+  `OPEID`,
+  `Ratio, IPEDS to SDS`
+)
+
+studentList <- left_join(x=studentList, y=ratios, by="OPEID")
+rm(ratios)
+
+studentList <- studentList %>% mutate(
+  `Ratio, IPEDS to SDS` = ifelse(
+    is.na(`Ratio, IPEDS to SDS`), 
+    1,
+    `Ratio, IPEDS to SDS`
+  )
+) %>% mutate(
+  `Parent loan amount` = `Parent loan amount` * `Ratio, IPEDS to SDS`
+) %>% select(
+  -(`Ratio, IPEDS to SDS`)
+)
+
+#### End #### 
 
 #############################################
 #### Predictions from regressions: Set 4 ####
@@ -4951,6 +7150,156 @@ studentList <- processRegression(
 # showDistribution("Parental education attainment")
 # 
 # #### End #### 
+
+#### Integrate College Scorecard and IPEDS data on first-gen status ####
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
+
+studentList <- studentList %>% mutate(
+  `First-gen status` = ifelse(
+    `Parental education attainment`=="Parents do not have a college degree", 
+    "First-gen", 
+    "Not first-gen"
+  )
+) %>% select(
+  -(`Parental education attainment`)
+)
+
+firstGenStatus <- read.csv(
+  "Most-Recent-Cohorts-Institution-Apr2025.csv", 
+  header=TRUE
+) %>% select(
+  `UNITID`,   # This is reported at the OPEID level but it's fine to use by UNITID
+  `FIRST_GEN`
+) %>% mutate(
+  `FIRST_GEN` = as.numeric(`FIRST_GEN`)
+) %>% rename(
+  `First-gen share` = `FIRST_GEN`
+)
+
+firstGenStatus <- firstGenStatus %>% filter(
+  `UNITID` %in% studentList$UNITID, 
+  is.na(`First-gen share`)==FALSE
+)
+
+for(i in (1:length(unique(firstGenStatus$UNITID)))){
+  
+  if(i %% 100==1){print(paste("Starting number ", comma(i), " out of ", comma(length(unique(firstGenStatus$UNITID))), " colleges.", sep=""))}
+  
+  tempDF <- studentList %>% filter(
+    `UNITID` == unique(firstGenStatus$UNITID)[i]
+  ) %>% rename(
+    `Actual` = `First-gen status`
+  ) %>% mutate(
+    `Random digits` = paste(
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sample((0:9), 1), 
+      sep=""
+    )
+  )
+  
+  tempDF <- tempDF %>% arrange(
+    `Actual`, 
+    `Random digits`
+  ) %>% select(
+    -(`Random digits`)
+  )
+  
+  for.actual.share <- aggregate(
+    data=tempDF, 
+    `UNITID` ~ `Actual`, 
+    FUN=length
+  ) %>% pivot_wider(
+    names_from=`Actual`, 
+    values_from=`UNITID`
+  )
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="First-gen"){
+    actual.share <- 1
+  }
+  if(ncol(for.actual.share)==1 & names(for.actual.share)[1]=="Not first-gen"){
+    actual.share <- 0
+  }
+  if(ncol(for.actual.share)==2){
+    for.actual.share <- for.actual.share %>% mutate(
+      `Actual share` = `First-gen` / (`First-gen` + `Not first-gen`)
+    )
+    actual.share <- for.actual.share$`Actual share`[1]
+  }
+  rm(for.actual.share)
+  
+  student.count <- nrow(tempDF)
+  correct.share <- firstGenStatus %>% filter(
+    `UNITID` == unique(firstGenStatus$UNITID)[i]
+  )
+  correct.share <- correct.share$`First-gen share`[1]
+  
+  if((student.count * correct.share) %% 1==0.5){
+    correct.share <- correct.share - 0.0001
+  } 
+  
+  val1count <- round(student.count * correct.share)
+  val2count <- round(student.count * (1-correct.share))
+  
+  while(
+    val1count + val2count > nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count - 1
+    }else{
+      val2count <- val2count - 1
+    }
+    rm(randomNumber)
+  }
+  
+  while(
+    val1count + val2count < nrow(tempDF)
+  ){
+    randomNumber <- sample((0:9), 1)
+    if(randomNumber %% 2 == 0){
+      val1count <- val1count + 1
+    }else{
+      val2count <- val2count + 1
+    }
+    rm(randomNumber)
+  }
+  
+  tempDF <- tempDF %>% mutate(
+    `Expected` = c(
+      rep("First-gen", val1count), 
+      rep("Not first-gen", val2count)
+    )
+  )
+  rm(val1count, val2count)
+  
+  tempDF <- tempDF %>% filter(
+    `Expected` != `Actual`
+  )
+  
+  if(nrow(tempDF) > 0){
+    if(actual.share < correct.share){
+      imputed.label <- "First-gen"
+    }else{
+      imputed.label <- "Not first-gen"
+    }
+    studentList <- studentList %>% mutate(
+      `First-gen status` = ifelse(
+        `Effy-student index` %in% tempDF$`Effy-student index`, 
+        imputed.label, 
+        `First-gen status`
+      )
+    )
+    if(exists("imputed.label")){
+      rm(imputed.label)
+    }
+  }
+  rm(tempDF, actual.share, correct.share, student.count)
+  
+}
+rm(firstGenStatus, i)
+
+#### End #### 
 
 #### Save file #### 
 
