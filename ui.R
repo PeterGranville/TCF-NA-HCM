@@ -21,13 +21,17 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                   
                   #### Title panel ####
                   
-                  titlePanel("Model V1"), 
+                  titlePanel("Model V2"), 
                   
-                  helpText("This is the first paragraph of description [WHY IT EXISTS]."), 
+                  helpText("This is the first iteration of the interactive cost model for a federal-state partnership, provided as a foundation for future iterations."), 
                   
-                  helpText("This is the second paragraph of description [HOW TO USE]."),
+                  helpText("In this first iteration, basic policy designs are provided that would have the federal government create funds to reach a certain policy goal. Future iterations will have more sophisticated designs, such as a federal-state partnership involving shared costs."), 
                   
-                  helpText("This is the third paragraph of description [METHODS]."),
+                  helpText("To toggle across different program designs, use the dropdown menus on the left side of the screen. Some dropdowns have limited options while the results for more program designs are calculated. Future iterations of this model will have greater optionality for the user."),
+                  
+                  helpText("To view different outcomes from the selected program design, toggle between the tabs on the right side of the screen. Future iterations of this model will provide more statistics."),
+                  
+                  helpText("The model is built using a synthetic student-level dataset that combines data from IPEDS and information predicted using regressions via NPSAS and NCES Datalab. For details about these source, please refer to the Model V1 'readme' file."),
                   
                   helpText("The tool may take a second to load after entering a new selection."),
                   
@@ -39,18 +43,29 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                       
                       #### Input panel #### 
                       
-                      selectInput(inputId="view", 
-                                  label="Select a model type:", 
+                      selectInput(inputId="goal", 
+                                  label="Select a model goal:", 
                                   choices=c(
-                                    "Fed-State Model", 
-                                    "Fed-College Model", 
-                                    "Fed-Student Model"
+                                    "Plan A", 
+                                    "Plan B", 
+                                    "Plan C", 
+                                    "Plan D", 
+                                    "Plan E", 
+                                    "Plan F", 
+                                    "Plan G"
                                   )
                       ),
-                      uiOutput("selection1"), 
+                      uiOutput("selection1"),
                       uiOutput("selection2"), 
                       uiOutput("selection3"), 
-                      uiOutput("selection4")  
+                      uiOutput("selection4"), 
+                      uiOutput("selection5"), 
+                      uiOutput("selection6"), 
+                      uiOutput("selection7"), 
+                      uiOutput("selection8"), 
+                      uiOutput("selection9"), 
+                      uiOutput("selection10"), 
+                      uiOutput("selection11")
                       
                       #### End #### 
                       
@@ -58,13 +73,30 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                     
                     mainPanel(
                       
-                      #### Baseline table #### 
+                      textOutput("description1"), 
                       
-                      tableOutput("baselineTable"),
-                      br()
-                      
-                      #### End #### 
-                      
+                      tabsetPanel(
+                        tabPanel("Figure View", fluid=TRUE,
+                                 
+                                 #### Figure 1 #### 
+                                 
+                                 br(),
+                                 plotlyOutput("figure1")
+                                 
+                                 #### End #### 
+                        ),  
+                        tabPanel("Table View", fluid=TRUE,
+                                 
+                                 #### Table 1 #### 
+                                 
+                                 br(),
+                                 tableOutput("table1")
+                                 
+                                 #### End #### 
+                                 
+                        )
+                      )
                     )
                   )
 ))
+
