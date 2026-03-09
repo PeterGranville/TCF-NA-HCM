@@ -323,13 +323,13 @@ shinyServer(function(output, input)({
   choices1 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices1a,
-           "Plan B" = choices1b, 
-           "Plan C" = choices1c, 
-           "Plan D" = choices1d, 
-           "Plan E" = choices1e, 
-           "Plan F" = choices1f, 
-           "Plan G" = choices1g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices1a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices1b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices1c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices1d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices1e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices1f, 
+           "[Plan G] Increase federal grants to students by X% " = choices1g
     )
     
   })
@@ -337,13 +337,13 @@ shinyServer(function(output, input)({
   choices2 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices2a,
-           "Plan B" = choices2b, 
-           "Plan C" = choices2c, 
-           "Plan D" = choices2d, 
-           "Plan E" = choices2e, 
-           "Plan F" = choices2f, 
-           "Plan G" = choices2g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices2a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices2b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices2c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices2d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices2e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices2f, 
+           "[Plan G] Increase federal grants to students by X% " = choices2g
     )
     
   })
@@ -351,13 +351,13 @@ shinyServer(function(output, input)({
   choices3 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices3a,
-           "Plan B" = choices3b, 
-           "Plan C" = choices3c, 
-           "Plan D" = choices3d, 
-           "Plan E" = choices3e, 
-           "Plan F" = choices3f, 
-           "Plan G" = choices3g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices3a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices3b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices3c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices3d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices3e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices3f, 
+           "[Plan G] Increase federal grants to students by X% " = choices3g
     )
     
   })
@@ -365,13 +365,13 @@ shinyServer(function(output, input)({
   choices4 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices4a,
-           "Plan B" = choices4b, 
-           "Plan C" = choices4c, 
-           "Plan D" = choices4d, 
-           "Plan E" = choices4e, 
-           "Plan F" = choices4f, 
-           "Plan G" = choices4g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices4a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices4b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices4c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices4d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices4e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices4f, 
+           "[Plan G] Increase federal grants to students by X% " = choices4g
     )
     
   })
@@ -379,13 +379,13 @@ shinyServer(function(output, input)({
   choices5 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices5a,
-           "Plan B" = choices5b, 
-           "Plan C" = choices5c, 
-           "Plan D" = choices5d, 
-           "Plan E" = choices5e, 
-           "Plan F" = choices5f, 
-           "Plan G" = choices5g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices5a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices5b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices5c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices5d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices5e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices5f, 
+           "[Plan G] Increase federal grants to students by X% " = choices5g
     )
     
   })
@@ -393,13 +393,13 @@ shinyServer(function(output, input)({
   choices6 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices6a,
-           "Plan B" = choices6b, 
-           "Plan C" = choices6c, 
-           "Plan D" = choices6d, 
-           "Plan E" = choices6e, 
-           "Plan F" = choices6f, 
-           "Plan G" = choices6g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices6a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices6b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices6c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices6d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices6e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices6f, 
+           "[Plan G] Increase federal grants to students by X% " = choices6g
     )
     
   })
@@ -407,13 +407,13 @@ shinyServer(function(output, input)({
   choices7 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices7a,
-           "Plan B" = choices7b, 
-           "Plan C" = choices7c, 
-           "Plan D" = choices7d, 
-           "Plan E" = choices7e, 
-           "Plan F" = choices7f, 
-           "Plan G" = choices7g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices7a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices7b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices7c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices7d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices7e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices7f, 
+           "[Plan G] Increase federal grants to students by X% " = choices7g
     )
     
   })
@@ -421,13 +421,13 @@ shinyServer(function(output, input)({
   choices8 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices8a,
-           "Plan B" = choices8b, 
-           "Plan C" = choices8c, 
-           "Plan D" = choices8d, 
-           "Plan E" = choices8e, 
-           "Plan F" = choices8f, 
-           "Plan G" = choices8g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices8a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices8b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices8c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices8d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices8e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices8f, 
+           "[Plan G] Increase federal grants to students by X% " = choices8g
     )
     
   })
@@ -435,13 +435,13 @@ shinyServer(function(output, input)({
   choices9 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices9a,
-           "Plan B" = choices9b, 
-           "Plan C" = choices9c, 
-           "Plan D" = choices9d, 
-           "Plan E" = choices9e, 
-           "Plan F" = choices9f, 
-           "Plan G" = choices9g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices9a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices9b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices9c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices9d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices9e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices9f, 
+           "[Plan G] Increase federal grants to students by X% " = choices9g
     )
     
   })
@@ -449,13 +449,13 @@ shinyServer(function(output, input)({
   choices10 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices10a,
-           "Plan B" = choices10b, 
-           "Plan C" = choices10c, 
-           "Plan D" = choices10d, 
-           "Plan E" = choices10e, 
-           "Plan F" = choices10f, 
-           "Plan G" = choices10g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices10a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices10b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices10c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices10d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices10e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices10f, 
+           "[Plan G] Increase federal grants to students by X% " = choices10g
     )
     
   })
@@ -463,13 +463,13 @@ shinyServer(function(output, input)({
   choices11 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = choices11a,
-           "Plan B" = choices11b, 
-           "Plan C" = choices11c, 
-           "Plan D" = choices11d, 
-           "Plan E" = choices11e, 
-           "Plan F" = choices11f, 
-           "Plan G" = choices11g
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices11a,
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices11b, 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = choices11c, 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices11d, 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = choices11e, 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = choices11f, 
+           "[Plan G] Increase federal grants to students by X% " = choices11g
     )
     
   })
@@ -479,113 +479,113 @@ shinyServer(function(output, input)({
   #### Set question visibilities ####
   
   visibility1 <- c(
-    "Plan A",
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility2 <- c(
-    "Plan A", 
-    "Plan B",
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%",
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility3 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C",
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%",
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility4 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility5 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E",
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue",
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility6 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F",
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy",
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility7 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility8 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility9 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility10 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility11 <- c(
-    "Plan A", 
-    "Plan B", 
-    "Plan C", 
-    "Plan D",
-    "Plan E", 
-    "Plan F", 
-    "Plan G"
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    "[Plan G] Increase federal grants to students by X% "
   )
   
   #### End #### 
@@ -595,13 +595,13 @@ shinyServer(function(output, input)({
   question1 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "To what amount does tuition and fees among eligible students decrease?",
-           "Plan B" = "By what percentage does tuition and fees among eligible students decrease?", 
-           "Plan C" = "By what percentage does student debt among eligible students decrease?", 
-           "Plan D" = "To what maximum percentage of family income is the net price among eligible students reduced?", 
-           "Plan E" = "To what minimum percentage of total revenue are federal and state funds increased?", 
-           "Plan F" = "What pricing policy is required among participating colleges?", 
-           "Plan G" = "By what percentage do total federal grants among eligible students increase?"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "To what amount does tuition and fees among eligible students decrease?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "By what percentage does tuition and fees among eligible students decrease?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "By what percentage does student debt among eligible students decrease?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "To what maximum percentage of family income is the net price among eligible students reduced?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "To what minimum percentage of total revenue are federal and state funds increased?", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "What pricing policy is required among participating colleges?", 
+           "[Plan G] Increase federal grants to students by X% " = "By what percentage do total federal grants among eligible students increase?"
     )
     
   })
@@ -609,13 +609,13 @@ shinyServer(function(output, input)({
   question2 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "For each $1 in the federal block grant, how much does a participating state need to match?",
-           "Plan B" = "For each $1 in the federal block grant, how much does a participating state need to match?", 
-           "Plan C" = "For each $1 in the federal block grant, how much does a participating state need to match?", 
-           "Plan D" = "For each $1 in the federal block grant, how much does a participating state need to match?", 
-           "Plan E" = "For each $1 in state funding for public institutions, how much does the federal government match?", 
-           "Plan F" = "Skipped", 
-           "Plan G" = "Skipped"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "For each $1 in the federal block grant, how much does a participating state need to match?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "For each $1 in the federal block grant, how much does a participating state need to match?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "For each $1 in the federal block grant, how much does a participating state need to match?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "For each $1 in the federal block grant, how much does a participating state need to match?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "For each $1 in state funding for public institutions, how much does the federal government match?", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "Skipped", 
+           "[Plan G] Increase federal grants to students by X% " = "Skipped"
     )
     
   })
@@ -623,13 +623,13 @@ shinyServer(function(output, input)({
   question3 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "Is student eligibility limited on the basis of enrollment intensity?",
-           "Plan B" = "Is student eligibility limited on the basis of enrollment intensity?", 
-           "Plan C" = "Is student eligibility limited on the basis of enrollment intensity?", 
-           "Plan D" = "Is student eligibility limited on the basis of enrollment intensity?", 
-           "Plan E" = "Skipped", 
-           "Plan F" = "Is student eligibility limited on the basis of enrollment intensity?", 
-           "Plan G" = "Skipped"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "Is student eligibility limited on the basis of enrollment intensity?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "Is student eligibility limited on the basis of enrollment intensity?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "Is student eligibility limited on the basis of enrollment intensity?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "Is student eligibility limited on the basis of enrollment intensity?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "Skipped", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "Is student eligibility limited on the basis of enrollment intensity?", 
+           "[Plan G] Increase federal grants to students by X% " = "Skipped"
     )
     
   })
@@ -637,13 +637,13 @@ shinyServer(function(output, input)({
   question4 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "Is student eligibility limited on a financial basis?",
-           "Plan B" = "Is student eligibility limited on a financial basis?", 
-           "Plan C" = "Is student eligibility limited on a financial basis?", 
-           "Plan D" = "Is student eligibility limited on a financial basis?", 
-           "Plan E" = "Skipped", 
-           "Plan F" = "Is student eligibility limited on a financial basis?", 
-           "Plan G" = "Skipped"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "Is student eligibility limited on a financial basis?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "Is student eligibility limited on a financial basis?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "Is student eligibility limited on a financial basis?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "Is student eligibility limited on a financial basis?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "Skipped", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "Is student eligibility limited on a financial basis?", 
+           "[Plan G] Increase federal grants to students by X% " = "Skipped"
     )
     
   })
@@ -651,13 +651,13 @@ shinyServer(function(output, input)({
   question5 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "Is student eligibility limited to in-state students?",
-           "Plan B" = "Is student eligibility limited to in-state students?", 
-           "Plan C" = "Is student eligibility limited to in-state students?", 
-           "Plan D" = "Is student eligibility limited to in-state students?", 
-           "Plan E" = "Skipped", 
-           "Plan F" = "Does the policy only apply to in-state students?", 
-           "Plan G" = "Skipped"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "Is student eligibility limited to in-state students?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "Is student eligibility limited to in-state students?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "Is student eligibility limited to in-state students?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "Is student eligibility limited to in-state students?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "Skipped", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "Does the policy only apply to in-state students?", 
+           "[Plan G] Increase federal grants to students by X% " = "Skipped"
     )
     
   })
@@ -665,13 +665,13 @@ shinyServer(function(output, input)({
   question6 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "Skipped",
-           "Plan B" = "Skipped", 
-           "Plan C" = "Skipped", 
-           "Plan D" = "Skipped", 
-           "Plan E" = "Skipped", 
-           "Plan F" = "Is institutional eligibility limited to a certain control?", 
-           "Plan G" = "Is institutional eligibility limited to a certain control?"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "Skipped",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "Skipped", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "Skipped", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "Skipped", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "Skipped", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "Is institutional eligibility limited to a certain control?", 
+           "[Plan G] Increase federal grants to students by X% " = "Is institutional eligibility limited to a certain control?"
     )
     
   })
@@ -679,13 +679,13 @@ shinyServer(function(output, input)({
   question7 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "Is institutional eligibility limited to a certain level?",
-           "Plan B" = "Is institutional eligibility limited to a certain level?", 
-           "Plan C" = "Is institutional eligibility limited to a certain level?", 
-           "Plan D" = "Is institutional eligibility limited to a certain level?", 
-           "Plan E" = "Is institutional eligibility limited to a certain level?", 
-           "Plan F" = "Is institutional eligibility limited to a certain level?", 
-           "Plan G" = "Is institutional eligibility limited to a certain level?"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "Is institutional eligibility limited to a certain level?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "Is institutional eligibility limited to a certain level?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "Is institutional eligibility limited to a certain level?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "Is institutional eligibility limited to a certain level?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "Is institutional eligibility limited to a certain level?", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "Is institutional eligibility limited to a certain level?", 
+           "[Plan G] Increase federal grants to students by X% " = "Is institutional eligibility limited to a certain level?"
     )
     
   })
@@ -693,13 +693,13 @@ shinyServer(function(output, input)({
   question8 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?",
-           "Plan B" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?", 
-           "Plan C" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?", 
-           "Plan D" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?", 
-           "Plan E" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?", 
-           "Plan F" = "Skipped", 
-           "Plan G" = "Skipped"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program?", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "Skipped", 
+           "[Plan G] Increase federal grants to students by X% " = "Skipped"
     )
     
   })
@@ -707,13 +707,13 @@ shinyServer(function(output, input)({
   question9 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?",
-           "Plan B" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?", 
-           "Plan C" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?", 
-           "Plan D" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?", 
-           "Plan E" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?", 
-           "Plan F" = "What level of decrease in a college’s total revenue would be too large to participate in the program?", 
-           "Plan G" = "Skipped"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program?", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "What level of decrease in a college’s total revenue would be too large to participate in the program?", 
+           "[Plan G] Increase federal grants to students by X% " = "Skipped"
     )
     
   })
@@ -721,13 +721,13 @@ shinyServer(function(output, input)({
   question10 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "What figure would you like displayed in the Figure View?",
-           "Plan B" = "What figure would you like displayed in the Figure View?", 
-           "Plan C" = "What figure would you like displayed in the Figure View?", 
-           "Plan D" = "What figure would you like displayed in the Figure View?", 
-           "Plan E" = "What figure would you like displayed in the Figure View?", 
-           "Plan F" = "What figure would you like displayed in the Figure View?", 
-           "Plan G" = "What figure would you like displayed in the Figure View?"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "What figure would you like displayed in the Figure View?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "What figure would you like displayed in the Figure View?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "What figure would you like displayed in the Figure View?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "What figure would you like displayed in the Figure View?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "What figure would you like displayed in the Figure View?", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "What figure would you like displayed in the Figure View?", 
+           "[Plan G] Increase federal grants to students by X% " = "What figure would you like displayed in the Figure View?"
     )
     
   })
@@ -735,13 +735,13 @@ shinyServer(function(output, input)({
   question11 <- reactive({
     
     switch(input$goal, 
-           "Plan A" = "What table would you like displayed in the Table View?",
-           "Plan B" = "What table would you like displayed in the Table View?", 
-           "Plan C" = "What table would you like displayed in the Table View?", 
-           "Plan D" = "What table would you like displayed in the Table View?", 
-           "Plan E" = "What table would you like displayed in the Table View?", 
-           "Plan F" = "What table would you like displayed in the Table View?", 
-           "Plan G" = "What table would you like displayed in the Table View?"
+           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = "What table would you like displayed in the Table View?",
+           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = "What table would you like displayed in the Table View?", 
+           "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%" = "What table would you like displayed in the Table View?", 
+           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = "What table would you like displayed in the Table View?", 
+           "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue" = "What table would you like displayed in the Table View?", 
+           "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy" = "What table would you like displayed in the Table View?", 
+           "[Plan G] Increase federal grants to students by X% " = "What table would you like displayed in the Table View?"
     )
     
   })
@@ -998,31 +998,31 @@ shinyServer(function(output, input)({
     
     #### Write Description 1 ####
     
-    if(printGoal=="Plan A"){
+    if(printGoal=="[Plan A] Fed-state partnership: Reduce tuition and fees to $X"){
       policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state reducing tuition among eligible students to ",  printSelect1, ". States can repurpose leftover funds after enacting the policy. Eligible students whose tuition is already below the selected threshold are not affected.", sep="")
     }
     
-    if(printGoal=="Plan B"){
+    if(printGoal=="[Plan B] Fed-state partnership: Reduce tuition and fees by X%"){
       policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state reducing tuition among eligible students at eligible public institutions by ", printSelect1, ". States can repurpose leftover funds after enacting the policy.", sep="")
     }
     
-    if(printGoal=="Plan C"){
+    if(printGoal=="[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%"){
       policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state increasing grants among eligible students at eligible public institutions such that student debt decreases by ", printSelect1, ". States can repurpose leftover funds after enacting the policy. Parent PLUS is included in the debt.", sep="")
     }
     
-    if(printGoal=="Plan D"){
+    if(printGoal=="[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income"){
       policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state increasing grants among eligible students at eligible public institutions such that net price (cost of attendance minus grants) does not exceed ", printSelect1, " of family income. States can repurpose leftover funds after enacting the policy. Eligible students whose net price is already below the selected threshold are not affected.", sep="")
     }
     
-    if(printGoal=="Plan E"){
+    if(printGoal=="[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue"){
       policyDescription <- paste("Under the selected plan, the federal government matches state funding for public institutions at a ratio of ", printSelect2, " per state dollar until the two combine for ", printSelect1, " of revenue (with the rest coming from tuition). States can repurpose leftover funds after enacting the policy.", sep="")
     }
     
-    if(printGoal=="Plan F"){
+    if(printGoal=="[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy"){
       policyDescription <- paste("Under the selected plan, the federal government sends colleges block grants of ", "<blockAmount>", " in exchange for the college charging tuition among eligible students using the following pricing policy:", printSelect1, ". Colleges can repurpose leftover funds after enacting the policy.", sep="")
     }
     
-    if(printGoal=="Plan G"){
+    if(printGoal=="[Plan G] Increase federal grants to students by X% "){
       policyDescription <- paste("Under the selected plan, each eligible student receiving federal grants will see their federal grants increase by", printSelect1, ". This includes the Pell Grant, FSEOG, and TEACH Grants. It does not include federal work study.", sep="")
     }
     

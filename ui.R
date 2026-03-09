@@ -46,13 +46,13 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                       selectInput(inputId="goal", 
                                   label="Select a model goal:", 
                                   choices=c(
-                                    "Plan A", 
-                                    "Plan B", 
-                                    "Plan C", 
-                                    "Plan D", 
-                                    "Plan E", 
-                                    "Plan F", 
-                                    "Plan G"
+                                    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+                                    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+                                    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+                                    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+                                    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+                                    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+                                    "[Plan G] Increase federal grants to students by X%"
                                   )
                       ),
                       uiOutput("selection1"),
