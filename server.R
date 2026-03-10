@@ -287,8 +287,9 @@ shinyServer(function(output, input)({
     # "State participation map", 
     "Net price percentiles", 
     "Educational attainment", 
-    "Economic impact", 
-    "State funding"
+    "Economic impact"
+    # , 
+    # "State funding"
   )
   
   choices10g <- choices10f
@@ -999,7 +1000,7 @@ shinyServer(function(output, input)({
     #### Write Description 1 ####
     
     if(printGoal=="[Plan A] Fed-state partnership: Reduce tuition and fees to $X"){
-      policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state reducing tuition among eligible students to ",  printSelect1, ". States can repurpose leftover funds after enacting the policy. Eligible students whose tuition is already below the selected threshold are not affected.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state reducing tuition among eligible students to ",  printSelect1, ". The tuition target reflects full-time enrollment; for part-time students, the target is half. States can repurpose leftover funds after enacting the policy. Eligible students whose tuition is already below the selected threshold are not affected.", sep="")
     }
     
     if(printGoal=="[Plan B] Fed-state partnership: Reduce tuition and fees by X%"){
@@ -1011,7 +1012,7 @@ shinyServer(function(output, input)({
     }
     
     if(printGoal=="[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income"){
-      policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state increasing grants among eligible students at eligible public institutions such that net price (cost of attendance minus grants) does not exceed ", printSelect1, " of family income. States can repurpose leftover funds after enacting the policy. Eligible students whose net price is already below the selected threshold are not affected.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state increasing grants among eligible students at eligible public institutions such that net price (cost of attendance minus grants) does not exceed ", printSelect1, " of family income. The tuition target reflects full-time enrollment; for part-time students, the target is half. States can repurpose leftover funds after enacting the policy. Eligible students whose net price is already below the selected threshold are not affected.", sep="")
     }
     
     if(printGoal=="[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue"){

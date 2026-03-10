@@ -75,15 +75,17 @@ jValues <- c(
 # 
 # #### End ####
 
-#### Load processed output (SHORT WAY: 2 MIN) ####
+#### Load processed output (SHORT WAY: 6 MIN) ####
 
 setwd("/Volumes/TOSHIBA EXT/Fed State Modeling")
 
+Sys.time()
 studentDF <- read.csv(
   "All merged student data.csv",
   header=TRUE,
   check.names=FALSE
 )
+Sys.time()
 
 #### End ####
 
@@ -91,6 +93,14 @@ studentDF <- read.csv(
 #### Make adjustments and additions         ####
 #### after processing                       ####
 ################################################
+
+#### Trim extreme values ####
+
+studentDF <- studentDF %>% mutate(
+  `Tuition and fees paid` = pmin(`Tuition and fees paid`, 75000)
+)
+
+#### End #### 
 
 #### Assign family income values ####
 
@@ -233,6 +243,35 @@ studentDF <- studentDF %>% select(
 
 #### End #### 
 
+#### Assign Pell recipient status ####
+
+# 98.8% of federal grant recipients receive Pell (Datalab table retrieval code rxkadc)
+# I selected the EFC value this so that 98.8% of federal grant recipients in studentDF are assumed to receive Pell 
+
+studentDF <- studentDF %>% mutate(
+  `Receives Pell` = ifelse(
+    (`Receives federal grants`=="Yes") & (`EFC` < 82800), 
+    "Yes", 
+    "No"
+  )
+)
+
+# studentDF <- studentDF %>% mutate(`Count` = rep(1))
+# aggregate(
+#   data=studentDF, 
+#   `Count` ~ `Receives federal grants` + `Receives Pell`, 
+#   FUN=sum
+# ) %>% pivot_wider(
+#   id_cols=c(`Receives federal grants`), 
+#   names_from=`Receives Pell`,
+#   values_from=`Count`
+# ) %>% mutate(
+#   `Share receiving Pell` = `Yes` / (`Yes` + `No`)
+# )
+# studentDF <- studentDF %>% select(-(`Count`))
+
+#### End #### 
+
 #### Apply inflation adjustments ####
 
 studentDF <- studentDF %>% mutate(
@@ -263,144 +302,611 @@ studentDF <- studentDF %>% mutate(
 
 #### End #### 
 
-#### Assign expected degree/certificate values ####
+# #### Assign expected degree/certificate values (ATTEMPT ONE) ####
+# 
+# setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS data")
+# 
+# c2024 <- read.csv("c2024_a.csv", header=TRUE) %>% filter(
+#   `MAJORNUM`==1, 
+#   `CIPCODE`==99, 
+#   (`AWLEVEL` %in% c(7, 8, 17, 18, 19))==FALSE
+# ) %>% select(
+#   `UNITID`,
+#   `AWLEVEL`, 
+#   `CTOTALT`
+# ) %>% mutate(
+#   `Year` = rep("2024")
+# )
+# 
+# c2023 <- read.csv("c2023_a_RV.csv", header=TRUE) %>% filter(
+#   `MAJORNUM`==1, 
+#   `CIPCODE`==99, 
+#   (`AWLEVEL` %in% c(7, 8, 17, 18, 19))==FALSE
+# ) %>% select(
+#   `UNITID`,
+#   `AWLEVEL`, 
+#   `CTOTALT`
+# ) %>% mutate(
+#   `Year` = rep("2023")
+# )
+# 
+# c2022 <- read.csv("c2022_a_rv.csv", header=TRUE) %>% filter(
+#   `MAJORNUM`==1, 
+#   `CIPCODE`==99, 
+#   (`AWLEVEL` %in% c(7, 8, 17, 18, 19))==FALSE
+# ) %>% select(
+#   `UNITID`,
+#   `AWLEVEL`, 
+#   `CTOTALT`
+# ) %>% mutate(
+#   `Year` = rep("2022")
+# )
+# 
+# cAll <- rbind(
+#   c2024, 
+#   c2023, 
+#   c2022
+# )
+# rm(c2024, c2023, c2022)
+# 
+# degreeMap <- data.frame(
+#   `AWLEVEL` = numeric(), 
+#   `Award` = character()
+# )
+# degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 3, `Award` = "Associate's degree")
+# degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 5, `Award` = "Bachelor's degree")
+# degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 20, `Award` = "Certificate")
+# degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 21, `Award` = "Certificate")
+# degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 2, `Award` = "Certificate")
+# degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 4, `Award` = "Certificate")
+# degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 6, `Award` = "Certificate")
+# 
+# cAll <- left_join(x=cAll, y=degreeMap, by="AWLEVEL")
+# rm(degreeMap)
+# 
+# cAll <- aggregate(
+#   data=cAll, 
+#   `CTOTALT` ~ `UNITID` + `Award` + `Year`, 
+#   FUN=sum # Total by year 
+# )
+# cAll <- aggregate(
+#   data=cAll, 
+#   `CTOTALT` ~ `UNITID` + `Award`,
+#   FUN=mean # Average by year 
+# ) %>% pivot_wider(
+#   id_cols=c(`UNITID`), 
+#   names_from=`Award`, 
+#   values_from=`CTOTALT`
+# ) %>% mutate(
+#   `Associate's degree` = ifelse(
+#     is.na(`Associate's degree`), 
+#     0,
+#     `Associate's degree`
+#   ), 
+#   `Bachelor's degree` = ifelse(
+#     is.na(`Bachelor's degree`), 
+#     0,
+#     `Bachelor's degree`
+#   ), 
+#   `Certificate` = ifelse(
+#     is.na(`Certificate`), 
+#     0,
+#     `Certificate`
+#   )
+# )
+# 
+# effy2024 <- read.csv("effy2024.csv", header=TRUE) %>% filter(
+#   `EFFYALEV`==3  #	All students, Undergraduate, Degree/certificate-seeking total
+# ) %>% select(
+#   `UNITID`, 
+#   `EFYTOTLT`
+# ) %>% mutate(
+#   `Year` = rep("2024")
+# )
+# effy2023 <- read.csv("effy2023_RV.csv", header=TRUE) %>% filter(
+#   `EFFYALEV`==3  #	All students, Undergraduate, Degree/certificate-seeking total
+# ) %>% select(
+#   `UNITID`, 
+#   `EFYTOTLT`
+# ) %>% mutate(
+#   `Year` = rep("2023")
+# )
+# effy2022 <- read.csv("effy2022_rv.csv", header=TRUE) %>% filter(
+#   `EFFYALEV`==3  #	All students, Undergraduate, Degree/certificate-seeking total
+# ) %>% select(
+#   `UNITID`, 
+#   `EFYTOTLT`
+# ) %>% mutate(
+#   `Year` = rep("2022")
+# )
+# 
+# effyAll <- rbind(
+#   effy2024, 
+#   effy2023, 
+#   effy2022
+# )
+# rm(effy2024, effy2023, effy2022)
+# 
+# effyAll <- aggregate(
+#   data=effyAll, 
+#   `EFYTOTLT` ~ `UNITID` + `Year`, 
+#   FUN=sum
+# )
+# effyAll <- aggregate(
+#   data=effyAll, 
+#   `EFYTOTLT` ~ `UNITID`, 
+#   FUN=mean
+# ) 
+# 
+# cAll <- left_join(x=cAll, y=effyAll, by="UNITID")
+# rm(effyAll)
+# 
+# cAll <- cAll %>% filter(
+#   `Associate's degree` + `Bachelor's degree` + `Certificate` > 0, 
+#   is.na(`EFYTOTLT`)==FALSE,
+#   `EFYTOTLT` > 0
+# ) %>% mutate(
+#   `Expected associate's degrees` = pmin(`Associate's degree` / `EFYTOTLT`, 1), 
+#   `Expected bachelor's degrees` = pmin(`Bachelor's degree` / `EFYTOTLT`, 1), 
+#   `Expected certificates` = pmin(`Certificate` / `EFYTOTLT`, 1)
+# ) %>% select(
+#   `UNITID`, 
+#   `Expected associate's degrees`,
+#   `Expected bachelor's degrees`, 
+#   `Expected certificates`
+# )
+# 
+# studentDF <- left_join(x=studentDF, y=cAll, by="UNITID")
+# rm(cAll)
+#   
+# fillNAs <- aggregate(
+#   data=studentDF, 
+#   cbind(`Expected associate's degrees`, `Expected bachelor's degrees`, `Expected certificates`) ~ `Carnegie NPSAS`, 
+#   FUN=mean
+# ) %>% rename(
+#   `Imputed associate's degrees` = `Expected associate's degrees`, 
+#   `Imputed bachelor's degrees` = `Expected bachelor's degrees`, 
+#   `Imputed certificates` = `Expected certificates`
+# )
+# 
+# studentDF <- left_join(x=studentDF, y=fillNAs, by="Carnegie NPSAS") %>% mutate(
+#   
+# ) %>% select(
+#   -(`Imputed associate's degrees`), 
+#   -(`Imputed bachelor's degrees`),
+#   -(`Imputed certificates`)
+# )
+# rm(fillNAs)
+# 
+# # What to do about NAs in the resulting file 
+# 
+# #### End #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS data")
+#### Assign expected degree/certificate values (ATTEMPT TWO) ####
 
-c2024 <- read.csv("c2024_a.csv", header=TRUE) %>% filter(
-  `MAJORNUM`==1, 
-  `CIPCODE`==99, 
-  (`AWLEVEL` %in% c(7, 8, 17, 18, 19))==FALSE
-) %>% select(
-  `UNITID`,
-  `AWLEVEL`, 
-  `CTOTALT`
+om23 <- read.csv("om2023_RV.csv", header=TRUE) %>% select(
+  `UNITID`,  
+  `OMCHRT`,  
+  `OMACHRT`, 
+  `OMCERT8`, 
+  `OMASSC8`, 
+  `OMBACH8`	
 ) %>% mutate(
-  `Year` = rep("2024")
+  `Year` = rep(2023)
 )
-
-c2023 <- read.csv("c2023_a_RV.csv", header=TRUE) %>% filter(
-  `MAJORNUM`==1, 
-  `CIPCODE`==99, 
-  (`AWLEVEL` %in% c(7, 8, 17, 18, 19))==FALSE
-) %>% select(
-  `UNITID`,
-  `AWLEVEL`, 
-  `CTOTALT`
+om22 <- read.csv("om2022_rv.csv", header=TRUE) %>% select(
+  `UNITID`,  
+  `OMCHRT`,  
+  `OMACHRT`, 
+  `OMCERT8`, 
+  `OMASSC8`, 
+  `OMBACH8`	
 ) %>% mutate(
-  `Year` = rep("2023")
+  `Year` = rep(2022)
 )
-
-c2022 <- read.csv("c2022_a_rv.csv", header=TRUE) %>% filter(
-  `MAJORNUM`==1, 
-  `CIPCODE`==99, 
-  (`AWLEVEL` %in% c(7, 8, 17, 18, 19))==FALSE
-) %>% select(
-  `UNITID`,
-  `AWLEVEL`, 
-  `CTOTALT`
+om21 <- read.csv("om2021_rv.csv", header=TRUE) %>% select(
+  `UNITID`,  
+  `OMCHRT`,  
+  `OMACHRT`, 
+  `OMCERT8`, 
+  `OMASSC8`, 
+  `OMBACH8`	
 ) %>% mutate(
-  `Year` = rep("2022")
+  `Year` = rep(2021)
 )
 
-cAll <- rbind(
-  c2024, 
-  c2023, 
-  c2022
+omAll <- rbind(
+  om23, 
+  om22, 
+  om21
 )
-rm(c2024, c2023, c2022)
+rm(om23, om22, om21)
 
-degreeMap <- data.frame(
-  `AWLEVEL` = numeric(), 
-  `Award` = character()
-)
-degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 3, `Award` = "Associate's degree")
-degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 5, `Award` = "Bachelor's degree")
-degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 20, `Award` = "Certificate")
-degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 21, `Award` = "Certificate")
-degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 2, `Award` = "Certificate")
-degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 4, `Award` = "Certificate")
-degreeMap <- degreeMap %>% add_row(`AWLEVEL` = 6, `Award` = "Certificate")
+omMap <- data.frame(
+  `OMCHRT` = numeric(), 
+  `OM Category` = character(), 
+  check.names=FALSE
+) 
+omMap <- omMap %>% add_row(`OMCHRT` = 10, `OM Category` = "Full-time overall")
+omMap <- omMap %>% add_row(`OMCHRT` = 11, `OM Category` = "Full-time Pell")
+omMap <- omMap %>% add_row(`OMCHRT` = 12, `OM Category` = "Full-time non-Pell")
+omMap <- omMap %>% add_row(`OMCHRT` = 20, `OM Category` = "Part-time overall")
+omMap <- omMap %>% add_row(`OMCHRT` = 21, `OM Category` = "Part-time Pell")
+omMap <- omMap %>% add_row(`OMCHRT` = 22, `OM Category` = "Part-time non-Pell")
+omMap <- omMap %>% add_row(`OMCHRT` = 30, `OM Category` = "Full-time overall")
+omMap <- omMap %>% add_row(`OMCHRT` = 31, `OM Category` = "Full-time Pell")
+omMap <- omMap %>% add_row(`OMCHRT` = 32, `OM Category` = "Full-time non-Pell")
+omMap <- omMap %>% add_row(`OMCHRT` = 40, `OM Category` = "Part-time overall")
+omMap <- omMap %>% add_row(`OMCHRT` = 41, `OM Category` = "Part-time Pell")
+omMap <- omMap %>% add_row(`OMCHRT` = 42, `OM Category` = "Part-time non-Pell")
+omMap <- omMap %>% add_row(`OMCHRT` = 50, `OM Category` = "All students overall")
+omMap <- omMap %>% add_row(`OMCHRT` = 51, `OM Category` = "Pell overall")
+omMap <- omMap %>% add_row(`OMCHRT` = 52, `OM Category` = "Non-Pell overall")
+omAll <- left_join(x=omAll, y=omMap, by="OMCHRT")
+rm(omMap)
 
-cAll <- left_join(x=cAll, y=degreeMap, by="AWLEVEL")
-rm(degreeMap)
-
-cAll <- aggregate(
-  data=cAll, 
-  `CTOTALT` ~ `UNITID` + `Award` + `Year`, 
-  FUN=sum # Total by year 
-)
-cAll <- aggregate(
-  data=cAll, 
-  `CTOTALT` ~ `UNITID` + `Award`,
-  FUN=mean # Average by year 
-) %>% pivot_wider(
-  id_cols=c(`UNITID`), 
-  names_from=`Award`, 
-  values_from=`CTOTALT`
-) %>% mutate(
-  `Associate's degree` = ifelse(
-    is.na(`Associate's degree`), 
-    0,
-    `Associate's degree`
-  ), 
-  `Bachelor's degree` = ifelse(
-    is.na(`Bachelor's degree`), 
-    0,
-    `Bachelor's degree`
-  ), 
-  `Certificate` = ifelse(
-    is.na(`Certificate`), 
-    0,
-    `Certificate`
+omAll <- omAll %>% mutate(
+  `OMBACH8` = ifelse(
+    is.na(`OMBACH8`), 
+    0, 
+    `OMBACH8`
   )
 )
 
-effy2024 <- read.csv("effy2024.csv", header=TRUE) %>% filter(
-  `EFFYALEV`==3  #	All students, Undergraduate, Degree/certificate-seeking total
-) %>% select(
-  `UNITID`, 
-  `EFYTOTLT`
-) %>% mutate(
-  `Year` = rep("2024")
-)
-effy2023 <- read.csv("effy2023_RV.csv", header=TRUE) %>% filter(
-  `EFFYALEV`==3  #	All students, Undergraduate, Degree/certificate-seeking total
-) %>% select(
-  `UNITID`, 
-  `EFYTOTLT`
-) %>% mutate(
-  `Year` = rep("2023")
-)
-effy2022 <- read.csv("effy2022_rv.csv", header=TRUE) %>% filter(
-  `EFFYALEV`==3  #	All students, Undergraduate, Degree/certificate-seeking total
-) %>% select(
-  `UNITID`, 
-  `EFYTOTLT`
-) %>% mutate(
-  `Year` = rep("2022")
-)
-
-effyAll <- rbind(
-  effy2024, 
-  effy2023, 
-  effy2022
-)
-rm(effy2024, effy2023, effy2022)
-
-effyAll <- aggregate(
-  data=effyAll, 
-  `EFYTOTLT` ~ `UNITID` + `Year`, 
+omAll <- aggregate(
+  data=omAll, 
+  cbind(`OMACHRT`, `OMCERT8`, `OMASSC8`, `OMBACH8`) ~ `UNITID` + `OM Category`, 
   FUN=sum
 )
-effyAll <- aggregate(
-  data=effyAll, 
-  `EFYTOTLT` ~ `UNITID`, 
-  FUN=mean
+omAll <- omAll %>% filter(
+  `OMACHRT` >= 50
+) %>% mutate(
+  `Expected certificates` = `OMCERT8` / `OMACHRT`, 
+  `Expected associate's degrees` = `OMASSC8` / `OMACHRT`,
+  `Expected bachelor's degrees` = `OMBACH8` / `OMACHRT`
 ) 
 
-#### End #### 
+omCert <- omAll %>% select(
+  `UNITID`, 
+  `OM Category`, 
+  `Expected certificates`
+) %>% pivot_wider(
+  id_cols=c(`UNITID`), 
+  names_from=`OM Category`, 
+  values_from=`Expected certificates`
+) %>% mutate( # First we prioritize full-time status
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `Full-time overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `Part-time overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `Full-time overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `Part-time overall`, 
+    `Part-time non-Pell`
+  )
+) %>% mutate( # Next we prioritize Pell status
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `Pell overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `Pell overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `Non-Pell overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `Non-Pell overall`, 
+    `Part-time non-Pell`
+  )
+) %>% mutate( # Finally we use overall 
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `All students overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `All students overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `All students overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `All students overall`, 
+    `Part-time non-Pell`
+  )
+) %>% select(
+  `UNITID`, 
+  `Full-time Pell`, 
+  `Part-time Pell`, 
+  `Full-time non-Pell`, 
+  `Part-time non-Pell`
+) %>% pivot_longer(
+  cols=c(
+    `Full-time Pell`, 
+    `Part-time Pell`, 
+    `Full-time non-Pell`, 
+    `Part-time non-Pell`
+  ), 
+  names_to="OM Group",
+  values_to="Expected certificates"
+)
 
+omAssc <- omAll %>% select(
+  `UNITID`, 
+  `OM Category`, 
+  `Expected associate's degrees`
+) %>% pivot_wider(
+  id_cols=c(`UNITID`), 
+  names_from=`OM Category`, 
+  values_from=`Expected associate's degrees`
+) %>% mutate( # First we prioritize full-time status
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `Full-time overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `Part-time overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `Full-time overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `Part-time overall`, 
+    `Part-time non-Pell`
+  )
+) %>% mutate( # Next we prioritize Pell status
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `Pell overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `Pell overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `Non-Pell overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `Non-Pell overall`, 
+    `Part-time non-Pell`
+  )
+) %>% mutate( # Finally we use overall 
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `All students overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `All students overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `All students overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `All students overall`, 
+    `Part-time non-Pell`
+  )
+) %>% select(
+  `UNITID`, 
+  `Full-time Pell`, 
+  `Part-time Pell`, 
+  `Full-time non-Pell`, 
+  `Part-time non-Pell`
+) %>% pivot_longer(
+  cols=c(
+    `Full-time Pell`, 
+    `Part-time Pell`, 
+    `Full-time non-Pell`, 
+    `Part-time non-Pell`
+  ), 
+  names_to="OM Group",
+  values_to="Expected associate's degrees"
+)
+
+omBach <- omAll %>% select(
+  `UNITID`, 
+  `OM Category`, 
+  `Expected bachelor's degrees`
+) %>% pivot_wider(
+  id_cols=c(`UNITID`), 
+  names_from=`OM Category`, 
+  values_from=`Expected bachelor's degrees`
+) %>% mutate( # First we prioritize full-time status
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `Full-time overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `Part-time overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `Full-time overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `Part-time overall`, 
+    `Part-time non-Pell`
+  )
+) %>% mutate( # Next we prioritize Pell status
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `Pell overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `Pell overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `Non-Pell overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `Non-Pell overall`, 
+    `Part-time non-Pell`
+  )
+) %>% mutate( # Finally we use overall 
+  `Full-time Pell` = ifelse(
+    is.na(`Full-time Pell`), 
+    `All students overall`, 
+    `Full-time Pell`
+  ), 
+  `Part-time Pell` = ifelse(
+    is.na(`Part-time Pell`), 
+    `All students overall`, 
+    `Part-time Pell`
+  ), 
+  `Full-time non-Pell` = ifelse(
+    is.na(`Full-time non-Pell`), 
+    `All students overall`, 
+    `Full-time non-Pell`
+  ), 
+  `Part-time non-Pell` = ifelse(
+    is.na(`Part-time non-Pell`), 
+    `All students overall`, 
+    `Part-time non-Pell`
+  )
+) %>% select(
+  `UNITID`, 
+  `Full-time Pell`, 
+  `Part-time Pell`, 
+  `Full-time non-Pell`, 
+  `Part-time non-Pell`
+) %>% pivot_longer(
+  cols=c(
+    `Full-time Pell`, 
+    `Part-time Pell`, 
+    `Full-time non-Pell`, 
+    `Part-time non-Pell`
+  ), 
+  names_to="OM Group",
+  values_to="Expected bachelor's degrees"
+)
+
+omAll <- full_join(x=omCert, y=omAssc, by=c("UNITID", "OM Group"))
+omAll <- full_join(x=omAll, y=omBach, by=c("UNITID", "OM Group"))
+rm(omCert, omAssc, omBach)
+
+omMap2 <- data.frame(
+  `OM Group` = character(), 
+  `Enrollment intensity` = character(), 
+  `Receives federal grants` = character(), 
+  check.names=FALSE
+)
+omMap2 <- omMap2 %>% add_row(`OM Group`="Full-time Pell", `Enrollment intensity`="Full-time", `Receives federal grants`="Yes")
+omMap2 <- omMap2 %>% add_row(`OM Group`="Part-time Pell", `Enrollment intensity`="Part-time", `Receives federal grants`="Yes")
+omMap2 <- omMap2 %>% add_row(`OM Group`="Full-time non-Pell", `Enrollment intensity`="Full-time", `Receives federal grants`="No")
+omMap2 <- omMap2 %>% add_row(`OM Group`="Part-time non-Pell", `Enrollment intensity`="Part-time", `Receives federal grants`="No")
+omAll <- left_join(x=omAll, y=omMap2, by="OM Group") %>% select(
+  -(`OM Group`)
+)
+rm(omMap2)
+
+studentDF <- left_join(x=studentDF, y=omAll, by=c("UNITID", "Enrollment intensity", "Receives federal grants"))
+rm(omAll)
+
+imputedCerts <- aggregate(
+  data=studentDF, 
+  `Expected certificates` ~ `Enrollment intensity` + `Carnegie NPSAS` + `Receives federal grants`, 
+  FUN=mean
+) %>% rename(
+  `Imputed certificates` = `Expected certificates`
+)
+studentDF <- left_join(x=studentDF, y=imputedCerts, by=c("Enrollment intensity", "Carnegie NPSAS", "Receives federal grants")) %>% mutate(
+  `Expected certificates` = ifelse(
+    is.na(`Expected certificates`), 
+    `Imputed certificates`,
+    `Expected certificates`
+  )
+) %>% select(
+  -(`Imputed certificates`)
+)
+rm(imputedCerts)
+
+imputedAsscs <- aggregate(
+  data=studentDF, 
+  `Expected associate's degrees` ~ `Enrollment intensity` + `Carnegie NPSAS` + `Receives federal grants`, 
+  FUN=mean
+) %>% rename(
+  `Imputed associate's degrees` = `Expected associate's degrees`
+)
+studentDF <- left_join(x=studentDF, y=imputedAsscs, by=c("Enrollment intensity", "Carnegie NPSAS", "Receives federal grants")) %>% mutate(
+  `Expected associate's degrees` = ifelse(
+    is.na(`Expected associate's degrees`), 
+    `Imputed associate's degrees`,
+    `Expected associate's degrees`
+  )
+) %>% select(
+  -(`Imputed associate's degrees`)
+)
+rm(imputedAsscs)
+
+imputedBachs <- aggregate(
+  data=studentDF, 
+  `Expected bachelor's degrees` ~ `Enrollment intensity` + `Carnegie NPSAS` + `Receives federal grants`, 
+  FUN=mean
+) %>% rename(
+  `Imputed bachelor's degrees` = `Expected bachelor's degrees`
+)
+studentDF <- left_join(x=studentDF, y=imputedBachs, by=c("Enrollment intensity", "Carnegie NPSAS", "Receives federal grants")) %>% mutate(
+  `Expected bachelor's degrees` = ifelse(
+    is.na(`Expected bachelor's degrees`), 
+    `Imputed bachelor's degrees`,
+    `Expected bachelor's degrees`
+  )
+) %>% select(
+  -(`Imputed bachelor's degrees`)
+)
+rm(imputedBachs)
+
+#### End #### 
 
 #### Save adjusted file ####
 
