@@ -54,9 +54,9 @@ shinyServer(function(output, input)({
   #### Establish selection2 choices ####
   
   choices2a <- c(
-    "$0.10", 
+    # "$0.10", SLIM
     "$0.25", 
-    "$0.50", 
+    "$0.50", # SLIM
     "$1.00"
   )
   
@@ -68,7 +68,7 @@ shinyServer(function(output, input)({
   
   choices2e <- c(
     "$0.50", 
-    "$1.00", 
+    "$1.00", # SLIM
     "$1.50"
   )
   
@@ -192,8 +192,9 @@ shinyServer(function(output, input)({
   #### Establish selection7 choices ####
   
   choices7a <- c(
-    "Only two-year institutions", 
-    "Both two- and four-year institutions"
+    "Only two-year institutions"
+    ,
+    "Both two- and four-year institutions" # SLIM
   )
   
   choices7b <- choices7a
@@ -213,8 +214,9 @@ shinyServer(function(output, input)({
   #### Establish selection8 choices ####
   
   choices8a <- c(
-    "No", 
-    "Yes"
+    "No"
+    ,
+    "Yes" # SLIM
   )
   
   choices8b <- choices8a
@@ -238,8 +240,8 @@ shinyServer(function(output, input)({
   #### Establish selection9 choices ####
   
   choices9a <- c(
-    "15% and above", 
-    "25% and above", 
+    # "15% and above", SLIM
+    # "25% and above", SLIM
     "35% and above"
   )
   
@@ -252,9 +254,10 @@ shinyServer(function(output, input)({
   choices9e <- choices9a
   
   choices9f <- c(
-    "5% and above", 
-    "10% and above", 
-    "15% and above"
+    # "5% and above", SLIM
+    "10% and above"
+    # , 
+    # "15% and above" SLIM
   )
   
   choices9g <- c(
@@ -506,9 +509,10 @@ shinyServer(function(output, input)({
     "[Plan B] Fed-state partnership: Reduce tuition and fees by X%",
     "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
     "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
-    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
-    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
-    "[Plan G] Increase federal grants to students by X% "
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue"
+    # , 
+    # "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    # "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility3 <- c(
@@ -516,9 +520,10 @@ shinyServer(function(output, input)({
     "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
     "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%",
     "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
-    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
-    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
-    "[Plan G] Increase federal grants to students by X% "
+    # "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy"
+    # , 
+    # "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility4 <- c(
@@ -526,9 +531,10 @@ shinyServer(function(output, input)({
     "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
     "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
     "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
-    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
-    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
-    "[Plan G] Increase federal grants to students by X% "
+    # "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy"
+    # , 
+    # "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility5 <- c(
@@ -536,17 +542,18 @@ shinyServer(function(output, input)({
     "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
     "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
     "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
-    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue",
-    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
-    "[Plan G] Increase federal grants to students by X% "
+    # "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue",
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy"
+    # , 
+    # "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility6 <- c(
-    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
-    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
-    "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
-    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
-    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
+    # "[Plan A] Fed-state partnership: Reduce tuition and fees to $X", 
+    # "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    # "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
+    # "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
+    # "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
     "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy",
     "[Plan G] Increase federal grants to students by X% "
   )
@@ -566,9 +573,10 @@ shinyServer(function(output, input)({
     "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
     "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
     "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
-    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
-    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
-    "[Plan G] Increase federal grants to students by X% "
+    "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue"
+    # , 
+    # "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
+    # "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility9 <- c(
@@ -577,8 +585,9 @@ shinyServer(function(output, input)({
     "[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%", 
     "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income",
     "[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue", 
-    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy", 
-    "[Plan G] Increase federal grants to students by X% "
+    "[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy"
+    # , 
+    # "[Plan G] Increase federal grants to students by X% "
   )
   
   visibility10 <- c(
@@ -879,60 +888,6 @@ shinyServer(function(output, input)({
   #### Table generation                      ####
   ###############################################
   
-  output$table1 <- renderTable({
-    
-    #### Create "print" objects ####
-    
-    printGoal <- input$goal
-    printSelect1 <- input$select1
-    printSelect2 <- input$select2
-    printSelect3 <- input$select3
-    printSelect4 <- input$select4
-    printSelect5 <- input$select5
-    printSelect6 <- input$select6
-    printSelect7 <- input$select7
-    printSelect8 <- input$select8
-    printSelect9 <- input$select9
-    printSelect10 <- input$select10
-    printSelect11 <- input$select11
-    
-    #### End #### 
-    
-    #### Load data and filter for selected simulation ####
-    
-    # simulations <- read.csv(
-    #   "Simulation results.csv", header=TRUE, check.names=FALSE
-    # ) %>% filter(
-    #   `program.goal` == printGoal, 
-    #   `elig.carnegie` == printSelect1, 
-    #   `elig.control` == printSelect2, 
-    #   `elig.halftime` == printSelect3, 
-    #   `elig.efc` == printSelect4, 
-    #   `elig.outofstate` == printSelect5, 
-    #   `elig.noncitizen` == printSelect6, 
-    #   `elig.fafsa` == printSelect7,
-    #   `elig.gpa` == printSelect8
-    # )
-    
-    #### End #### 
-    
-    #### Print Table 1 ####
-    
-    table1 <- data.frame(
-      `Goal` = character(), 
-      `Select1` = character(), 
-      check.names=FALSE
-    ) %>% add_row(
-      `Goal` = printGoal, 
-      `Select1` = printSelect1
-    )
-    
-    print(table1)
-    
-    #### End #### 
-    
-  })
-  
   output$figure1 <- renderPlotly({
     
     #### Create "print" objects ####
@@ -954,48 +909,365 @@ shinyServer(function(output, input)({
     
     #### Load data and filter for selected simulation ####
     
-    # simulations <- read.csv(
-    #   "Simulation results.csv", header=TRUE, check.names=FALSE
-    # ) %>% filter(
-    #   `program.goal` == printGoal, 
-    #   `elig.carnegie` == printSelect1, 
-    #   `elig.control` == printSelect2, 
-    #   `elig.halftime` == printSelect3, 
-    #   `elig.efc` == printSelect4, 
-    #   `elig.outofstate` == printSelect5, 
-    #   `elig.noncitizen` == printSelect6, 
-    #   `elig.fafsa` == printSelect7,
-    #   `elig.gpa` == printSelect8
-    # )
+    if(printGoal=="[Plan A] Fed-state partnership: Reduce tuition and fees to $X"){
+      pathName <- "Simulation results/Plan A.xlsx"
+    }
+    if(printGoal=="[Plan B] Fed-state partnership: Reduce tuition and fees by X%"){
+      pathName <- "Simulation results/Plan B.xlsx"
+    }
+    if(printGoal=="[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%"){
+      pathName <- "Simulation results/Plan C.xlsx"
+    }
+    
+    if(printSelect10=="Institutional participation map"){
+      sheetName <- "Sheet1"
+    }
+    if(printSelect10=="State participation map"){
+      sheetName <- "Sheet2"
+    }
+    if(printSelect10=="Net price percentiles"){
+      sheetName <- "Sheet3"
+    }
+    if(printSelect10=="Educational attainment"){
+      sheetName <- "Sheet4"
+    }
+    if(printSelect10=="Economic impact"){
+      sheetName <- "Sheet5"
+    }
+    if(printSelect10=="State funding"){
+      sheetName <- "Sheet6"
+    }
+    
+    figureData <- read_excel(
+      path=pathName, 
+      sheet=sheetName
+    ) 
+
+    #### End #### 
+    
+    #### Institutional participation map #### 
+    
+    if(printSelect10=="Institutional participation map"){
+      
+      figureData <- figureData %>% filter(
+        duplicated(`UNITID`)==FALSE
+      )
+      
+      collegeData <- read.csv(
+        "College info.csv",
+        header=TRUE
+      )
+      figureData <- left_join(x=figureData, y=collegeData, by="UNITID")
+      
+      figureData <- figureData %>% mutate(
+        `Control` = ifelse(
+          `CONTROL`==1, 
+          "Public", 
+          ifelse(
+            `CONTROL`==2, 
+            "Nonprofit",
+            ifelse(
+              `CONTROL`==3, 
+              "For-profit", 
+              "NA"
+            )
+          )
+        )
+      )
+      
+      figureData$hover <- paste(
+        "Name: ", figureData$INSTNM, '\n',
+        "Location: ", paste(figureData$CITY, ", ", figureData$STABBR, sep=""), '\n',
+        "Control: ", figureData$`Control`, '\n',
+        "Participant status: ", figureData$`Participant`, '\n',
+        "Total participating students: ", comma(figureData$`Total participating students`), '\n',
+        "Share participating: ", percent(figureData$`Share participating`, accuracy=0.1), '\n',
+        "Total funds received by students: ", dollar(round(figureData$`Total funds received by students`, -3)), '\n',
+        "Increased expected degrees and certificates: ", comma(round(figureData$`Increased expected degrees and certificates`)),
+        sep=""
+      )
+      
+      figure1 <- plot_geo(
+        figureData, 
+        locationmode='USA-states'
+      ) %>% add_trace(type="scatter", mode="markers", lat=~LATITUDE, lon=~LONGITUD, text=~hover, color=~`Participant`, colors = rev(c("#1B98E0","black"))) %>% layout(geo = list(scope = 'usa'))
+    }
+    
+    #### End #### 
+    
+    #### State participation map #### 
+    
+    if(printSelect10=="State participation map"){
+      
+      figureData <- figureData %>% mutate(
+        participant_num = ifelse(`Participation status` == "Yes", 1, 0)
+      )
+      
+      figureData$hover <- paste(
+        "Name: ", figureData$`State`, '\n',
+        "Participation status: ", figureData$`Participation status`, '\n',
+        "Federal block grant: ", dollar(round(figureData$`Federal block grant`, -6)), '\n',
+        "Total state contributions: ", dollar(round(figureData$`Total state contributions`, -6)), '\n',
+        "Total state contributions as a share of education appropriations: ", percent(figureData$`Total state contributions as a share of education appropriations`, accuracy=0.1), '\n',
+        "Number of participating students: ", comma(round(figureData$`Number of participating students`)), '\n',
+        "Share of students at public institutions participating: ", percent(figureData$`Share of students at public institutions participating`, accuracy=0.1),
+        sep=""
+      )
+      
+      figure1 <- plot_ly() %>%
+        add_trace(
+          data = filter(figureData, `Participation status` == "Yes"),
+          type = "choropleth",
+          locations = ~STABBR,
+          locationmode = "USA-states",
+          z = 1,
+          text = ~hover,
+          name = "Yes",
+          colorscale = list(c(0, "lightblue"), c(1, "lightblue")),
+          showscale = FALSE
+        ) %>%
+        add_trace(
+          data = filter(figureData, `Participation status` == "No"),
+          type = "choropleth",
+          locations = ~STABBR,
+          locationmode = "USA-states",
+          z = 1,
+          text = ~hover,
+          name = "No",
+          colorscale = list(c(0, "lightgray"), c(1, "lightgray")),
+          showscale = FALSE
+        ) %>%
+        layout(
+          geo = list(scope = "usa")
+        )
+      
+    }
+    
+    #### End #### 
+    
+    #### Net price percentiles #### 
+    
+    if(printSelect10=="Net price percentiles"){
+      
+      figureData <- figureData %>% pivot_longer(
+        cols=c(`Pre-policy net price`, `Post-policy net price`), 
+        names_to="Policy status", 
+        values_to="Net price"
+      ) %>% mutate(
+        `Participant2` = ifelse(
+          `Participant`=="Yes", 
+          "Participant", 
+          "Not a participant"
+        )
+      )
+      
+      figure1 <- ggplot(
+        data=figureData,
+        mapping=aes(
+          x=`Percentile`, 
+          y=`Net price`, 
+          fill=`Policy status`
+        )
+      ) + geom_bar(
+        stat="identity", 
+        position=position_dodge()
+      ) + facet_grid(
+        . ~ `Participant2`
+      ) + scale_y_continuous(
+        labels=dollar_format()
+      ) + scale_x_continuous(
+        breaks=c(10, 20, 30, 40, 50, 60, 70, 80, 90)
+      )
+      
+      figure1 <- ggplotly(figure1)
+      
+    }
+    
+    #### End #### 
+    
+    #### Educational attainment #### 
+    
+    if(printSelect10=="Educational attainment"){
+      
+      figureData <- figureData %>% filter(`STABBR` != "DC")
+      
+      figureData <- figureData %>% rename(
+        `Associate's or higher` = `Percentage point change, associate's or higher`, 
+        `Bachelor's or higher` = `Percentage point change, bachelor's or higher`
+      ) %>% pivot_longer(
+        cols=c(`Associate's or higher`, `Bachelor's or higher`), 
+        names_to="Level", 
+        values_to="Percentage point change in population attainment"
+      )
+      
+      figureData <- figureData %>% mutate(
+        `Percentage point change in population attainment` = `Percentage point change in population attainment` * 100
+      )
+      
+      figure1 <- ggplot(
+        data=figureData, 
+        mapping=aes(
+          x=`Percentage point change in population attainment`,
+          y=`STABBR`, 
+          fill=`Level`
+        )
+      ) + geom_bar(
+        stat="identity", 
+        position=position_dodge()
+      ) + scale_y_discrete(limits=rev)
+    
+      figure1 <- ggplotly(figure1)
+      
+    }
+    
+    #### End #### 
+    
+    #### Economic impact #### 
+    
+    if(printSelect10=="Economic impact"){
+      
+      annualCost <- figureData$`Annual cost`[1]
+      annualTaxes <- figureData$`Increase in annual taxes`[1]
+
+      figureData <- data.frame(
+        `Year` = (1:99)
+      ) 
+      figureData <- figureData %>% mutate(
+        `Cost minus cumulative tax revenue from increased earnings` = annualCost - (annualTaxes * `Year`), 
+        `Indicator` = rep(0)
+      )
+      
+      counter <- 0 
+      for(i in (1:99)){
+        if(figureData$`Cost minus cumulative tax revenue from increased earnings`[i] < 0){
+          counter <- counter + 1
+          figureData$`Indicator`[i] <- counter
+        }
+      }
+      rm(counter, i)
+      
+      figureData <- figureData %>% filter(
+        `Indicator` <= 5
+      )
+      
+      figure1 <- ggplot(
+        data=figureData, 
+        mapping=aes(
+          x=`Year`, 
+          y=`Cost minus cumulative tax revenue from increased earnings`
+        )
+      ) + geom_point() + geom_line() + geom_hline(yintercept=0) + scale_y_continuous(labels=dollar_format(accuracy=1))
+      
+      figure1 <- ggplotly(figure1)
+      
+    }
+    
+    #### End #### 
+    
+    #### State funding #### 
+    
+    if(printSelect10=="State funding"){
+      
+      figureData <- figureData %>% pivot_longer(
+        cols=c(`Federal block grant`, `Total state contributions`, `Overflow amount`), 
+        names_to="Category", 
+        values_to="Amount"
+      )
+      
+      figureData <- figureData %>% filter(`STABBR` != "DC")
+      
+      figure1 <- ggplot(
+        data=figureData, 
+        mapping=aes(
+          x=`Amount`,
+          y=`STABBR`, 
+          fill=`Category`
+        )
+      ) + geom_bar(
+        stat="identity", 
+        position=position_dodge()
+      ) + scale_y_discrete(
+        limits=rev
+      ) + scale_x_continuous(
+        labels=dollar_format(accuracy=1)
+      )
+      
+      figure1 <- ggplotly(figure1)
+      
+    }
     
     #### End #### 
     
     #### Print Figure 1 ####
     
-    tempDF <- data.frame(
-      `Goal` = character(), 
-      `Select1` = character(), 
-      check.names=FALSE
-    ) %>% add_row(
-      `Goal` = printGoal, 
-      `Select1` = printSelect1
-    ) %>% mutate(
-      `Select1 characters` = nchar(`Select1`)
-    )
-    
-    figure1 <- ggplot(
-      data=tempDF, 
-      mapping=aes(
-        x=`Goal`, 
-        y=`Select1 characters`
-      )
-    ) + geom_bar(stat="identity")
-    
-    figure1 <- ggplotly(figure1)
-    
     print(figure1)
     
     #### End #### 
+    
+  })
+  
+  output$table1 <- renderTable({
+    
+    #### Create "print" objects ####
+    
+    printGoal <- input$goal
+    printSelect1 <- input$select1
+    printSelect2 <- input$select2
+    printSelect3 <- input$select3
+    printSelect4 <- input$select4
+    printSelect5 <- input$select5
+    printSelect6 <- input$select6
+    printSelect7 <- input$select7
+    printSelect8 <- input$select8
+    printSelect9 <- input$select9
+    printSelect10 <- input$select10
+    printSelect11 <- input$select11
+    
+    #### End #### 
+    
+    #### Load data and filter for selected simulation ####
+    
+    if(printGoal=="[Plan A] Fed-state partnership: Reduce tuition and fees to $X"){
+      pathName <- "Simulation results/Plan A.xlsx"
+    }
+    if(printGoal=="[Plan B] Fed-state partnership: Reduce tuition and fees by X%"){
+      pathName <- "Simulation results/Plan B.xlsx"
+    }
+    if(printGoal=="[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%"){
+      pathName <- "Simulation results/Plan C.xlsx"
+    }
+    
+    if(printSelect11=="Student participation"){
+      sheetName <- "Sheet7"
+    }
+    if(printSelect11=="Student debt"){
+      sheetName <- "Sheet8"
+    }
+    if(printSelect11=="Degrees and certificates"){
+      sheetName <- "Sheet9"
+    }
+    if(printSelect11=="Government cost"){
+      sheetName <- "Sheet10"
+    }
+    
+    tableData <- read_excel(
+      path=pathName, 
+      sheet=sheetName
+    ) 
+    
+    #### End #### 
+    
+    #### Print Table 1 ####
+    
+    table1 <- tableData %>% select(
+      `Measure`, 
+      `Value`
+    )
+    
+    print(table1)
+    
+    #### End #### 
+
     
   })
   
@@ -1012,19 +1284,19 @@ shinyServer(function(output, input)({
     #### Write Description 1 ####
     
     if(printGoal=="[Plan A] Fed-state partnership: Reduce tuition and fees to $X"){
-      policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state reducing tuition among eligible students to ",  printSelect1, ". The tuition target reflects full-time enrollment; for part-time students, the target is half. States can repurpose leftover funds after enacting the policy. Eligible students whose tuition is already below the selected threshold are not affected.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends states block grants in exchange for the state reducing tuition among eligible students to ",  printSelect1, ". The tuition target reflects full-time enrollment; for part-time students, the target is half. States can repurpose leftover funds after enacting the policy. Eligible students whose tuition is already below the selected threshold are not affected.", sep="")
     }
     
     if(printGoal=="[Plan B] Fed-state partnership: Reduce tuition and fees by X%"){
-      policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state reducing tuition among eligible students at eligible public institutions by ", printSelect1, ". States can repurpose leftover funds after enacting the policy.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends states block grants in exchange for the state reducing tuition among eligible students at eligible public institutions by ", printSelect1, ". States can repurpose leftover funds after enacting the policy.", sep="")
     }
     
     if(printGoal=="[Plan C] Fed-state partnership: Increase grants to reduce student debt by X%"){
-      policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state increasing grants among eligible students at eligible public institutions such that student debt decreases by ", printSelect1, ". States can repurpose leftover funds after enacting the policy. Parent PLUS is included in the debt.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends states block grants in exchange for the state increasing grants among eligible students at eligible public institutions such that student debt decreases by ", printSelect1, ". States can repurpose leftover funds after enacting the policy. Parent PLUS is included in the debt.", sep="")
     }
     
     if(printGoal=="[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income"){
-      policyDescription <- paste("Under the selected plan, the federal government sends states block grants of ", "<blockAmount>", " in exchange for the state increasing grants among eligible students at eligible public institutions such that net price (cost of attendance minus grants) does not exceed ", printSelect1, " of family income. The tuition target reflects full-time enrollment; for part-time students, the target is half. States can repurpose leftover funds after enacting the policy. Eligible students whose net price is already below the selected threshold are not affected.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends states block grants in exchange for the state increasing grants among eligible students at eligible public institutions such that net price (cost of attendance minus grants) does not exceed ", printSelect1, " of family income. The tuition target reflects full-time enrollment; for part-time students, the target is half. States can repurpose leftover funds after enacting the policy. Eligible students whose net price is already below the selected threshold are not affected.", sep="")
     }
     
     if(printGoal=="[Plan E] Fed-state partnership: Increase federal and state investment to equal X% of revenue"){
@@ -1032,7 +1304,7 @@ shinyServer(function(output, input)({
     }
     
     if(printGoal=="[Plan F] Fed-college partnership: Government sends colleges subsidy in exchange for X pricing policy"){
-      policyDescription <- paste("Under the selected plan, the federal government sends colleges block grants of ", "<blockAmount>", " in exchange for the college charging tuition among eligible students using the following pricing policy:", printSelect1, ". Colleges can repurpose leftover funds after enacting the policy.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends colleges block grants in exchange for the college charging tuition among eligible students using the following pricing policy:", printSelect1, ". Colleges can repurpose leftover funds after enacting the policy.", sep="")
     }
     
     if(printGoal=="[Plan G] Increase federal grants to students by X% "){

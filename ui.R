@@ -23,17 +23,17 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                   
                   titlePanel("Model V2"), 
                   
-                  helpText("This is the first iteration of the interactive cost model for a federal-state partnership, provided as a foundation for future iterations."), 
+                  helpText("Introductory text will go here."), 
                   
-                  helpText("In this first iteration, basic policy designs are provided that would have the federal government create funds to reach a certain policy goal. Future iterations will have more sophisticated designs, such as a federal-state partnership involving shared costs."), 
+                  helpText("Introductory text will go here."), 
                   
-                  helpText("To toggle across different program designs, use the dropdown menus on the left side of the screen. Some dropdowns have limited options while the results for more program designs are calculated. Future iterations of this model will have greater optionality for the user."),
+                  helpText("Introductory text will go here."), 
                   
-                  helpText("To view different outcomes from the selected program design, toggle between the tabs on the right side of the screen. Future iterations of this model will provide more statistics."),
+                  helpText("Introductory text will go here."), 
                   
-                  helpText("The model is built using a synthetic student-level dataset that combines data from IPEDS and information predicted using regressions via NPSAS and NCES Datalab. For details about these source, please refer to the Model V1 'readme' file."),
+                  helpText("Introductory text will go here."), 
                   
-                  helpText("The tool may take a second to load after entering a new selection."),
+                  helpText("Introductory text will go here."), 
                   
                   #### End #### 
                   
@@ -74,6 +74,7 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                     mainPanel(
                       
                       textOutput("description1"), 
+                      br(), 
                       
                       tabsetPanel(
                         tabPanel("Figure View", fluid=TRUE,
