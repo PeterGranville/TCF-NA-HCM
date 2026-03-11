@@ -280,7 +280,14 @@ shinyServer(function(output, input)({
   
   choices10d <- choices10a
   
-  choices10e <- choices10a
+  choices10e <- c(
+    "Institutional participation map", 
+    "State participation map", 
+    # "Net price percentiles", 
+    "Educational attainment", 
+    "Economic impact", 
+    "State funding"
+  )
   
   choices10f <- c(
     "Institutional participation map", 
@@ -311,7 +318,12 @@ shinyServer(function(output, input)({
   
   choices11d <- choices11a
   
-  choices11e <- choices11a
+  choices11e <- c(
+    "Student participation", 
+    # "Student debt", 
+    "Degrees and certificates", 
+    "Government cost"
+  )
   
   choices11f <- choices11a
   

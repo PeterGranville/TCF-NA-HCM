@@ -11,6 +11,8 @@ quiet_numeric <- function(x) {
   suppressWarnings(as.numeric(x))
 }
 
+mem.maxVSize(32000)
+
 #### End ####
 
 ################################################
@@ -54,7 +56,9 @@ stateDF <- read_excel(
   `Four-Year Total Education Revenue`
 ) %>% mutate(
   `Education Appropriations` = `Two-Year Education Appropriations` + `Four-Year Education Appropriations`
-)
+) %>% filter(
+  `State` != "U.S."
+) 
 
 #### End #### 
 
@@ -114,8 +118,7 @@ rm(census_t)
 stateDF <- stateDF %>% mutate(
   `STABBR` = state.abb[match(`State`, state.name)]
 )
-stateDF$STABBR[51] <- "US"
-stateDF$STABBR[52] <- "DC"
+stateDF$STABBR[51] <- "DC"
 
 #### End #### 
 
@@ -232,6 +235,25 @@ collegeDF <- collegeDF %>% mutate(
 
 #### End #### 
 
+#### Save directory info for app ####
+
+saveCollege <- collegeDF %>% select(
+  `UNITID`,
+  `INSTNM`,
+  `CITY`,
+  `STABBR`,
+  `CONTROL`,
+  `C21BASIC`,
+  `LONGITUD`, 
+  `LATITUDE`
+)
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2")
+write.csv(saveCollege, "College info.csv", row.names=FALSE)
+rm(saveCollege)
+
+#### End #### 
+
 ################################################
 #### Function A: [Plan A]                   ####
 #### Fed-state partnership: Reduce tuition  ####
@@ -258,19 +280,6 @@ functionA <- function(
   #### End #### 
     
 ){
- 
-  # studentData <- studentDF
-  # stateData <- stateDF
-  # collegeData <- collegeDF
-  # select1 <- "$1,000 at all eligible institutions"
-  # select2 <- "$0.50"
-  # select3 <- "No restriction based on enrollment intensity"
-  # select4 <- "Pell Grant recipients only"
-  # select5 <- "Yes"
-  # select6 <- "Skipped"
-  # select7 <- "Only two-year institutions"
-  # select8 <- "No"
-  # select9 <- "15% and above"
   
   #### [S] Institutional eligibility ####
   
@@ -297,8 +306,12 @@ functionA <- function(
   #### [S] Student eligibility ####
   
   studentData <- studentData %>% mutate(
-    `Eligible` = rep("Yes")
-  )
+    `Eligible` = ifelse(
+      `Citizenship`=="Citizen or eligible non-citizen", 
+      "Yes", 
+      "No"
+    )
+  ) 
   
   # Is student eligibility limited on the basis of enrollment intensity?
   if(select3=="Restricted to students enrolled full-time"){
@@ -511,6 +524,12 @@ functionA <- function(
       "No",
       `Participation status`
     )
+  ) %>% mutate(
+    `Turn down due to finances` = ifelse(
+      `Total state contributions as a share of education appropriations` > maxIncrease, 
+      "Yes",  
+      "No"
+    )
   )
   
   rm(maxIncrease)
@@ -557,6 +576,61 @@ functionA <- function(
   
   #### End #### 
   
+  #### [C] Store pricing and aid changes ####
+  
+  studentData <- studentData %>% mutate(
+    `New tuition subsidy` = ifelse(
+      `Participant`=="Yes", 
+      `Delta`, 
+      0
+    ), 
+    `New grants` = rep(0)
+  )
+  
+  #### End #### 
+  
+  #### [C] Store institutional funding changes ####
+  
+  stateData <- stateData %>% mutate(
+    `Overflow per FTE` = `Overflow amount` / `Eligible FTEs`
+  ) 
+  
+  importOverflow <- stateData %>% select(
+    `STABBR`, 
+    `Overflow per FTE`
+  )
+  studentData <- left_join(x=studentData, y=importOverflow, by="STABBR")
+  rm(importOverflow)
+  
+  studentData <- studentData %>% mutate(
+    `Overflow per FTE` = ifelse(
+      is.na(`Overflow per FTE`), 
+      0, 
+      `Overflow per FTE`
+    )
+  ) %>% mutate(
+    `Overflow per FTE` = ifelse(
+      `Participant`=="Yes", 
+      `Overflow per FTE`, 
+      0
+    )
+  ) %>% mutate(
+    `Overflow` = ifelse(
+      `Enrollment intensity` == "Part-time", 
+      `Overflow per FTE` * 0.5, 
+      `Overflow per FTE`
+    )
+  ) %>% select(
+    -(`Overflow per FTE`)
+  )
+    
+  #### End #### 
+  
+  #### [C] Return list ####
+  
+  return(list(studentData, stateData, collegeData))
+  
+  #### End #### 
   
 }
 
@@ -738,86 +812,701 @@ functionG <- function(
 }
 
 ################################################
-#### Function 1: Institutional              ####
-#### participation map                      ####
+#### Function X: Long-term impacts          ####
 ################################################
 
-function1 <- function(){
+functionX <- function(students1){
+  
+  #### Increase in degrees from net price ####
+  
+  students1 <- students1 %>% mutate(
+    `New expected certificates` = pmin(1, `Expected certificates` * (1 + ((`New grants` + `New tuition subsidy`) / 5000))),
+    `New expected associate's degrees` = pmin(1, `Expected associate's degrees` * (1 + ((`New grants` + `New tuition subsidy`) / 15000))), 
+    `New expected bachelor's degrees` = pmin(1, `Expected bachelor's degrees` * (1 + ((`New grants` + `New tuition subsidy`) / 25000))) 
+  )
+  
+  #### End #### 
+  
+  #### Increase in degrees from overflow ####
+  
+  students1 <- students1 %>% mutate(
+    `New expected certificates` = pmin(1, `New expected certificates` * (1 + (`Overflow` / 5000))),
+    `New expected associate's degrees` = pmin(1, `New expected associate's degrees` * (1 + (`Overflow` / 15000))), 
+    `New expected bachelor's degrees` = pmin(1, `New expected bachelor's degrees` * (1 + (`Overflow` / 25000))) 
+  )
+  
+  #### End #### 
+  
+  #### Increase in earnings from attainment ####
+  
+  students1 <- students1 %>% mutate(
+    `Gain: Certificates` = `New expected certificates` - `Expected certificates`, 
+    `Gain: Associate's degrees` = `New expected associate's degrees` - `Expected associate's degrees`, 
+    `Gain: Bachelor's degrees` = `New expected bachelor's degrees` - `Expected bachelor's degrees`
+  ) %>% mutate(
+    `Gain: Earnings` = (`Gain: Certificates` * 3000) + (`Gain: Associate's degrees` * 8000) + (`Gain: Bachelor's degrees` * 20000)
+  )
+  
+  #### End #### 
+  
+  #### Increase in taxes from earnings ####
+  
+  students1 <- students1 %>% mutate(
+    `Increase: Taxes` = `Gain: Earnings` * 0.2
+  )
+  
+  #### End #### 
+  
+  return(students1)
   
 }
 
 ################################################
-#### Function 2: State                      ####
-#### participation map                      ####
+#### Functions 1 to 10: Outputs for app     ####
 ################################################
 
-function2 <- function(){
+#### Function 1: Institutional participation map #### 
+
+function1 <- function(students1, states1, colleges1, plan1){
   
+  participantStates <- states1 %>% filter(
+    `Participation status`=="Yes"
+  )
+  
+  colleges1 <- colleges1 %>% mutate(
+    `Participant` = ifelse(
+      (`Eligible`=="Yes") & (`STABBR` %in% participantStates$`STABBR`), 
+      "Yes", 
+      "No"
+    )
+  )
+  rm(participantStates)
+  
+  students1 <- students1 %>% mutate(`Count` = rep(1))
+  
+  participantStudents <- students1 %>% filter(
+    `Participant`=="Yes"
+  ) %>% group_by(
+    `UNITID`
+  ) %>% summarize(
+    `Total participating students` = sum(`Count`),
+    `Total funds received by students` = sum(`New tuition subsidy`) + sum(`New grants`), 
+    .groups = "drop"
+  )
+  colleges1 <- left_join(x=colleges1, y=participantStudents, by="UNITID") %>% mutate(
+    `Total participating students` = ifelse(
+      is.na(`Total participating students`),
+      0, 
+      `Total participating students`
+    ), 
+    `Total funds received by students` = ifelse(
+      is.na(`Total funds received by students`),
+      0, 
+      `Total funds received by students`
+    )
+  )
+  rm(participantStudents)
+  
+  shareParticipating <- aggregate(
+    data=students1, 
+    `Count` ~ `UNITID` + `Participant`, 
+    FUN=sum
+  ) %>% pivot_wider(
+    id_cols=c(`UNITID`),
+    names_from=`Participant`, 
+    values_from=`Count`
+  ) %>% mutate(
+    `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+    `No` = ifelse(is.na(`No`), 0, `No`)
+  ) %>% mutate(
+    `Share participating` = `Yes` / (`Yes` + `No`)
+  ) %>% select(
+    `UNITID`,
+    `Share participating`
+  )
+  colleges1 <- left_join(x=colleges1, y=shareParticipating, by="UNITID") %>% mutate(
+    `Share participating` = ifelse(
+      is.na(`Share participating`), 
+      0, 
+      `Share participating`
+    )
+  )
+  rm(shareParticipating)
+  
+  degreesPerYear <- aggregate(
+    data=students1,
+    cbind(`Gain: Certificates`, `Gain: Associate's degrees`, `Gain: Bachelor's degrees`) ~ `UNITID`,
+    FUN=sum
+  ) %>% mutate(
+    `Increased expected degrees and certificates` = `Gain: Certificates` + `Gain: Associate's degrees` + `Gain: Bachelor's degrees`
+  ) %>% select(
+    `UNITID`, 
+    `Increased expected degrees and certificates`
+  )
+  colleges1 <- left_join(x=colleges1, y=degreesPerYear, by="UNITID") %>% mutate(
+    `Increased expected degrees and certificates` = ifelse(
+      is.na(`Increased expected degrees and certificates`), 
+      0, 
+      `Increased expected degrees and certificates`
+    )
+  )
+  rm(degreesPerYear)
+  
+  results1 <- colleges1 %>% select(
+    `UNITID`,
+    `Participant`,
+    `Total participating students`, 
+    `Share participating`, 
+    `Total funds received by students`, 
+    `Increased expected degrees and certificates`
+  )
+  
+  return(results1)
 }
 
-################################################
-#### Function 3: Net price percentiles      ####
-################################################
+#### End #### 
 
-function3 <- function(){
+#### Function 2: State participation map ####
+
+function2 <- function(students1, states1, colleges1, plan1){
+  # Data will not come from Plans F or G
   
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  states1 <- states1 %>% select(
+    `State`,
+    `STABBR`,
+    `Participation status`, 
+    `Federal block grant`,
+    `Total state contributions`, 
+    `Total state contributions as a share of education appropriations`
+  )
+  
+  if(plan1 != "Plan E"){
+    students1 <- students1 %>% mutate(`Count` = rep(1))
+    
+    publicStudents <- aggregate(
+      data=students1, 
+      `Count` ~ `Participant` + `STABBR` + `Control`, 
+      FUN=sum
+    ) %>% filter(
+      `Control` == "Public"
+    ) %>% select(
+      -(`Control`)
+    ) %>% pivot_wider(
+      id_cols=c(`STABBR`), 
+      names_from=`Participant`,
+      values_from=`Count`
+    ) %>% mutate(
+      `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+      `No` = ifelse(is.na(`No`), 0, `No`)
+    ) %>% mutate(
+      `Share of students at public institutions participating` = `Yes` / (`Yes` + `No`)
+    ) %>% select(
+      `STABBR`,
+      `Share of students at public institutions participating`
+    )
+    states1 <- left_join(x=states1, y=publicStudents, by="STABBR") %>% mutate(
+      `Share of students at public institutions participating` = ifelse(
+        is.na(`Share of students at public institutions participating`),
+        0, 
+        `Share of students at public institutions participating`
+      )
+    )
+    rm(publicStudents)
+    
+    participantStudents <- aggregate(
+      data=students1, 
+      `Count` ~ `Participant` + `STABBR`,
+      FUN=sum
+    ) %>% filter(
+      `Participant`=="Yes"
+    ) %>% rename(
+      `Number of participating students` = `Count`
+    )
+    states1 <- left_join(x=states1, y=participantStudents, by="STABBR") %>% mutate(
+      `Number of participating students` = ifelse(
+        is.na(`Number of participating students`),
+        0, 
+        `Number of participating students`
+      )
+    )
+    rm(participantStudents)
+  }
+  
+  return(results1)
 }
 
-################################################
-#### Function 4: Educational attainment     ####
-################################################
+#### End ####
 
-function4 <- function(){
+#### Function 3: Net price percentiles #### 
+
+function3 <- function(students1, states1, colleges1, plan1){
   
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  students1 <- students1 %>% mutate(
+    `Pre-policy net price` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`))
+  ) %>% mutate(
+    `Post-policy net price` = pmax(0, `Pre-policy net price` - (`New tuition subsidy` + `New grants`))
+  )
+  
+  suppressWarnings({
+    prePolicyNP <- students1 %>% group_by(
+      `Participant`
+    ) %>% summarize(
+      quantile(`Pre-policy net price`, probs = seq(0.1, 0.9, 0.1)), 
+      .groups = "drop"
+    ) %>% mutate(
+      `Percentile` = rep(
+        c(10, 20, 30, 40, 50, 60, 70, 80, 90), 
+        2
+      )
+    )
+    names(prePolicyNP)[2] <- "Pre-policy net price"
+  })
+  
+  suppressWarnings({
+    postPolicyNP <- students1 %>% group_by(
+      `Participant`
+    ) %>% summarize(
+      quantile(`Post-policy net price`, probs = seq(0.1, 0.9, 0.1)), 
+      .groups = "drop"
+    ) %>% mutate(
+      `Percentile` = rep(
+        c(10, 20, 30, 40, 50, 60, 70, 80, 90), 
+        2
+      )
+    )
+    names(postPolicyNP)[2] <- "Post-policy net price"
+  })
+  results1 <- full_join(x=prePolicyNP, y=postPolicyNP, by=c("Participant", "Percentile"))
+  
+  return(results1)
 }
 
-################################################
-#### Function 5: Economic impact            ####
-################################################
+#### End #### 
 
-function5 <- function(){
+#### Function 4: Educational attainment #### 
+
+function4 <- function(students1, states1, colleges1, plan1){
   
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  results1 <- states %>% select(
+    `State`,
+    `STABBR`, 
+    `Population 25 years and over`,
+    `Population with an associate's degree or higher`, 
+    `Population with a bachelor's degree or higher`
+  )
+  
+  newDegrees <- aggregate(
+    data=students1, 
+    cbind(`Gain: Associate's degrees`, `Gain: Bachelor's degrees`) ~ `STABBR`,
+    FUN=sum
+  ) 
+  results1 <- left_join(x=results1, y=newDegrees, by="STABBR")
+  rm(newDegrees)
+  
+  # Assume 80% of bachelor's degree holders don't already have an associate's. See ReadMe.  
+  results1 <- results1 %>% mutate(
+    `Associate's or higher: Pre-policy percentage` = `Population with an associate's degree or higher` / `Population 25 years and over`, 
+    `Associate's or higher: Post-policy percentage` = (`Population with an associate's degree or higher` + `Gain: Associate's degrees` + (`Gain: Bachelor's degrees` * 0.8)) / `Population 25 years and over`, 
+    `Bachelor's or higher: Pre-policy percentage` = `Population with a bachelor's degree or higher` / `Population 25 years and over`, 
+    `Bachelor's or higher: Post-policy percentage` = (`Population with a bachelor's degree or higher` + `Gain: Bachelor's degrees`) / `Population 25 years and over`
+  ) %>% mutate(
+    `Percentage point change, associate's or higher` = `Associate's or higher: Post-policy percentage` - `Associate's or higher: Pre-policy percentage`, 
+    `Percentage point change, bachelor's or higher` = `Bachelor's or higher: Post-policy percentage` - `Bachelor's or higher: Pre-policy percentage`
+  ) %>% select(
+    `State`, 
+    `STABBR`,
+    `Percentage point change, associate's or higher`, 
+    `Percentage point change, bachelor's or higher`
+  )
+  
+  return(results1)
 }
 
-################################################
-#### Function 6: State funding              ####
-################################################
+#### End #### 
 
-function6 <- function(){
+#### Function 5: Economic impact #### 
+
+function5 <- function(students1, states1, colleges1, plan1){
   
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  annualCost <- sum(states1$`Total state contributions`, na.rm=TRUE) + sum(states1$`Federal block grant`, na.rm=TRUE)
+  annualTax <- sum(students1$`Increase: Taxes`)
+  
+  results1 <- data.frame(
+    `Annual cost` = c(annualCost), 
+    `Increase in annual taxes` = c(annualTax), 
+    check.names=FALSE
+  )
+  
+  return(results1)
 }
 
-################################################
-#### Function 7: Student participation      ####
-################################################
+#### End #### 
 
-function7 <- function(){
+#### Function 6: State funding #### 
+
+function6 <- function(students1, states1, colleges1, plan1){
+  # Data will not come from Plans F or G
   
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  results1 <- states1 %>% select(
+    `State`,
+    `STABBR`, 
+    `Federal block grant`, 
+    `Total state contributions`, 
+    `Overflow amount`
+  )
+  return(results1)
 }
 
-################################################
-#### Function 8: Student debt               ####
-################################################
+#### End #### 
 
-function8 <- function(){
+#### Function 7: Student participation #### 
+
+function7 <- function(students1, states1, colleges1, plan1){
+  # Data won't come from Plan E
   
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  students1 <- students1 %>% mutate(
+    `Count` = rep(1)
+  ) %>% mutate(
+    `Student of color` = ifelse(
+      `Race` %in% c(
+        "American Indian or Alaska Native",
+        "Asian", 
+        "Black or African American",
+        "Hispanic or Latino", 
+        "More than one race", 
+        "Native Hawaiian/other Pacific Islander"
+      ), 
+      "Yes",
+      "No"
+    )
+  )
+  
+  results1 <- data.frame(
+    `Measure` = character(), 
+    `Value` = character()
+  )
+  
+  results1 <- results1 %>% add_row(
+    `Measure` = "Number of students participating", 
+    `Value` = comma(round(sum(students1$`Count`[students1$`Participant`=="Yes"]), -3))
+  )
+  
+  agg1 <- aggregate(
+    data=students1, 
+    `Count` ~ `Participant`, 
+    FUN=sum
+  ) %>% pivot_wider(
+    names_from=`Participant`, 
+    values_from=`Count`
+  ) %>% mutate(
+    `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+    `No` = ifelse(is.na(`No`), 0, `No`)
+  ) %>% mutate(
+    `Share` = `Yes` / (`Yes` + `No`)
+  )
+  results1 <- results1 %>% add_row(
+    `Measure` = "Share of students participating", 
+    `Value` = percent(agg1$`Share`[1], accuracy=0.1)
+  )
+  rm(agg1)
+  
+  results1 <- results1 %>% add_row(
+    `Measure` = "Number of Pell Grant recipients participating", 
+    `Value` = comma(round(sum(students1$`Count`[(students1$`Participant`=="Yes") & (students1$`Receives Pell`=="Yes")]), -3))
+  )
+  
+  agg2 <- aggregate(
+    data=students1, 
+    `Count` ~ `Participant` + `Receives Pell`, 
+    FUN=sum
+  ) %>% filter(
+    `Receives Pell` == "Yes"
+  ) %>% select(
+    -(`Receives Pell`)
+  ) %>% pivot_wider(
+    names_from=`Participant`, 
+    values_from=`Count`
+  ) %>% mutate(
+    `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+    `No` = ifelse(is.na(`No`), 0, `No`)
+  ) %>% mutate(
+    `Share` = `Yes` / (`Yes` + `No`)
+  )
+  results1 <- results1 %>% add_row(
+    `Measure` = "Share of Pell Grant recipients participating", 
+    `Value` = percent(agg2$`Share`[1], accuracy=0.1)
+  )
+  rm(agg2)
+  
+  results1 <- results1 %>% add_row(
+    `Measure` = "Number of first-generation college students participating", 
+    `Value` = comma(round(sum(students1$`Count`[(students1$`Participant`=="Yes") & (students1$`First-gen status`=="First-gen")]), -3))
+  )
+  
+  agg3 <- aggregate(
+    data=students1, 
+    `Count` ~ `Participant` + `First-gen status`, 
+    FUN=sum
+  ) %>% filter(
+    `First-gen status` == "First-gen"
+  ) %>% select(
+    -(`First-gen status`)
+  ) %>% pivot_wider(
+    names_from=`Participant`, 
+    values_from=`Count`
+  ) %>% mutate(
+    `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+    `No` = ifelse(is.na(`No`), 0, `No`)
+  ) %>% mutate(
+    `Share` = `Yes` / (`Yes` + `No`)
+  )
+  results1 <- results1 %>% add_row(
+    `Measure` = "Share of first-generation college students participating", 
+    `Value` = percent(agg3$`Share`[1], accuracy=0.1)
+  )
+  rm(agg3)
+  
+  results1 <- results1 %>% add_row(
+    `Measure` = "Number of students of color participating", 
+    `Value` = comma(round(sum(students1$`Count`[(students1$`Participant`=="Yes") & (students1$`Student of color`=="Yes")]), -3))
+  )
+  
+  agg4 <- aggregate(
+    data=students1, 
+    `Count` ~ `Participant` + `Student of color`, 
+    FUN=sum
+  ) %>% filter(
+    `Student of color` == "Yes"
+  ) %>% select(
+    -(`Student of color`)
+  ) %>% pivot_wider(
+    names_from=`Participant`, 
+    values_from=`Count`
+  ) %>% mutate(
+    `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+    `No` = ifelse(is.na(`No`), 0, `No`)
+  ) %>% mutate(
+    `Share` = `Yes` / (`Yes` + `No`)
+  )
+  results1 <- results1 %>% add_row(
+    `Measure` = "Share of students of color participating", 
+    `Value` = percent(agg4$`Share`[1], accuracy=0.1)
+  )
+  rm(agg4)
+  
+  results1 <- results1 %>% add_row(
+    `Measure` = "Number of student-parents participating", 
+    `Value` = comma(round(sum(students1$`Count`[(students1$`Participant`=="Yes") & (students1$`Parent status`=="Has dependents")]), -3))
+  )
+  
+  agg5 <- aggregate(
+    data=students1, 
+    `Count` ~ `Participant` + `Parent status`, 
+    FUN=sum
+  ) %>% filter(
+    `Parent status` == "Has dependents"
+  ) %>% select(
+    -(`Parent status`)
+  ) %>% pivot_wider(
+    names_from=`Participant`, 
+    values_from=`Count`
+  ) %>% mutate(
+    `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+    `No` = ifelse(is.na(`No`), 0, `No`)
+  ) %>% mutate(
+    `Share` = `Yes` / (`Yes` + `No`)
+  )
+  results1 <- results1 %>% add_row(
+    `Measure` = "Share of student-parents participating", 
+    `Value` = percent(agg5$`Share`[1], accuracy=0.1)
+  )
+  rm(agg5)
+  
+  results1 <- results1 %>% add_row(
+    `Measure` = "Number of student-veterans participating", 
+    `Value` = comma(round(sum(students1$`Count`[(students1$`Participant`=="Yes") & (students1$`Veteran status`=="Veteran")]), -3))
+  )
+  
+  agg6 <- aggregate(
+    data=students1, 
+    `Count` ~ `Participant` + `Veteran status`, 
+    FUN=sum
+  ) %>% filter(
+    `Veteran status` == "Veteran"
+  ) %>% select(
+    -(`Veteran status`)
+  ) %>% pivot_wider(
+    names_from=`Participant`, 
+    values_from=`Count`
+  ) %>% mutate(
+    `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+    `No` = ifelse(is.na(`No`), 0, `No`)
+  ) %>% mutate(
+    `Share` = `Yes` / (`Yes` + `No`)
+  )
+  results1 <- results1 %>% add_row(
+    `Measure` = "Share of student-veterans participating", 
+    `Value` = percent(agg6$`Share`[1], accuracy=0.1)
+  )
+  rm(agg6)
+  
+  return(results1)
 }
 
-################################################
-#### Function 9: Degrees and certificates   ####
-################################################
+#### End #### 
 
-function9 <- function(){
+#### Function 8: Student debt #### 
+
+function8 <- function(students1, states1, colleges1, plan1){
+  # Data won't come from Plan E
   
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  students1 <- students1 %>% mutate(
+    `Pre-policy student loans` = `Federal loan amount` + `Parent loan amount`
+  ) %>% mutate(
+    `Post-policy student loans` = pmax(`Pre-policy student loans` - (`New grants` + `New tuition subsidy`), 0) 
+  ) %>% mutate(
+    `Pre-policy borrower status` = ifelse(`Pre-policy student loans` > 0, "Borrower", "Not a borrower"),
+    `Post-policy borrower status` = ifelse(`Post-policy student loans` > 0, "Borrower", "Not a borrower") 
+  )
+  deltaDebt <- sum(students1$`Pre-policy student loans`) - sum(students1$`Post-policy student loans`)
+  shareDebt <- deltaDebt / sum(students1$`Pre-policy student loans`)
+  deltaBorrowers <- sum(students1$`Pre-policy borrower status`=="Borrower") - sum(students1$`Post-policy borrower status`=="Borrower")
+  shareBorrowers <- deltaBorrowers / sum(students1$`Pre-policy borrower status`=="Borrower")
+  
+  results1 <- data.frame(
+    `Measure` = character(), 
+    `Value` = character()
+  )
+  
+  results1 <- results1 %>% add_row(
+    `Measure` = "Reduction in annual student loans", 
+    `Value` = dollar(round(deltaDebt, -6))
+  ) %>% add_row(
+    `Measure` = "Percentage reduction in annual student loans", 
+    `Value` = percent(shareDebt, accuracy=0.1)
+  ) %>% add_row(
+    `Measure` = "Reduction in number of students borrowing any loans", 
+    `Value` = comma(round(deltaBorrowers, -3))
+  ) %>% add_row(
+    `Measure` = "Percentage reduction in number of students borrowing any loans", 
+    `Value` = percent(shareBorrowers, accuracy=0.1)
+  )
+  rm(deltaDebt, shareDebt, deltaBorrowers, shareBorrowers)
+  
+  return(results1)
 }
 
-################################################
-#### Function 10: Government cost           ####
-################################################
+#### End #### 
 
-function10 <- function(){
+#### Function 9: Degrees and certificates #### 
+
+function9 <- function(students1, states1, colleges1, plan1){
   
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  results1 <- data.frame(
+    `Measure` = character(), 
+    `Value` = character()
+  ) %>% add_row(
+    `Measure` = "Estimated new certificates created", 
+    `Value` = comma(round(sum(students1$`Gain: Certificates`), -2))
+  ) %>% add_row(
+    `Measure` = "Estimated new associate's degrees created", 
+    `Value` = comma(round(sum(students1$`Gain: Associate's degrees`), -2))
+  ) %>% add_row(
+    `Measure` = "Estimated new bachelor's degrees created", 
+    `Value` = comma(round(sum(students1$`Gain: Bachelor's degrees`), -2))
+  )
+  
+  return(results1)
 }
+
+#### End #### 
+
+#### Function 10: Government cost #### 
+
+function10 <- function(students1, states1, colleges1, plan1){
+  
+  # students1 <- students
+  # states1 <- states
+  # colleges1 <- colleges
+  # plan1 <- "Plan A"
+  
+  # Pell and TEACH: $37.9 billion, per FSA Data Center
+  # Campus programs: $2.1 billion, per FSA Data Center
+  # MSI funding: $1.3 billion, per https://www.congress.gov/crs-product/R43237
+  totalFederalSpending <- (37.9 + 2.1 + 1.3) * 1000000000
+  
+  federalMoney <- sum(states1$`Federal block grant`[states1$`Participation status`=="Yes"], na.rm=TRUE)
+  federalIncrease <- federalMoney / totalFederalSpending
+  
+  stateMoney <- sum(states1$`Total state contributions`[states1$`Participation status`=="Yes"], na.rm=TRUE)
+  stateIncrease <- stateMoney / sum(states$`Education Appropriations`, na.rm=TRUE)
+  
+  stateTurnDown <- sum(states1$`Turn down due to finances`=="Yes", na.rm=TRUE)
+  
+  results1 <- data.frame(
+    `Measure` = character(), 
+    `Value` = character()
+  ) %>% add_row(
+    `Measure` = "Total annual cost to federal government", 
+    `Value` = dollar(round(federalMoney, -6))
+  ) %>% add_row(
+    `Measure` = "Percentage increase in annual federal spending on higher education (excl. research grants and student loans)", 
+    `Value` = percent(federalIncrease, accuracy=0.1)
+  ) %>% add_row(
+    `Measure` = "Total annual cost to state governments", 
+    `Value` = dollar(round(stateMoney, -6))
+  ) %>% add_row(
+    `Measure` = "Percentage increase in annual state education appropriations", 
+    `Value` = percent(stateIncrease, accuracy=0.1)
+  ) %>% add_row(
+    `Measure` = "Number of states that decline to participate due to costs", 
+    `Value` = comma(stateTurnDown)
+  ) 
+  
+  return(results1)
+}
+
+#### End #### 
 
 ################################################
 #### Set choice lists                       ####
@@ -1409,23 +2098,23 @@ for(r in choices1e){
                   if(counter==1){
                     output1 <- temp1
                     output2 <- temp2
-                    output3 <- temp3
+                    # output3 <- temp3
                     output4 <- temp4
                     output5 <- temp5
                     output6 <- temp6
-                    output7 <- temp7
-                    output8 <- temp8
+                    # output7 <- temp7
+                    # output8 <- temp8
                     output9 <- temp9
                     output10 <- temp10
                   }else{
                     output1 <- rbind(output1, temp1)
                     output2 <- rbind(output2, temp2)
-                    output3 <- rbind(output3, temp3)
+                    # output3 <- rbind(output3, temp3)
                     output4 <- rbind(output4, temp4)
                     output5 <- rbind(output5, temp5)
                     output6 <- rbind(output6, temp6)
-                    output7 <- rbind(output7, temp7)
-                    output8 <- rbind(output8, temp8)
+                    # output7 <- rbind(output7, temp7)
+                    # output8 <- rbind(output8, temp8)
                     output9 <- rbind(output9, temp9)
                     output10 <- rbind(output10, temp10)
                   }
@@ -1441,18 +2130,23 @@ setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
 sheetList <- list(
   Sheet1 = output1,
   Sheet2 = output2,
-  Sheet3 = output3,
+  # Sheet3 = output3,
   Sheet4 = output4,
   Sheet5 = output5,
   Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
+  # Sheet7 = output7,
+  # Sheet8 = output8,
   Sheet9 = output9,
   Sheet10 = output10
 )
 
 write_xlsx(sheetList, "Plan E.xlsx")
-rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
+rm(sheetList, output1, output2, 
+   # output3, 
+   output4, output5, output6, 
+   # output7, 
+   # output8, 
+   output9, output10, counter)
 rm(choices1e, choices2e, choices3e, choices4e, choices5e, choices6e, choices7e, choices8e, choices9e)
 
 #### End #### 
