@@ -18,19 +18,32 @@ mem.maxVSize(32000)
 #### Write function to add model specification columns #### 
 
 specs <- function(
-  data1
+  data1, plan1
 ){
-  data1 <- data1 %>% mutate(
-    `select1` = rep(r), 
-    `select2` = rep(s), 
-    `select3` = rep(t), 
-    `select4` = rep(u), 
-    `select5` = rep(v), 
-    `select6` = rep(w), 
-    `select7` = rep(x), 
-    `select8` = rep(y), 
-    `select9` = rep(z)
+  
+  tempPolicy <- allCombos %>% filter(
+    `Plan`==plan1,
+    `Choice1`==r, 
+    `Choice2`==s,
+    `Choice3`==t, 
+    `Choice4`==u,
+    `Choice5`==v,
+    `Choice6`==w,
+    `Choice7`==x, 
+    `Choice8`==y, 
+    `Choice9`==z
   )
+  
+  if(nrow(tempPolicy)==1){
+    data1 <- data1 %>% mutate(
+      `Policy index` = rep(tempPolicy$`Policy index`[1])
+    )
+  }else{
+    data1 <- data1 %>% mutate(
+      `Policy index` = rep("Error linking policy index")
+    )
+  }
+
   return(data1)
 }
 
@@ -256,6 +269,44 @@ collegeDF <- collegeDF %>% mutate(
 
 #### End #### 
 
+################################################
+#### Additional steps                       ####
+################################################
+
+#### Add level variables ####
+
+studentDF <- studentDF %>% mutate(
+  `Level` = ifelse(
+    `C18BASIC` %in% (15:32), 
+    "Four-year",
+    "Two-year"
+  )
+) 
+
+collegeDF <- collegeDF %>% mutate(
+  `Level` = ifelse(
+    `C21BASIC` %in% (15:32), 
+    "Four-year",
+    "Two-year"
+  )
+) 
+
+#### End ####
+
+#### Remove territories and DC ####
+
+studentDF <- studentDF %>% filter(
+  (`STABBR` %in% c("AS", "DC", "FM", "GU", "MH", "MP", "PR", "PW", "VI"))==FALSE
+)
+stateDF <- stateDF %>% filter(
+  (`STABBR` %in% c("AS", "DC", "FM", "GU", "MH", "MP", "PR", "PW", "VI"))==FALSE
+)
+collegeDF <- collegeDF %>% filter(
+  (`STABBR` %in% c("AS", "DC", "FM", "GU", "MH", "MP", "PR", "PW", "VI"))==FALSE
+)
+
+#### End #### 
+
 #### Save directory info for app ####
 
 saveCollege <- collegeDF %>% select(
@@ -288,20 +339,37 @@ functionA <- function(
   studentData,
   stateData, 
   collegeData, 
-  select1, # To what amount does tuition and fees among eligible students decrease? 
-  select2, # For each $1 in the federal block grant, how much does a participating state need to match? 
-  select3, # Is student eligibility limited on the basis of enrollment intensity?
-  select4, # Is student eligibility limited on a financial basis?
-  select5, # Is student eligibility limited to in-state students? 
-  select6, # Skipped
-  select7, # Is institutional eligibility limited to a certain level?
-  select8, # Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program? 
-  select9  # What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program? 
+  select1,  
+  select2, 
+  select3, 
+  select4, 
+  select5, 
+  select6, 
+  select7, 
+  select8, 
+  select9   
     
   #### End #### 
     
 ){
   
+  # #### Empty inputs (comment out) ####
+  # 
+  # studentData <- studentDF
+  # stateData <- stateDF
+  # collegeData <- collegeDF
+  # select1 <- "$0 at all eligible institutions"
+  # select2 <- "$0.25"
+  # select3 <- "No restriction based on enrollment intensity"
+  # select4 <- "No means testing"
+  # select5 <- "Yes"
+  # select6 <- "Skipped"
+  # select7 <- "Both two- and four-year institutions"
+  # select8 <- "No"
+  # select9 <- "35% and above"
+  # 
+  # #### End ####
+
   #### [S] Institutional eligibility ####
   
   collegeData <- collegeData %>% mutate(
@@ -315,7 +383,7 @@ functionA <- function(
   if(select7=="Only two-year institutions"){
     collegeData <- collegeData %>% mutate(
       `Eligible` = ifelse(
-        `C21BASIC` %in% (15:32), 
+        `Level` != "Two-year", 
         "No", 
         `Eligible`
       )
@@ -398,7 +466,7 @@ functionA <- function(
   if(select1=="$1,000 at eligible two-year institutions and $3,000 at eligible four-year institutions"){
     studentData <- studentData %>% mutate(
       `Target tuition` = ifelse(
-        `C18BASIC` %in% (15:32),
+        `Level`=="Four-year",
         pmin(3000, `Tuition and fees paid`), 
         pmin(1000, `Tuition and fees paid`)
       )
@@ -417,7 +485,52 @@ functionA <- function(
     )
   )
   
-  mdnDelta <- median(studentData$`Delta`[studentData$`Enrollment intensity`=="Full-time"], na.rm=TRUE)
+  mdnDeltas <- aggregate(
+    data=studentData,
+    `Delta` ~ `STABBR` + `Level` + `Enrollment intensity` + `Eligible`, 
+    FUN=median
+  ) %>% filter(
+    `Enrollment intensity`=="Full-time", 
+    `Eligible`=="Yes"
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`, `Enrollment intensity`, `Eligible`), 
+    names_from=`Level`,
+    values_from=`Delta`
+  ) %>% select(
+    -(`Enrollment intensity`), 
+    -(`Eligible`)
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    mdnDeltas <- mdnDeltas %>% select(
+      -(`Four-year`)
+    ) %>% rename(
+      `Median delta` = `Two-year`
+    ) 
+    if(select6=="Yes"){
+      mdnDeltas <- mdnDeltas %>% mutate(
+        `Median delta` = pmin(`Median delta`, quantile(mdnDeltas$`Median delta`, probs = 0.7, na.rm = TRUE))
+      ) %>% mutate(
+        `Median delta` = pmax(`Median delta`, quantile(mdnDeltas$`Median delta`, probs = 0.3, na.rm = TRUE))
+      )
+    }
+  }else{
+    mdnDeltas <- mdnDeltas %>% rename(
+      `Median delta (four-year)` = `Four-year`, 
+      `Median delta (two-year)` = `Two-year`
+    ) 
+    if(select6=="Yes"){
+      mdnDeltas <- mdnDeltas %>% mutate(
+        `Median delta (four-year)` = pmin(`Median delta (four-year)`, quantile(mdnDeltas$`Median delta (four-year)`, probs = 0.7, na.rm = TRUE)), 
+        `Median delta (two-year)` = pmin(`Median delta (two-year)`, quantile(mdnDeltas$`Median delta (two-year)`, probs = 0.7, na.rm = TRUE))
+      ) %>% mutate(
+        `Median delta (four-year)` = pmax(`Median delta (four-year)`, quantile(mdnDeltas$`Median delta (four-year)`, probs = 0.3, na.rm = TRUE)), 
+        `Median delta (two-year)` = pmax(`Median delta (two-year)`, quantile(mdnDeltas$`Median delta (two-year)`, probs = 0.3, na.rm = TRUE))
+      )
+    }
+  }
+  stateData <- left_join(x=stateData, y=mdnDeltas, by="STABBR")
+  rm(mdnDeltas)
   
   #### End #### 
 
@@ -438,31 +551,72 @@ functionA <- function(
       `Eligible`=="No", 
       0, 
       ifelse(
-        `Enrollment intensity`=="Full=time", 
+        `Enrollment intensity`=="Full-time", 
         1, 
         0.5
       )
     )
   )
+  
   eligibleFTEs <- aggregate(
     data=studentData, 
-    `Eligible FTEs` ~ `STABBR`, 
+    `Eligible FTEs` ~ `STABBR` + `Level`, 
     FUN=sum
-  )
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`), 
+    names_from=`Level`, 
+    values_from=`Eligible FTEs`
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs` = `Two-year`
+    ) %>% select(
+      -(`Four-year`)
+    )
+  }else{
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs (four-year)` = `Four-year`, 
+      `Eligible FTEs (two-year)` = `Two-year`
+    ) %>% mutate(
+      `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
+    )
+  }
   stateData <- left_join(x=stateData, y=eligibleFTEs, by="STABBR")
   rm(eligibleFTEs)
   
-  federalPerFTE <- mdnDelta / (1 + stateMatch)
-  statePerFTE <- federalPerFTE * stateMatch
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `Federal money per FTE` = `Median delta` / (1 + stateMatch)
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `Federal money per FTE (four-year)` = `Median delta (four-year)` / (1 + stateMatch), 
+      `Federal money per FTE (two-year)` = `Median delta (two-year)` / (1 + stateMatch)
+    )
+  }
   
-  stateData <- stateData %>% mutate(
-    `Federal funding per FTE` = rep(federalPerFTE), 
-    `State cost of entry per FTE` = rep(statePerFTE)
-  ) %>% mutate(
-    `Federal block grant` = rep(`Federal funding per FTE` * `Eligible FTEs`), 
-    `State cost of entry` = rep(`State cost of entry per FTE` * `Eligible FTEs`)
-  )
-  rm(federalPerFTE, statePerFTE, mdnDelta, stateMatch)
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `State cost of entry per FTE` = `Federal money per FTE` * stateMatch
+    ) %>% mutate(
+      `Federal block grant` = `Federal money per FTE` * `Eligible FTEs`, 
+      `State cost of entry` = `State cost of entry per FTE` * `Eligible FTEs`
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `State cost of entry per FTE (four-year)` = `Federal money per FTE (four-year)` * stateMatch, 
+      `State cost of entry per FTE (two-year)` = `Federal money per FTE (two-year)` * stateMatch
+    ) %>% mutate(
+      `Federal block grant (four-year)` = `Federal money per FTE (four-year)` * `Eligible FTEs (four-year)`,
+      `Federal block grant (two-year)` = `Federal money per FTE (two-year)` * `Eligible FTEs (two-year)`,
+      `State cost of entry (four-year)` = `State cost of entry per FTE (four-year)` * `Eligible FTEs (four-year)`, 
+      `State cost of entry (two-year)` = `State cost of entry per FTE (two-year)` * `Eligible FTEs (two-year)`
+    ) %>% mutate(
+      `Federal block grant` = `Federal block grant (four-year)` + `Federal block grant (two-year)`, 
+      `State cost of entry` = `State cost of entry (four-year)` + `State cost of entry (two-year)`
+    )
+  }
   
   #### End ####
   
@@ -579,9 +733,7 @@ functionA <- function(
   
   studentData <- studentData %>% mutate(
     `Participant` = ifelse(
-      (`STABBR` %in% participantStates$`STABBR`) | (`STABBR` %in% c(
-        "AS", "FM", "GU", "MH", "MP", "PR", "PW", "VI"
-      )), 
+      `STABBR` %in% participantStates$`STABBR`, 
       "Yes", 
       "No"
     )
@@ -668,19 +820,36 @@ functionB <- function(
   studentData,
   stateData, 
   collegeData, 
-  select1, # By what percentage does tuition and fees among eligible students decrease?
-  select2, # For each $1 in the federal block grant, how much does a participating state need to match? 
-  select3, # Is student eligibility limited on the basis of enrollment intensity?
-  select4, # Is student eligibility limited on a financial basis?
-  select5, # Is student eligibility limited to in-state students? 
-  select6, # Skipped
-  select7, # Is institutional eligibility limited to a certain level?
-  select8, # Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program? 
-  select9  # What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program? 
+  select1, 
+  select2, 
+  select3, 
+  select4, 
+  select5, 
+  select6, 
+  select7, 
+  select8, 
+  select9  
   
   #### End #### 
   
 ){
+
+  # #### Empty inputs (comment out) ####
+  # 
+  # studentData <- studentDF
+  # stateData <- stateDF
+  # collegeData <- collegeDF
+  # select1 <- "50%"
+  # select2 <- "$0.25"
+  # select3 <- "No restriction based on enrollment intensity"
+  # select4 <- "No means testing"
+  # select5 <- "Yes"
+  # select6 <- "Skipped"
+  # select7 <- "Both two- and four-year institutions"
+  # select8 <- "No"
+  # select9 <- "35% and above"
+  # 
+  # #### End ####
   
   #### [S] Institutional eligibility ####
   
@@ -695,7 +864,7 @@ functionB <- function(
   if(select7=="Only two-year institutions"){
     collegeData <- collegeData %>% mutate(
       `Eligible` = ifelse(
-        `C21BASIC` %in% (15:32), 
+        `Level` != "Two-year", 
         "No", 
         `Eligible`
       )
@@ -772,12 +941,12 @@ functionB <- function(
   }
   if(select1=="50%"){
     studentData <- studentData %>% mutate(
-      `Target tuition` = `Tuition and fees paid` * 0.5
+      `Target tuition` = `Tuition and fees paid` * (1 - 0.5)
     )
   }
   if(select1=="25%"){
     studentData <- studentData %>% mutate(
-      `Target tuition` = `Tuition and fees paid` * 0.25
+      `Target tuition` = `Tuition and fees paid` * (1 - 0.25)
     )
   }
   
@@ -793,7 +962,52 @@ functionB <- function(
     )
   )
   
-  mdnDelta <- median(studentData$`Delta`[studentData$`Enrollment intensity`=="Full-time"], na.rm=TRUE)
+  mdnDeltas <- aggregate(
+    data=studentData,
+    `Delta` ~ `STABBR` + `Level` + `Enrollment intensity` + `Eligible`, 
+    FUN=median
+  ) %>% filter(
+    `Enrollment intensity`=="Full-time", 
+    `Eligible`=="Yes"
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`, `Enrollment intensity`, `Eligible`), 
+    names_from=`Level`,
+    values_from=`Delta`
+  ) %>% select(
+    -(`Enrollment intensity`), 
+    -(`Eligible`)
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    mdnDeltas <- mdnDeltas %>% select(
+      -(`Four-year`)
+    ) %>% rename(
+      `Median delta` = `Two-year`
+    ) 
+    if(select6=="Yes"){
+      mdnDeltas <- mdnDeltas %>% mutate(
+        `Median delta` = pmin(`Median delta`, quantile(mdnDeltas$`Median delta`, probs = 0.7, na.rm = TRUE))
+      ) %>% mutate(
+        `Median delta` = pmax(`Median delta`, quantile(mdnDeltas$`Median delta`, probs = 0.3, na.rm = TRUE))
+      )
+    }
+  }else{
+    mdnDeltas <- mdnDeltas %>% rename(
+      `Median delta (four-year)` = `Four-year`, 
+      `Median delta (two-year)` = `Two-year`
+    ) 
+    if(select6=="Yes"){
+      mdnDeltas <- mdnDeltas %>% mutate(
+        `Median delta (four-year)` = pmin(`Median delta (four-year)`, quantile(mdnDeltas$`Median delta (four-year)`, probs = 0.7, na.rm = TRUE)), 
+        `Median delta (two-year)` = pmin(`Median delta (two-year)`, quantile(mdnDeltas$`Median delta (two-year)`, probs = 0.7, na.rm = TRUE))
+      ) %>% mutate(
+        `Median delta (four-year)` = pmax(`Median delta (four-year)`, quantile(mdnDeltas$`Median delta (four-year)`, probs = 0.3, na.rm = TRUE)), 
+        `Median delta (two-year)` = pmax(`Median delta (two-year)`, quantile(mdnDeltas$`Median delta (two-year)`, probs = 0.3, na.rm = TRUE))
+      )
+    }
+  }
+  stateData <- left_join(x=stateData, y=mdnDeltas, by="STABBR")
+  rm(mdnDeltas)
   
   #### End #### 
   
@@ -814,31 +1028,72 @@ functionB <- function(
       `Eligible`=="No", 
       0, 
       ifelse(
-        `Enrollment intensity`=="Full=time", 
+        `Enrollment intensity`=="Full-time", 
         1, 
         0.5
       )
     )
   )
+  
   eligibleFTEs <- aggregate(
     data=studentData, 
-    `Eligible FTEs` ~ `STABBR`, 
+    `Eligible FTEs` ~ `STABBR` + `Level`, 
     FUN=sum
-  )
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`), 
+    names_from=`Level`, 
+    values_from=`Eligible FTEs`
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs` = `Two-year`
+    ) %>% select(
+      -(`Four-year`)
+    )
+  }else{
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs (four-year)` = `Four-year`, 
+      `Eligible FTEs (two-year)` = `Two-year`
+    ) %>% mutate(
+      `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
+    )
+  }
   stateData <- left_join(x=stateData, y=eligibleFTEs, by="STABBR")
   rm(eligibleFTEs)
   
-  federalPerFTE <- mdnDelta / (1 + stateMatch)
-  statePerFTE <- federalPerFTE * stateMatch
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `Federal money per FTE` = `Median delta` / (1 + stateMatch)
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `Federal money per FTE (four-year)` = `Median delta (four-year)` / (1 + stateMatch), 
+      `Federal money per FTE (two-year)` = `Median delta (two-year)` / (1 + stateMatch)
+    )
+  }
   
-  stateData <- stateData %>% mutate(
-    `Federal funding per FTE` = rep(federalPerFTE), 
-    `State cost of entry per FTE` = rep(statePerFTE)
-  ) %>% mutate(
-    `Federal block grant` = rep(`Federal funding per FTE` * `Eligible FTEs`), 
-    `State cost of entry` = rep(`State cost of entry per FTE` * `Eligible FTEs`)
-  )
-  rm(federalPerFTE, statePerFTE, mdnDelta, stateMatch)
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `State cost of entry per FTE` = `Federal money per FTE` * stateMatch
+    ) %>% mutate(
+      `Federal block grant` = `Federal money per FTE` * `Eligible FTEs`, 
+      `State cost of entry` = `State cost of entry per FTE` * `Eligible FTEs`
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `State cost of entry per FTE (four-year)` = `Federal money per FTE (four-year)` * stateMatch, 
+      `State cost of entry per FTE (two-year)` = `Federal money per FTE (two-year)` * stateMatch
+    ) %>% mutate(
+      `Federal block grant (four-year)` = `Federal money per FTE (four-year)` * `Eligible FTEs (four-year)`,
+      `Federal block grant (two-year)` = `Federal money per FTE (two-year)` * `Eligible FTEs (two-year)`,
+      `State cost of entry (four-year)` = `State cost of entry per FTE (four-year)` * `Eligible FTEs (four-year)`, 
+      `State cost of entry (two-year)` = `State cost of entry per FTE (two-year)` * `Eligible FTEs (two-year)`
+    ) %>% mutate(
+      `Federal block grant` = `Federal block grant (four-year)` + `Federal block grant (two-year)`, 
+      `State cost of entry` = `State cost of entry (four-year)` + `State cost of entry (two-year)`
+    )
+  }
   
   #### End ####
   
@@ -955,9 +1210,7 @@ functionB <- function(
   
   studentData <- studentData %>% mutate(
     `Participant` = ifelse(
-      (`STABBR` %in% participantStates$`STABBR`) | (`STABBR` %in% c(
-        "AS", "FM", "GU", "MH", "MP", "PR", "PW", "VI"
-      )), 
+      `STABBR` %in% participantStates$`STABBR`, 
       "Yes", 
       "No"
     )
@@ -1034,7 +1287,7 @@ functionB <- function(
 ################################################
 #### Function C: [Plan C]                   ####
 #### Fed-state partnership: Increase grants ####
-#### to reduce student debt by X%           ####
+#### to reduce unmet need by X%             ####
 ################################################
 
 functionC <- function(
@@ -1044,19 +1297,36 @@ functionC <- function(
   studentData,
   stateData, 
   collegeData, 
-  select1, # By what percentage does student debt among eligible students decrease? 
-  select2, # For each $1 in the federal block grant, how much does a participating state need to match? 
-  select3, # Is student eligibility limited on the basis of enrollment intensity?
-  select4, # Is student eligibility limited on a financial basis?
-  select5, # Is student eligibility limited to in-state students? 
-  select6, # Skipped
-  select7, # Is institutional eligibility limited to a certain level?
-  select8, # Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program? 
-  select9  # What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program? 
+  select1,  
+  select2, 
+  select3, 
+  select4, 
+  select5, 
+  select6, 
+  select7, 
+  select8, 
+  select9   
   
   #### End #### 
   
 ){
+  
+  # #### Empty inputs (comment out) ####
+  # 
+  # studentData <- studentDF
+  # stateData <- stateDF
+  # collegeData <- collegeDF
+  # select1 <- "50%"
+  # select2 <- "$0.25"
+  # select3 <- "No restriction based on enrollment intensity"
+  # select4 <- "No means testing"
+  # select5 <- "Yes"
+  # select6 <- "Skipped"
+  # select7 <- "Both two- and four-year institutions"
+  # select8 <- "No"
+  # select9 <- "35% and above"
+  # 
+  # #### End ####
   
   #### [S] Institutional eligibility ####
   
@@ -1071,7 +1341,7 @@ functionC <- function(
   if(select7=="Only two-year institutions"){
     collegeData <- collegeData %>% mutate(
       `Eligible` = ifelse(
-        `C21BASIC` %in% (15:32), 
+        `Level` != "Two-year", 
         "No", 
         `Eligible`
       )
@@ -1142,22 +1412,22 @@ functionC <- function(
   #### [S] Target ####
   
   studentData <- studentData %>% mutate(
-    `Total loans` = `Federal loan amount` + `Parent loan amount`
-  )
+    `Unmet need` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount` + `EFC`))
+  ) 
   
   if(select1=="100%"){
     studentData <- studentData %>% mutate(
-      `Target loans` = rep(0)
+      `Target unmet need` = rep(0)
     )
   }
   if(select1=="50%"){
     studentData <- studentData %>% mutate(
-      `Target loans` = `Total loans` * 0.5
+      `Target unmet need` = (`Unmet need`) * (1 - 0.5)
     )
   }
   if(select1=="25%"){
     studentData <- studentData %>% mutate(
-      `Target loans` = `Total loans` * 0.25
+      `Target unmet need` = (`Unmet need`) * (1 - 0.25)
     )
   }
   
@@ -1168,12 +1438,57 @@ functionC <- function(
   studentData <- studentData %>% mutate(
     `Delta` = ifelse(
       `Eligible`=="Yes", 
-      pmax(`Total loans` - `Target loans`, 0), # How much cost has to move 
+      pmax(`Unmet need` - `Target unmet need`, 0), # How much cost has to move 
       NA
     )
   )
   
-  mdnDelta <- median(studentData$`Delta`[studentData$`Enrollment intensity`=="Full-time"], na.rm=TRUE)
+  mdnDeltas <- aggregate(
+    data=studentData,
+    `Delta` ~ `STABBR` + `Level` + `Enrollment intensity` + `Eligible`, 
+    FUN=median
+  ) %>% filter(
+    `Enrollment intensity`=="Full-time", 
+    `Eligible`=="Yes"
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`, `Enrollment intensity`, `Eligible`), 
+    names_from=`Level`,
+    values_from=`Delta`
+  ) %>% select(
+    -(`Enrollment intensity`), 
+    -(`Eligible`)
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    mdnDeltas <- mdnDeltas %>% select(
+      -(`Four-year`)
+    ) %>% rename(
+      `Median delta` = `Two-year`
+    ) 
+    if(select6=="Yes"){
+      mdnDeltas <- mdnDeltas %>% mutate(
+        `Median delta` = pmin(`Median delta`, quantile(mdnDeltas$`Median delta`, probs = 0.7, na.rm = TRUE))
+      ) %>% mutate(
+        `Median delta` = pmax(`Median delta`, quantile(mdnDeltas$`Median delta`, probs = 0.3, na.rm = TRUE))
+      )
+    }
+  }else{
+    mdnDeltas <- mdnDeltas %>% rename(
+      `Median delta (four-year)` = `Four-year`, 
+      `Median delta (two-year)` = `Two-year`
+    ) 
+    if(select6=="Yes"){
+      mdnDeltas <- mdnDeltas %>% mutate(
+        `Median delta (four-year)` = pmin(`Median delta (four-year)`, quantile(mdnDeltas$`Median delta (four-year)`, probs = 0.7, na.rm = TRUE)), 
+        `Median delta (two-year)` = pmin(`Median delta (two-year)`, quantile(mdnDeltas$`Median delta (two-year)`, probs = 0.7, na.rm = TRUE))
+      ) %>% mutate(
+        `Median delta (four-year)` = pmax(`Median delta (four-year)`, quantile(mdnDeltas$`Median delta (four-year)`, probs = 0.3, na.rm = TRUE)), 
+        `Median delta (two-year)` = pmax(`Median delta (two-year)`, quantile(mdnDeltas$`Median delta (two-year)`, probs = 0.3, na.rm = TRUE))
+      )
+    }
+  }
+  stateData <- left_join(x=stateData, y=mdnDeltas, by="STABBR")
+  rm(mdnDeltas)
   
   #### End #### 
   
@@ -1194,31 +1509,72 @@ functionC <- function(
       `Eligible`=="No", 
       0, 
       ifelse(
-        `Enrollment intensity`=="Full=time", 
+        `Enrollment intensity`=="Full-time", 
         1, 
         0.5
       )
     )
   )
+  
   eligibleFTEs <- aggregate(
     data=studentData, 
-    `Eligible FTEs` ~ `STABBR`, 
+    `Eligible FTEs` ~ `STABBR` + `Level`, 
     FUN=sum
-  )
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`), 
+    names_from=`Level`, 
+    values_from=`Eligible FTEs`
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs` = `Two-year`
+    ) %>% select(
+      -(`Four-year`)
+    )
+  }else{
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs (four-year)` = `Four-year`, 
+      `Eligible FTEs (two-year)` = `Two-year`
+    ) %>% mutate(
+      `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
+    )
+  }
   stateData <- left_join(x=stateData, y=eligibleFTEs, by="STABBR")
   rm(eligibleFTEs)
   
-  federalPerFTE <- mdnDelta / (1 + stateMatch)
-  statePerFTE <- federalPerFTE * stateMatch
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `Federal money per FTE` = `Median delta` / (1 + stateMatch)
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `Federal money per FTE (four-year)` = `Median delta (four-year)` / (1 + stateMatch), 
+      `Federal money per FTE (two-year)` = `Median delta (two-year)` / (1 + stateMatch)
+    )
+  }
   
-  stateData <- stateData %>% mutate(
-    `Federal funding per FTE` = rep(federalPerFTE), 
-    `State cost of entry per FTE` = rep(statePerFTE)
-  ) %>% mutate(
-    `Federal block grant` = rep(`Federal funding per FTE` * `Eligible FTEs`), 
-    `State cost of entry` = rep(`State cost of entry per FTE` * `Eligible FTEs`)
-  )
-  rm(federalPerFTE, statePerFTE, mdnDelta, stateMatch)
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `State cost of entry per FTE` = `Federal money per FTE` * stateMatch
+    ) %>% mutate(
+      `Federal block grant` = `Federal money per FTE` * `Eligible FTEs`, 
+      `State cost of entry` = `State cost of entry per FTE` * `Eligible FTEs`
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `State cost of entry per FTE (four-year)` = `Federal money per FTE (four-year)` * stateMatch, 
+      `State cost of entry per FTE (two-year)` = `Federal money per FTE (two-year)` * stateMatch
+    ) %>% mutate(
+      `Federal block grant (four-year)` = `Federal money per FTE (four-year)` * `Eligible FTEs (four-year)`,
+      `Federal block grant (two-year)` = `Federal money per FTE (two-year)` * `Eligible FTEs (two-year)`,
+      `State cost of entry (four-year)` = `State cost of entry per FTE (four-year)` * `Eligible FTEs (four-year)`, 
+      `State cost of entry (two-year)` = `State cost of entry per FTE (two-year)` * `Eligible FTEs (two-year)`
+    ) %>% mutate(
+      `Federal block grant` = `Federal block grant (four-year)` + `Federal block grant (two-year)`, 
+      `State cost of entry` = `State cost of entry (four-year)` + `State cost of entry (two-year)`
+    )
+  }
   
   #### End ####
   
@@ -1335,9 +1691,7 @@ functionC <- function(
   
   studentData <- studentData %>% mutate(
     `Participant` = ifelse(
-      (`STABBR` %in% participantStates$`STABBR`) | (`STABBR` %in% c(
-        "AS", "FM", "GU", "MH", "MP", "PR", "PW", "VI"
-      )), 
+      `STABBR` %in% participantStates$`STABBR`, 
       "Yes", 
       "No"
     )
@@ -1358,8 +1712,8 @@ functionC <- function(
   studentData <- studentData %>% mutate(
     `New tuition subsidy` = rep(0), 
     `New grants` = ifelse(
-      `Participant`=="Yes",
-      `Delta`,
+      `Participant`=="Yes", 
+      `Delta`, 
       0
     )
   )
@@ -1425,19 +1779,36 @@ functionD <- function(
   studentData,
   stateData, 
   collegeData, 
-  select1, # To what maximum percentage of family income is the net price among eligible students reduced? 
-  select2, # For each $1 in the federal block grant, how much does a participating state need to match? 
-  select3, # Is student eligibility limited on the basis of enrollment intensity?
-  select4, # Is student eligibility limited on a financial basis?
-  select5, # Is student eligibility limited to in-state students? 
-  select6, # Skipped
-  select7, # Is institutional eligibility limited to a certain level?
-  select8, # Should it be assumed that states that declined to participate in ACA’s Medicaid expansion will decline to participate in this program? 
-  select9  # What level of increase in a state’s annual appropriations for higher education would be too large to participate in the program? 
+  select1, 
+  select2, 
+  select3, 
+  select4, 
+  select5, 
+  select6, 
+  select7, 
+  select8, 
+  select9  
   
   #### End #### 
   
 ){
+  
+  # #### Empty inputs (comment out) ####
+  # 
+  # studentData <- studentDF
+  # stateData <- stateDF
+  # collegeData <- collegeDF
+  # select1 <- "20%"
+  # select2 <- "$0.25"
+  # select3 <- "No restriction based on enrollment intensity"
+  # select4 <- "No means testing"
+  # select5 <- "Yes"
+  # select6 <- "Skipped"
+  # select7 <- "Both two- and four-year institutions"
+  # select8 <- "No"
+  # select9 <- "35% and above"
+  # 
+  # #### End ####
   
   #### [S] Institutional eligibility ####
   
@@ -1452,7 +1823,7 @@ functionD <- function(
   if(select7=="Only two-year institutions"){
     collegeData <- collegeData %>% mutate(
       `Eligible` = ifelse(
-        `C21BASIC` %in% (15:32), 
+        `Level` != "Two-year", 
         "No", 
         `Eligible`
       )
@@ -1522,19 +1893,23 @@ functionD <- function(
   
   #### [S] Target ####
   
+  studentData <- studentData %>% mutate(
+    `Net price` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`))
+  ) 
+  
   if(select1=="10%"){
     studentData <- studentData %>% mutate(
-      `Target net price as a share of family income` = rep(0.1)
+      `Target net price` = `Family income` * 0.1
     )
   }
   if(select1=="20%"){
     studentData <- studentData %>% mutate(
-      `Target tuition as a share of family income` = rep(0.2)
+      `Target net price` = `Family income` * 0.2
     )
   }
   if(select1=="30%"){
     studentData <- studentData %>% mutate(
-      `Target tuition as a share of family income` = rep(0.3)
+      `Target net price` = `Family income` * 0.3
     )
   }
   
@@ -1543,20 +1918,59 @@ functionD <- function(
   #### [C] Calculate average delta ####
   
   studentData <- studentData %>% mutate(
-    `Net price` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`))
-  ) %>% mutate(
-    `Net price as a share of family income` = `Net price` / `Family income`
-  )
-  
-  studentData <- studentData %>% mutate(
     `Delta` = ifelse(
       `Eligible`=="Yes", 
-      pmax((`Net price as a share of family income` - `Target net price as a share of family income`) * `Family income`, 0), # How much cost has to move 
+      pmax(`Net price` - `Target net price`, 0), # How much cost has to move 
       NA
     )
   )
   
-  mdnDelta <- median(studentData$`Delta`[studentData$`Enrollment intensity`=="Full-time"], na.rm=TRUE)
+  mdnDeltas <- aggregate(
+    data=studentData,
+    `Delta` ~ `STABBR` + `Level` + `Enrollment intensity` + `Eligible`, 
+    FUN=median
+  ) %>% filter(
+    `Enrollment intensity`=="Full-time", 
+    `Eligible`=="Yes"
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`, `Enrollment intensity`, `Eligible`), 
+    names_from=`Level`,
+    values_from=`Delta`
+  ) %>% select(
+    -(`Enrollment intensity`), 
+    -(`Eligible`)
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    mdnDeltas <- mdnDeltas %>% select(
+      -(`Four-year`)
+    ) %>% rename(
+      `Median delta` = `Two-year`
+    ) 
+    if(select6=="Yes"){
+      mdnDeltas <- mdnDeltas %>% mutate(
+        `Median delta` = pmin(`Median delta`, quantile(mdnDeltas$`Median delta`, probs = 0.7, na.rm = TRUE))
+      ) %>% mutate(
+        `Median delta` = pmax(`Median delta`, quantile(mdnDeltas$`Median delta`, probs = 0.3, na.rm = TRUE))
+      )
+    }
+  }else{
+    mdnDeltas <- mdnDeltas %>% rename(
+      `Median delta (four-year)` = `Four-year`, 
+      `Median delta (two-year)` = `Two-year`
+    ) 
+    if(select6=="Yes"){
+      mdnDeltas <- mdnDeltas %>% mutate(
+        `Median delta (four-year)` = pmin(`Median delta (four-year)`, quantile(mdnDeltas$`Median delta (four-year)`, probs = 0.7, na.rm = TRUE)), 
+        `Median delta (two-year)` = pmin(`Median delta (two-year)`, quantile(mdnDeltas$`Median delta (two-year)`, probs = 0.7, na.rm = TRUE))
+      ) %>% mutate(
+        `Median delta (four-year)` = pmax(`Median delta (four-year)`, quantile(mdnDeltas$`Median delta (four-year)`, probs = 0.3, na.rm = TRUE)), 
+        `Median delta (two-year)` = pmax(`Median delta (two-year)`, quantile(mdnDeltas$`Median delta (two-year)`, probs = 0.3, na.rm = TRUE))
+      )
+    }
+  }
+  stateData <- left_join(x=stateData, y=mdnDeltas, by="STABBR")
+  rm(mdnDeltas)
   
   #### End #### 
   
@@ -1577,31 +1991,72 @@ functionD <- function(
       `Eligible`=="No", 
       0, 
       ifelse(
-        `Enrollment intensity`=="Full=time", 
+        `Enrollment intensity`=="Full-time", 
         1, 
         0.5
       )
     )
   )
+  
   eligibleFTEs <- aggregate(
     data=studentData, 
-    `Eligible FTEs` ~ `STABBR`, 
+    `Eligible FTEs` ~ `STABBR` + `Level`, 
     FUN=sum
-  )
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`), 
+    names_from=`Level`, 
+    values_from=`Eligible FTEs`
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs` = `Two-year`
+    ) %>% select(
+      -(`Four-year`)
+    )
+  }else{
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs (four-year)` = `Four-year`, 
+      `Eligible FTEs (two-year)` = `Two-year`
+    ) %>% mutate(
+      `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
+    )
+  }
   stateData <- left_join(x=stateData, y=eligibleFTEs, by="STABBR")
   rm(eligibleFTEs)
   
-  federalPerFTE <- mdnDelta / (1 + stateMatch)
-  statePerFTE <- federalPerFTE * stateMatch
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `Federal money per FTE` = `Median delta` / (1 + stateMatch)
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `Federal money per FTE (four-year)` = `Median delta (four-year)` / (1 + stateMatch), 
+      `Federal money per FTE (two-year)` = `Median delta (two-year)` / (1 + stateMatch)
+    )
+  }
   
-  stateData <- stateData %>% mutate(
-    `Federal funding per FTE` = rep(federalPerFTE), 
-    `State cost of entry per FTE` = rep(statePerFTE)
-  ) %>% mutate(
-    `Federal block grant` = rep(`Federal funding per FTE` * `Eligible FTEs`), 
-    `State cost of entry` = rep(`State cost of entry per FTE` * `Eligible FTEs`)
-  )
-  rm(federalPerFTE, statePerFTE, mdnDelta, stateMatch)
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `State cost of entry per FTE` = `Federal money per FTE` * stateMatch
+    ) %>% mutate(
+      `Federal block grant` = `Federal money per FTE` * `Eligible FTEs`, 
+      `State cost of entry` = `State cost of entry per FTE` * `Eligible FTEs`
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `State cost of entry per FTE (four-year)` = `Federal money per FTE (four-year)` * stateMatch, 
+      `State cost of entry per FTE (two-year)` = `Federal money per FTE (two-year)` * stateMatch
+    ) %>% mutate(
+      `Federal block grant (four-year)` = `Federal money per FTE (four-year)` * `Eligible FTEs (four-year)`,
+      `Federal block grant (two-year)` = `Federal money per FTE (two-year)` * `Eligible FTEs (two-year)`,
+      `State cost of entry (four-year)` = `State cost of entry per FTE (four-year)` * `Eligible FTEs (four-year)`, 
+      `State cost of entry (two-year)` = `State cost of entry per FTE (two-year)` * `Eligible FTEs (two-year)`
+    ) %>% mutate(
+      `Federal block grant` = `Federal block grant (four-year)` + `Federal block grant (two-year)`, 
+      `State cost of entry` = `State cost of entry (four-year)` + `State cost of entry (two-year)`
+    )
+  }
   
   #### End ####
   
@@ -1718,9 +2173,7 @@ functionD <- function(
   
   studentData <- studentData %>% mutate(
     `Participant` = ifelse(
-      (`STABBR` %in% participantStates$`STABBR`) | (`STABBR` %in% c(
-        "AS", "FM", "GU", "MH", "MP", "PR", "PW", "VI"
-      )), 
+      `STABBR` %in% participantStates$`STABBR`, 
       "Yes", 
       "No"
     )
@@ -1814,6 +2267,155 @@ functionD <- function(
 #### by X%                                  ####
 ################################################
 
+functionG <- function(
+    
+  #### List inputs ####
+
+  studentData,
+  stateData,
+  collegeData,
+  select1,
+  select2,
+  select3,
+  select4,
+  select5,
+  select6,
+  select7,
+  select8,
+  select9
+
+  #### End ####
+  
+){
+  
+  # #### Empty inputs (comment out) ####
+  # 
+  # studentData <- studentDF
+  # stateData <- stateDF
+  # collegeData <- collegeDF
+  # select1 <- "50%"
+  # select2 <- "Skipped"
+  # select3 <- "Skipped"
+  # select4 <- "Skipped"
+  # select5 <- "Skipped"
+  # select6 <- "Public only"
+  # select7 <- "Both two- and four-year institutions"
+  # select8 <- "Skipped"
+  # select9 <- "Skipped"
+  # 
+  # #### End ####
+  
+  #### [S] Institutional eligibility ####
+  
+  if(select6=="Public only"){
+    collegeData <- collegeData %>% mutate(
+      `Eligible` = ifelse(
+        `CONTROL`==1, 
+        "Yes", 
+        "No"
+      )
+    )
+  }
+  if(select6=="Public and nonprofit only"){
+    collegeData <- collegeData %>% mutate(
+      `Eligible` = ifelse(
+        `CONTROL` %in% c(1, 2), 
+        "Yes", 
+        "No"
+      )
+    )
+  }
+  if(select6=="All controls"){
+    collegeData <- collegeData %>% mutate(
+      `Eligible` = rep("Yes")
+    )
+  }
+  
+  if(select7=="Only two-year institutions"){
+    collegeData <- collegeData %>% mutate(
+      `Eligible` = ifelse(
+        `Level` != "Two-year", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [S] Student eligibility ####
+  
+  studentData <- studentData %>% mutate(
+    `Eligible` = ifelse(
+      (`Citizenship`=="Citizen or eligible non-citizen") & (`Receives federal grants`=="Yes"), 
+      "Yes", 
+      "No"
+    )
+  ) 
+  
+  #### End #### 
+  
+  #### [C] Combine eligibility ####
+  
+  eligibleColleges <- collegeData %>% filter(`Eligible`=="Yes")
+  studentData <- studentData %>% mutate(
+    `Eligible` = ifelse(
+      (`UNITID` %in% eligibleColleges$`UNITID`)==FALSE,
+      "No", 
+      `Eligible`
+    )
+  )
+  rm(eligibleColleges)
+  
+  #### End #### 
+  
+  #### [C] Define participation ####
+  
+  studentData <- studentData %>% mutate(
+    `Participant` = `Eligible`
+  )
+  
+  #### End #### 
+  
+  #### [C] Store pricing and aid changes ####
+  
+  if(select1=="100%"){
+    studentData <- studentData %>% mutate(
+      `New tuition subsidy` = rep(0), 
+      `New grants` = `Federal grant amount` * 1
+    )
+  }
+  if(select1=="50%"){
+    studentData <- studentData %>% mutate(
+      `New tuition subsidy` = rep(0), 
+      `New grants` = `Federal grant amount` * 0.5
+    )
+  }
+  if(select1=="25%"){
+    studentData <- studentData %>% mutate(
+      `New tuition subsidy` = rep(0), 
+      `New grants` = `Federal grant amount` * 0.25
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Store data the numeric functions will be expecting ####
+  
+  studentData <- studentData %>% mutate(
+    `Overflow` = rep(0)
+  )
+  
+  #### End #### 
+  
+  #### [C] Return list ####
+  
+  return(list(studentData, stateData, collegeData))
+  
+  #### End #### 
+  
+}
+
 ################################################
 #### Function X: Long-term impacts          ####
 ################################################
@@ -1872,6 +2474,12 @@ functionX <- function(students1){
 
 function1 <- function(students1, states1, colleges1, plan1){
   
+  if(plan1=="Plan G"){
+    states1 <- states1 %>% mutate(
+      `Participation status` = rep("Yes")
+    )
+  }
+  
   participantStates <- states1 %>% filter(
     `Participation status`=="Yes"
   )
@@ -1914,7 +2522,24 @@ function1 <- function(students1, states1, colleges1, plan1){
     data=students1, 
     `Count` ~ `UNITID` + `Participant`, 
     FUN=sum
-  ) %>% pivot_wider(
+  ) 
+  
+  if(sum(shareParticipating$`Count`[shareParticipating$`Participant`=="Yes"])==0){
+    shareParticipating <- shareParticipating %>% add_row(
+      `UNITID` = NA, 
+      `Participant` = "Yes",
+      `Count` = 0
+    )
+  }
+  if(sum(shareParticipating$`Count`[shareParticipating$`Participant`=="No"])==0){
+    shareParticipating <- shareParticipating %>% add_row(
+      `UNITID` = NA, 
+      `Participant` = "No",
+      `Count` = 0
+    )
+  }
+  
+  shareParticipating <- shareParticipating %>% pivot_wider(
     id_cols=c(`UNITID`),
     names_from=`Participant`, 
     values_from=`Count`
@@ -1974,11 +2599,6 @@ function1 <- function(students1, states1, colleges1, plan1){
 function2 <- function(students1, states1, colleges1, plan1){
   # Data will not come from Plans F or G
   
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
-  
   states1 <- states1 %>% select(
     `State`,
     `STABBR`,
@@ -1988,7 +2608,7 @@ function2 <- function(students1, states1, colleges1, plan1){
     `Total state contributions as a share of education appropriations`
   )
   
-  if(plan1 != "Plan E"){
+  if(plan1 != "Plan H"){
     students1 <- students1 %>% mutate(`Count` = rep(1))
     
     publicStudents <- aggregate(
@@ -1999,7 +2619,24 @@ function2 <- function(students1, states1, colleges1, plan1){
       `Control` == "Public"
     ) %>% select(
       -(`Control`)
-    ) %>% pivot_wider(
+    ) 
+    
+    if(sum(publicStudents$`Count`[publicStudents$`Participant`=="Yes"])==0){
+      publicStudents <- publicStudents %>% add_row(
+        `STABBR` = NA, 
+        `Participant` = "Yes",
+        `Count` = 0
+      )
+    }
+    if(sum(publicStudents$`Count`[publicStudents$`Participant`=="No"])==0){
+      publicStudents <- publicStudents %>% add_row(
+        `STABBR` = NA, 
+        `Participant` = "No",
+        `Count` = 0
+      )
+    }
+    
+    publicStudents <- publicStudents %>% pivot_wider(
       id_cols=c(`STABBR`), 
       names_from=`Participant`,
       values_from=`Count`
@@ -2049,11 +2686,6 @@ function2 <- function(students1, states1, colleges1, plan1){
 
 function3 <- function(students1, states1, colleges1, plan1){
   
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
-  
   students1 <- students1 %>% mutate(
     `Pre-policy net price` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`))
   ) %>% mutate(
@@ -2061,30 +2693,40 @@ function3 <- function(students1, states1, colleges1, plan1){
   )
   
   suppressWarnings({
+    if(length(unique(students1$`Participant`))==1){
+      nGroups <- 1
+    }else{
+      nGroups <- 2
+    }
     prePolicyNP <- students1 %>% group_by(
       `Participant`
-    ) %>% summarize(
+    ) %>% reframe(
       quantile(`Pre-policy net price`, probs = seq(0.1, 0.9, 0.1)), 
       .groups = "drop"
     ) %>% mutate(
       `Percentile` = rep(
         c(10, 20, 30, 40, 50, 60, 70, 80, 90), 
-        2
+        nGroups
       )
     )
     names(prePolicyNP)[2] <- "Pre-policy net price"
   })
   
   suppressWarnings({
+    if(length(unique(students1$`Participant`))==1){
+      nGroups <- 1
+    }else{
+      nGroups <- 2
+    }
     postPolicyNP <- students1 %>% group_by(
       `Participant`
-    ) %>% summarize(
+    ) %>% reframe(
       quantile(`Post-policy net price`, probs = seq(0.1, 0.9, 0.1)), 
       .groups = "drop"
     ) %>% mutate(
       `Percentile` = rep(
         c(10, 20, 30, 40, 50, 60, 70, 80, 90), 
-        2
+        nGroups
       )
     )
     names(postPolicyNP)[2] <- "Post-policy net price"
@@ -2099,11 +2741,6 @@ function3 <- function(students1, states1, colleges1, plan1){
 #### Function 4: Educational attainment #### 
 
 function4 <- function(students1, states1, colleges1, plan1){
-  
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
   
   results1 <- states1 %>% select(
     `State`,
@@ -2146,12 +2783,12 @@ function4 <- function(students1, states1, colleges1, plan1){
 
 function5 <- function(students1, states1, colleges1, plan1){
   
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
+  if(plan1=="Plan G"){
+    annualCost <- sum(students1$`New grants`, na.rm=TRUE)
+  }else{
+    annualCost <- sum(states1$`Total state contributions`, na.rm=TRUE) + sum(states1$`Federal block grant`, na.rm=TRUE)
+  }
   
-  annualCost <- sum(states1$`Total state contributions`, na.rm=TRUE) + sum(states1$`Federal block grant`, na.rm=TRUE)
   annualTax <- sum(students1$`Increase: Taxes`)
   
   results1 <- data.frame(
@@ -2170,17 +2807,26 @@ function5 <- function(students1, states1, colleges1, plan1){
 function6 <- function(students1, states1, colleges1, plan1){
   # Data will not come from Plans F or G
   
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
+  if("Federal money per FTE (four-year)" %in% names(states1)){
+    states1 <- states1 %>% mutate(
+      `Federal money per FTE` = rep(NA)
+    )
+  }else{
+    states1 <- states1 %>% mutate(
+      `Federal money per FTE (four-year)` = rep(NA), 
+      `Federal money per FTE (two-year)` = rep(NA) 
+    )
+  }
   
   results1 <- states1 %>% select(
     `State`,
     `STABBR`, 
     `Federal block grant`, 
     `Total state contributions`, 
-    `Overflow amount`
+    `Overflow amount`, 
+    `Federal money per FTE`, 
+    `Federal money per FTE (four-year)`, 
+    `Federal money per FTE (two-year)`
   )
   return(results1)
 }
@@ -2191,11 +2837,6 @@ function6 <- function(students1, states1, colleges1, plan1){
 
 function7 <- function(students1, states1, colleges1, plan1){
   # Data won't come from Plan E
-  
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
   
   students1 <- students1 %>% mutate(
     `Count` = rep(1)
@@ -2228,7 +2869,20 @@ function7 <- function(students1, states1, colleges1, plan1){
     data=students1, 
     `Count` ~ `Participant`, 
     FUN=sum
-  ) %>% pivot_wider(
+  ) 
+  if(sum(agg1$`Count`[agg1$`Participant`=="Yes"])==0){
+    agg1 <- agg1 %>% add_row(
+      `Participant` = "Yes",
+      `Count` = 0
+    )
+  }
+  if(sum(agg1$`Count`[agg1$`Participant`=="No"])==0){
+    agg1 <- agg1 %>% add_row(
+      `Participant` = "No",
+      `Count` = 0
+    )
+  }
+  agg1 <- agg1 %>% pivot_wider(
     names_from=`Participant`, 
     values_from=`Count`
   ) %>% mutate(
@@ -2256,7 +2910,20 @@ function7 <- function(students1, states1, colleges1, plan1){
     `Receives Pell` == "Yes"
   ) %>% select(
     -(`Receives Pell`)
-  ) %>% pivot_wider(
+  ) 
+  if(sum(agg2$`Count`[agg2$`Participant`=="Yes"])==0){
+    agg2 <- agg2 %>% add_row(
+      `Participant` = "Yes",
+      `Count` = 0
+    )
+  }
+  if(sum(agg2$`Count`[agg2$`Participant`=="No"])==0){
+    agg2 <- agg2 %>% add_row(
+      `Participant` = "No",
+      `Count` = 0
+    )
+  }
+  agg2 <- agg2 %>% pivot_wider(
     names_from=`Participant`, 
     values_from=`Count`
   ) %>% mutate(
@@ -2284,7 +2951,20 @@ function7 <- function(students1, states1, colleges1, plan1){
     `First-gen status` == "First-gen"
   ) %>% select(
     -(`First-gen status`)
-  ) %>% pivot_wider(
+  ) 
+  if(sum(agg3$`Count`[agg3$`Participant`=="Yes"])==0){
+    agg3 <- agg3 %>% add_row(
+      `Participant` = "Yes",
+      `Count` = 0
+    )
+  }
+  if(sum(agg3$`Count`[agg3$`Participant`=="No"])==0){
+    agg3 <- agg3 %>% add_row(
+      `Participant` = "No",
+      `Count` = 0
+    )
+  }
+  agg3 <- agg3 %>% pivot_wider(
     names_from=`Participant`, 
     values_from=`Count`
   ) %>% mutate(
@@ -2312,7 +2992,20 @@ function7 <- function(students1, states1, colleges1, plan1){
     `Student of color` == "Yes"
   ) %>% select(
     -(`Student of color`)
-  ) %>% pivot_wider(
+  ) 
+  if(sum(agg4$`Count`[agg4$`Participant`=="Yes"])==0){
+    agg4 <- agg4 %>% add_row(
+      `Participant` = "Yes",
+      `Count` = 0
+    )
+  }
+  if(sum(agg4$`Count`[agg4$`Participant`=="No"])==0){
+    agg4 <- agg4 %>% add_row(
+      `Participant` = "No",
+      `Count` = 0
+    )
+  }
+  agg4 <- agg4 %>% pivot_wider(
     names_from=`Participant`, 
     values_from=`Count`
   ) %>% mutate(
@@ -2340,7 +3033,20 @@ function7 <- function(students1, states1, colleges1, plan1){
     `Parent status` == "Has dependents"
   ) %>% select(
     -(`Parent status`)
-  ) %>% pivot_wider(
+  ) 
+  if(sum(agg5$`Count`[agg5$`Participant`=="Yes"])==0){
+    agg5 <- agg5 %>% add_row(
+      `Participant` = "Yes",
+      `Count` = 0
+    )
+  }
+  if(sum(agg5$`Count`[agg5$`Participant`=="No"])==0){
+    agg5 <- agg5 %>% add_row(
+      `Participant` = "No",
+      `Count` = 0
+    )
+  }
+  agg5 <- agg5 %>% pivot_wider(
     names_from=`Participant`, 
     values_from=`Count`
   ) %>% mutate(
@@ -2368,7 +3074,20 @@ function7 <- function(students1, states1, colleges1, plan1){
     `Veteran status` == "Veteran"
   ) %>% select(
     -(`Veteran status`)
-  ) %>% pivot_wider(
+  ) 
+  if(sum(agg6$`Count`[agg6$`Participant`=="Yes"])==0){
+    agg6 <- agg6 %>% add_row(
+      `Participant` = "Yes",
+      `Count` = 0
+    )
+  }
+  if(sum(agg6$`Count`[agg6$`Participant`=="No"])==0){
+    agg6 <- agg6 %>% add_row(
+      `Participant` = "No",
+      `Count` = 0
+    )
+  }
+  agg6 <- agg6 %>% pivot_wider(
     names_from=`Participant`, 
     values_from=`Count`
   ) %>% mutate(
@@ -2392,11 +3111,6 @@ function7 <- function(students1, states1, colleges1, plan1){
 
 function8 <- function(students1, states1, colleges1, plan1){
   # Data won't come from Plan E
-  
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
   
   students1 <- students1 %>% mutate(
     `Pre-policy student loans` = `Federal loan amount` + `Parent loan amount`
@@ -2440,11 +3154,6 @@ function8 <- function(students1, states1, colleges1, plan1){
 
 function9 <- function(students1, states1, colleges1, plan1){
   
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
-  
   results1 <- data.frame(
     `Measure` = character(), 
     `Value` = character()
@@ -2468,23 +3177,24 @@ function9 <- function(students1, states1, colleges1, plan1){
 
 function10 <- function(students1, states1, colleges1, plan1){
   
-  # students1 <- students
-  # states1 <- states
-  # colleges1 <- colleges
-  # plan1 <- "Plan A"
-  
   # Pell and TEACH: $37.9 billion, per FSA Data Center
   # Campus programs: $2.1 billion, per FSA Data Center
   # MSI funding: $1.3 billion, per https://www.congress.gov/crs-product/R43237
   totalFederalSpending <- (37.9 + 2.1 + 1.3) * 1000000000
   
-  federalMoney <- sum(states1$`Federal block grant`[states1$`Participation status`=="Yes"], na.rm=TRUE)
-  federalIncrease <- federalMoney / totalFederalSpending
-  
-  stateMoney <- sum(states1$`Total state contributions`[states1$`Participation status`=="Yes"], na.rm=TRUE)
-  stateIncrease <- stateMoney / sum(states1$`Education Appropriations`, na.rm=TRUE)
-  
-  stateTurnDown <- sum(states1$`Turn down due to finances`=="Yes", na.rm=TRUE)
+  if(plan1=="Plan G"){
+    federalMoney <- sum(students1$`New grants`)
+    federalIncrease <- federalMoney / totalFederalSpending
+    stateMoney <- 0
+    stateIncrease <- 0
+    stateTurnDown <- 0
+  }else{
+    federalMoney <- sum(states1$`Federal block grant`[states1$`Participation status`=="Yes"], na.rm=TRUE)
+    federalIncrease <- federalMoney / totalFederalSpending
+    stateMoney <- sum(states1$`Total state contributions`[states1$`Participation status`=="Yes"], na.rm=TRUE)
+    stateIncrease <- stateMoney / sum(states1$`Education Appropriations`, na.rm=TRUE)
+    stateTurnDown <- sum(states1$`Turn down due to finances`=="Yes", na.rm=TRUE)
+  }
   
   results1 <- data.frame(
     `Measure` = character(), 
@@ -2518,52 +3228,49 @@ function10 <- function(students1, states1, colleges1, plan1){
 #### Choice list 1 ####
 
 choices1a <- c(
-  "$0 at all eligible institutions"
-  # , 
-  # "$1,000 at all eligible institutions", DEMO
-  # "$1,000 at eligible two-year institutions and $3,000 at eligible four-year institutions" DEMO
+  "$0 at all eligible institutions",
+  "$1,000 at all eligible institutions",
+  "$1,000 at eligible two-year institutions and $3,000 at eligible four-year institutions"
 )
 
 choices1b <- c(
-  "100%"
-  # , 
-  # "50%", DEMO
-  # "25%" DEMO
+  "100%",
+  "50%",
+  "25%"
 )
 
 choices1c <- choices1b
 
 choices1d <- c(
-  "10%"
-  # , 
-  # "20%", DEMO
-  # "30%" DEMO
+  "10%",
+  "20%",
+  "30%"
 )
 
 choices1e <- c(
-  "65%"
-  , 
-  "75%", 
-  "85%"
+  "No tuition charged",
+  "No unmet need",
+  "Net price capped at 10% family income"
 )
 
-choices1f <- c(
-  "No tuition charged", 
-  "No undergraduate loans"
-)
+choices1f <- choices1e
 
 choices1g <- choices1b
+
+choices1h <- c(
+  "All spending", 
+  "New spending"
+)
 
 #### End #### 
 
 #### Choice list 2 ####
 
 choices2a <- c(
-  # "$0.10", SLIM
-  "$0.25"
-  # , DEMO
-  # "$0.50", SLIM
-  # "$1.00" DEMO
+  "$0.10", 
+  "$0.25", 
+  "$0.50",
+  "$1.00"
 )
 
 choices2b <- choices2a
@@ -2573,18 +3280,21 @@ choices2c <- choices2a
 choices2d <- choices2a
 
 choices2e <- c(
-  "$0.50"
-  , 
-  # "$1.00", SLIM
-  "$1.50"
+  "$5,000 per eligible FTE", 
+  "$10,000 per eligible FTE", 
+  "$15,000 per eligible FTE"
 )
 
-choices2f <- c(
-  "Skipped"
-)
+choices2f <- choices2e
 
 choices2g <- c(
   "Skipped"
+)
+
+choices2h <- c(
+  "5%",
+  "10%", 
+  "20%"
 )
 
 #### End #### 
@@ -2592,9 +3302,8 @@ choices2g <- c(
 #### Choice list 3 ####
 
 choices3a <- c(
-  "No restriction based on enrollment intensity"
-  # , 
-  # "Restricted to students enrolled full-time" DEMO
+  "No restriction based on enrollment intensity",
+  "Restricted to students enrolled full-time"
 )
 
 choices3b <- choices3a
@@ -2603,9 +3312,7 @@ choices3c <- choices3a
 
 choices3d <- choices3a
 
-choices3e <- c(
-  "Skipped"
-)
+choices3e <- choices3a
 
 choices3f <- choices3a
 
@@ -2613,14 +3320,19 @@ choices3g <- c(
   "Skipped"
 )
 
+choices3h <- c(
+  "$1 federal for every $0.50 state", 
+  "$1 federal for every $1 state", 
+  "$1 federal for every $2 state"
+)
+
 #### End #### 
 
 #### Choice list 4 ####
 
 choices4a <- c(
-  "No means testing"
-  # , 
-  # "Pell Grant recipients only" DEMO
+  "No means testing",
+  "Pell Grant recipients only"
 )
 
 choices4b <- choices4a
@@ -2629,13 +3341,15 @@ choices4c <- choices4a
 
 choices4d <- choices4a
 
-choices4e <- c(
-  "Skipped"
-)
+choices4e <- choices4a
 
 choices4f <- choices4a
 
 choices4g <- c(
+  "Skipped"
+)
+
+choices4h <- c(
   "Skipped"
 )
 
@@ -2644,9 +3358,8 @@ choices4g <- c(
 #### Choice list 5 ####
 
 choices5a <- c(
-  "Yes"
-  # , 
-  # "No" DEMO
+  "Yes",
+  "No"
 )
 
 choices5b <- choices5a
@@ -2655,13 +3368,15 @@ choices5c <- choices5a
 
 choices5d <- choices5a
 
-choices5e <- c(
-  "Skipped"
-)
+choices5e <- choices5a
 
 choices5f <- choices5a
 
 choices5g <- c(
+  "Skipped"
+)
+
+choices5h <- c(
   "Skipped"
 )
 
@@ -2670,20 +3385,15 @@ choices5g <- c(
 #### Choice list 6 ####
 
 choices6a <- c(
-  "Skipped"
+  "Yes", 
+  "No"
 )
 
-choices6b <- c(
-  "Skipped"
-)
+choices6b <- choices6a
 
-choices6c <- c(
-  "Skipped"
-)
+choices6c <- choices6a
 
-choices6d <- c(
-  "Skipped"
-)
+choices6d <- choices6a
 
 choices6e <- c(
   "Skipped"
@@ -2697,14 +3407,17 @@ choices6f <- c(
 
 choices6g <- choices6f
 
+choices6h <- c(
+  "Skipped"
+)
+
 #### End #### 
 
 #### Choice list 7 ####
 
 choices7a <- c(
-  "Only two-year institutions"
-  # , 
-  # "Both two- and four-year institutions" SLIM
+  "Only two-year institutions",
+  "Both two- and four-year institutions"
 )
 
 choices7b <- choices7a
@@ -2719,14 +3432,15 @@ choices7f <- choices7a
 
 choices7g <- choices7a
 
+choices7h <- choices7a
+
 #### End #### 
 
 #### Choice list 8 ####
 
 choices8a <- c(
-  "No"
-  # , 
-  # "Yes" SLIM
+  "No",
+  "Yes"
 )
 
 choices8b <- choices8a
@@ -2745,13 +3459,15 @@ choices8g <- c(
   "Skipped"
 )
 
+choices8h <- choices8a
+
 #### End #### 
 
 #### Choice list 9 ####
 
 choices9a <- c(
-  # "15% and above", SLIM 
-  # "25% and above", SLIM
+  "15% and above",
+  "25% and above",
   "35% and above"
 )
 
@@ -2764,13 +3480,16 @@ choices9d <- choices9a
 choices9e <- choices9a
 
 choices9f <- c(
-  # "5% and above", SLIM
-  "10% and above"
-  # , 
-  # "15% and above" SLIM
+  "5% and above",
+  "10% and above",
+  "15% and above"
 )
 
 choices9g <- c(
+  "Skipped"
+)
+
+choices9h <- c(
   "Skipped"
 )
 
@@ -2792,7 +3511,226 @@ choices9g <- c(
   length(choices1f) * length(choices2f) * length(choices3f) * length(choices4f) * length(choices5f) * length(choices6f) * length(choices7f) * length(choices8f) * length(choices9f)
 ) + (
   length(choices1g) * length(choices2g) * length(choices3g) * length(choices4g) * length(choices5g) * length(choices6g) * length(choices7g) * length(choices8g) * length(choices9g)
+) + (
+  length(choices1h) * length(choices2h) * length(choices3h) * length(choices4h) * length(choices5h) * length(choices6h) * length(choices7h) * length(choices8h) * length(choices9h)
 ) 
+
+#### End #### 
+
+#### Save index of choice lists #### 
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+
+allCombos <- data.frame(
+  `Plan` = character(),
+  `Choice1` = character(), 
+  `Choice2` = character(), 
+  `Choice3` = character(), 
+  `Choice4` = character(), 
+  `Choice5` = character(), 
+  `Choice6` = character(), 
+  `Choice7` = character(), 
+  `Choice8` = character(), 
+  `Choice9` = character(), 
+  check.names=FALSE
+)
+
+for(r in choices1a){
+  for(s in choices2a){
+    for(t in choices3a){
+      for(u in choices4a){
+        for(v in choices5a){
+          for(w in choices6a){
+            for(x in choices7a){
+              for(y in choices8a){
+                for(z in choices9a){
+                  allCombos <- allCombos %>% add_row(
+                    `Plan` = "A", 
+                    `Choice1` = r, 
+                    `Choice2` = s, 
+                    `Choice3` = t, 
+                    `Choice4` = u, 
+                    `Choice5` = v, 
+                    `Choice6` = w, 
+                    `Choice7` = x, 
+                    `Choice8` = y, 
+                    `Choice9` = z 
+                  )
+}}}}}}}}}                 
+rm(r, s, t, u, v, w, x, y, z)
+
+for(r in choices1b){
+  for(s in choices2b){
+    for(t in choices3b){
+      for(u in choices4b){
+        for(v in choices5b){
+          for(w in choices6b){
+            for(x in choices7b){
+              for(y in choices8b){
+                for(z in choices9b){
+                  allCombos <- allCombos %>% add_row(
+                    `Plan` = "B", 
+                    `Choice1` = r, 
+                    `Choice2` = s, 
+                    `Choice3` = t, 
+                    `Choice4` = u, 
+                    `Choice5` = v, 
+                    `Choice6` = w, 
+                    `Choice7` = x, 
+                    `Choice8` = y, 
+                    `Choice9` = z 
+                  )
+}}}}}}}}}
+
+for(r in choices1c){
+  for(s in choices2c){
+    for(t in choices3c){
+      for(u in choices4c){
+        for(v in choices5c){
+          for(w in choices6c){
+            for(x in choices7c){
+              for(y in choices8c){
+                for(z in choices9c){
+                  allCombos <- allCombos %>% add_row(
+                    `Plan` = "C", 
+                    `Choice1` = r, 
+                    `Choice2` = s, 
+                    `Choice3` = t, 
+                    `Choice4` = u, 
+                    `Choice5` = v, 
+                    `Choice6` = w, 
+                    `Choice7` = x, 
+                    `Choice8` = y, 
+                    `Choice9` = z 
+                  )
+}}}}}}}}}
+rm(r, s, t, u, v, w, x, y, z)
+
+for(r in choices1d){
+  for(s in choices2d){
+    for(t in choices3d){
+      for(u in choices4d){
+        for(v in choices5d){
+          for(w in choices6d){
+            for(x in choices7d){
+              for(y in choices8d){
+                for(z in choices9d){
+                  allCombos <- allCombos %>% add_row(
+                    `Plan` = "D", 
+                    `Choice1` = r, 
+                    `Choice2` = s, 
+                    `Choice3` = t, 
+                    `Choice4` = u, 
+                    `Choice5` = v, 
+                    `Choice6` = w, 
+                    `Choice7` = x, 
+                    `Choice8` = y, 
+                    `Choice9` = z 
+                  )
+}}}}}}}}}
+rm(r, s, t, u, v, w, x, y, z)
+
+for(r in choices1e){
+  for(s in choices2e){
+    for(t in choices3e){
+      for(u in choices4e){
+        for(v in choices5e){
+          for(w in choices6e){
+            for(x in choices7e){
+              for(y in choices8e){
+                for(z in choices9e){
+                  allCombos <- allCombos %>% add_row(
+                    `Plan` = "E", 
+                    `Choice1` = r, 
+                    `Choice2` = s, 
+                    `Choice3` = t, 
+                    `Choice4` = u, 
+                    `Choice5` = v, 
+                    `Choice6` = w, 
+                    `Choice7` = x, 
+                    `Choice8` = y, 
+                    `Choice9` = z 
+                  )
+}}}}}}}}}
+rm(r, s, t, u, v, w, x, y, z)
+
+for(r in choices1f){
+  for(s in choices2f){
+    for(t in choices3f){
+      for(u in choices4f){
+        for(v in choices5f){
+          for(w in choices6f){
+            for(x in choices7f){
+              for(y in choices8f){
+                for(z in choices9f){
+                  allCombos <- allCombos %>% add_row(
+                    `Plan` = "F", 
+                    `Choice1` = r, 
+                    `Choice2` = s, 
+                    `Choice3` = t, 
+                    `Choice4` = u, 
+                    `Choice5` = v, 
+                    `Choice6` = w, 
+                    `Choice7` = x, 
+                    `Choice8` = y, 
+                    `Choice9` = z 
+                  )
+}}}}}}}}}
+rm(r, s, t, u, v, w, x, y, z)
+
+for(r in choices1g){
+  for(s in choices2g){
+    for(t in choices3g){
+      for(u in choices4g){
+        for(v in choices5g){
+          for(w in choices6g){
+            for(x in choices7g){
+              for(y in choices8g){
+                for(z in choices9g){
+                  allCombos <- allCombos %>% add_row(
+                    `Plan` = "G", 
+                    `Choice1` = r, 
+                    `Choice2` = s, 
+                    `Choice3` = t, 
+                    `Choice4` = u, 
+                    `Choice5` = v, 
+                    `Choice6` = w, 
+                    `Choice7` = x, 
+                    `Choice8` = y, 
+                    `Choice9` = z 
+                  )
+}}}}}}}}}
+rm(r, s, t, u, v, w, x, y, z)
+
+for(r in choices1h){
+  for(s in choices2h){
+    for(t in choices3h){
+      for(u in choices4h){
+        for(v in choices5h){
+          for(w in choices6h){
+            for(x in choices7h){
+              for(y in choices8h){
+                for(z in choices9h){
+                  allCombos <- allCombos %>% add_row(
+                    `Plan` = "H", 
+                    `Choice1` = r, 
+                    `Choice2` = s, 
+                    `Choice3` = t, 
+                    `Choice4` = u, 
+                    `Choice5` = v, 
+                    `Choice6` = w, 
+                    `Choice7` = x, 
+                    `Choice8` = y, 
+                    `Choice9` = z 
+                  )
+}}}}}}}}}
+rm(r, s, t, u, v, w, x, y, z)
+
+allCombos <- allCombos %>% mutate(
+  `Policy index` = paste(`Plan`, (1:nrow(allCombos)), sep="")
+)
+
+write.csv(allCombos, "Input combos.csv", row.names=FALSE)
 
 #### End #### 
 
@@ -2828,16 +3766,16 @@ for(r in choices1a){
                   colleges0 <- tempAll[[3]]
                   rm(tempAll)
                   
-                  temp1 <- function1(students0, states0, colleges0, "Model A")
-                  temp2 <- function2(students0, states0, colleges0, "Model A")
-                  temp3 <- function3(students0, states0, colleges0, "Model A")
-                  temp4 <- function4(students0, states0, colleges0, "Model A")
-                  temp5 <- function5(students0, states0, colleges0, "Model A")
-                  temp6 <- function6(students0, states0, colleges0, "Model A")
-                  temp7 <- function7(students0, states0, colleges0, "Model A")
-                  temp8 <- function8(students0, states0, colleges0, "Model A")
-                  temp9 <- function9(students0, states0, colleges0, "Model A")
-                  temp10 <- function10(students0, states0, colleges0, "Model A")
+                  temp1 <- function1(students0, states0, colleges0, "Plan A")
+                  temp2 <- function2(students0, states0, colleges0, "Plan A")
+                  temp3 <- function3(students0, states0, colleges0, "Plan A")
+                  temp4 <- function4(students0, states0, colleges0, "Plan A")
+                  temp5 <- function5(students0, states0, colleges0, "Plan A")
+                  temp6 <- function6(students0, states0, colleges0, "Plan A")
+                  temp7 <- function7(students0, states0, colleges0, "Plan A")
+                  temp8 <- function8(students0, states0, colleges0, "Plan A")
+                  temp9 <- function9(students0, states0, colleges0, "Plan A")
+                  temp10 <- function10(students0, states0, colleges0, "Plan A")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -2845,27 +3783,27 @@ for(r in choices1a){
                   #### Bind output ####
                   
                   if(counter==1){
-                    output1 <- specs(temp1)
-                    output2 <- specs(temp2)
-                    output3 <- specs(temp3)
-                    output4 <- specs(temp4)
-                    output5 <- specs(temp5)
-                    output6 <- specs(temp6)
-                    output7 <- specs(temp7)
-                    output8 <- specs(temp8)
-                    output9 <- specs(temp9)
-                    output10 <- specs(temp10)
+                    output1 <- specs(temp1, "A")
+                    output2 <- specs(temp2, "A")
+                    output3 <- specs(temp3, "A")
+                    output4 <- specs(temp4, "A")
+                    output5 <- specs(temp5, "A")
+                    output6 <- specs(temp6, "A")
+                    output7 <- specs(temp7, "A")
+                    output8 <- specs(temp8, "A")
+                    output9 <- specs(temp9, "A")
+                    output10 <- specs(temp10, "A")
                   }else{
-                    output1 <- rbind(output1, specs(temp1))
-                    output2 <- rbind(output2, specs(temp2))
-                    output3 <- rbind(output3, specs(temp3))
-                    output4 <- rbind(output4, specs(temp4))
-                    output5 <- rbind(output5, specs(temp5))
-                    output6 <- rbind(output6, specs(temp6))
-                    output7 <- rbind(output7, specs(temp7))
-                    output8 <- rbind(output8, specs(temp8))
-                    output9 <- rbind(output9, specs(temp9))
-                    output10 <- rbind(output10, specs(temp10))
+                    output1 <- rbind(output1, specs(temp1, "A"))
+                    output2 <- rbind(output2, specs(temp2, "A"))
+                    output3 <- rbind(output3, specs(temp3, "A"))
+                    output4 <- rbind(output4, specs(temp4, "A"))
+                    output5 <- rbind(output5, specs(temp5, "A"))
+                    output6 <- rbind(output6, specs(temp6, "A"))
+                    output7 <- rbind(output7, specs(temp7, "A"))
+                    output8 <- rbind(output8, specs(temp8, "A"))
+                    output9 <- rbind(output9, specs(temp9, "A"))
+                    output10 <- rbind(output10, specs(temp10, "A"))
                   }
                   rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
                   
@@ -2928,16 +3866,16 @@ for(r in choices1b){
                   colleges0 <- tempAll[[3]]
                   rm(tempAll)
                   
-                  temp1 <- function1(students0, states0, colleges0, "Model B")
-                  temp2 <- function2(students0, states0, colleges0, "Model B")
-                  temp3 <- function3(students0, states0, colleges0, "Model B")
-                  temp4 <- function4(students0, states0, colleges0, "Model B")
-                  temp5 <- function5(students0, states0, colleges0, "Model B")
-                  temp6 <- function6(students0, states0, colleges0, "Model B")
-                  temp7 <- function7(students0, states0, colleges0, "Model B")
-                  temp8 <- function8(students0, states0, colleges0, "Model B")
-                  temp9 <- function9(students0, states0, colleges0, "Model B")
-                  temp10 <- function10(students0, states0, colleges0, "Model B")
+                  temp1 <- function1(students0, states0, colleges0, "Plan B")
+                  temp2 <- function2(students0, states0, colleges0, "Plan B")
+                  temp3 <- function3(students0, states0, colleges0, "Plan B")
+                  temp4 <- function4(students0, states0, colleges0, "Plan B")
+                  temp5 <- function5(students0, states0, colleges0, "Plan B")
+                  temp6 <- function6(students0, states0, colleges0, "Plan B")
+                  temp7 <- function7(students0, states0, colleges0, "Plan B")
+                  temp8 <- function8(students0, states0, colleges0, "Plan B")
+                  temp9 <- function9(students0, states0, colleges0, "Plan B")
+                  temp10 <- function10(students0, states0, colleges0, "Plan B")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -2945,27 +3883,27 @@ for(r in choices1b){
                   #### Bind output ####
                   
                   if(counter==1){
-                    output1 <- specs(temp1)
-                    output2 <- specs(temp2)
-                    output3 <- specs(temp3)
-                    output4 <- specs(temp4)
-                    output5 <- specs(temp5)
-                    output6 <- specs(temp6)
-                    output7 <- specs(temp7)
-                    output8 <- specs(temp8)
-                    output9 <- specs(temp9)
-                    output10 <- specs(temp10)
+                    output1 <- specs(temp1, "B")
+                    output2 <- specs(temp2, "B")
+                    output3 <- specs(temp3, "B")
+                    output4 <- specs(temp4, "B")
+                    output5 <- specs(temp5, "B")
+                    output6 <- specs(temp6, "B")
+                    output7 <- specs(temp7, "B")
+                    output8 <- specs(temp8, "B")
+                    output9 <- specs(temp9, "B")
+                    output10 <- specs(temp10, "B")
                   }else{
-                    output1 <- rbind(output1, specs(temp1))
-                    output2 <- rbind(output2, specs(temp2))
-                    output3 <- rbind(output3, specs(temp3))
-                    output4 <- rbind(output4, specs(temp4))
-                    output5 <- rbind(output5, specs(temp5))
-                    output6 <- rbind(output6, specs(temp6))
-                    output7 <- rbind(output7, specs(temp7))
-                    output8 <- rbind(output8, specs(temp8))
-                    output9 <- rbind(output9, specs(temp9))
-                    output10 <- rbind(output10, specs(temp10))
+                    output1 <- rbind(output1, specs(temp1, "B"))
+                    output2 <- rbind(output2, specs(temp2, "B"))
+                    output3 <- rbind(output3, specs(temp3, "B"))
+                    output4 <- rbind(output4, specs(temp4, "B"))
+                    output5 <- rbind(output5, specs(temp5, "B"))
+                    output6 <- rbind(output6, specs(temp6, "B"))
+                    output7 <- rbind(output7, specs(temp7, "B"))
+                    output8 <- rbind(output8, specs(temp8, "B"))
+                    output9 <- rbind(output9, specs(temp9, "B"))
+                    output10 <- rbind(output10, specs(temp10, "B"))
                   }
                   rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
                   
@@ -3028,16 +3966,16 @@ for(r in choices1c){
                   colleges0 <- tempAll[[3]]
                   rm(tempAll)
                   
-                  temp1 <- function1(students0, states0, colleges0, "Model C")
-                  temp2 <- function2(students0, states0, colleges0, "Model C")
-                  temp3 <- function3(students0, states0, colleges0, "Model C")
-                  temp4 <- function4(students0, states0, colleges0, "Model C")
-                  temp5 <- function5(students0, states0, colleges0, "Model C")
-                  temp6 <- function6(students0, states0, colleges0, "Model C")
-                  temp7 <- function7(students0, states0, colleges0, "Model C")
-                  temp8 <- function8(students0, states0, colleges0, "Model C")
-                  temp9 <- function9(students0, states0, colleges0, "Model C")
-                  temp10 <- function10(students0, states0, colleges0, "Model C")
+                  temp1 <- function1(students0, states0, colleges0, "Plan C")
+                  temp2 <- function2(students0, states0, colleges0, "Plan C")
+                  temp3 <- function3(students0, states0, colleges0, "Plan C")
+                  temp4 <- function4(students0, states0, colleges0, "Plan C")
+                  temp5 <- function5(students0, states0, colleges0, "Plan C")
+                  temp6 <- function6(students0, states0, colleges0, "Plan C")
+                  temp7 <- function7(students0, states0, colleges0, "Plan C")
+                  temp8 <- function8(students0, states0, colleges0, "Plan C")
+                  temp9 <- function9(students0, states0, colleges0, "Plan C")
+                  temp10 <- function10(students0, states0, colleges0, "Plan C")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -3045,27 +3983,27 @@ for(r in choices1c){
                   #### Bind output ####
                   
                   if(counter==1){
-                    output1 <- specs(temp1)
-                    output2 <- specs(temp2)
-                    output3 <- specs(temp3)
-                    output4 <- specs(temp4)
-                    output5 <- specs(temp5)
-                    output6 <- specs(temp6)
-                    output7 <- specs(temp7)
-                    output8 <- specs(temp8)
-                    output9 <- specs(temp9)
-                    output10 <- specs(temp10)
+                    output1 <- specs(temp1, "C")
+                    output2 <- specs(temp2, "C")
+                    output3 <- specs(temp3, "C")
+                    output4 <- specs(temp4, "C")
+                    output5 <- specs(temp5, "C")
+                    output6 <- specs(temp6, "C")
+                    output7 <- specs(temp7, "C")
+                    output8 <- specs(temp8, "C")
+                    output9 <- specs(temp9, "C")
+                    output10 <- specs(temp10, "C")
                   }else{
-                    output1 <- rbind(output1, specs(temp1))
-                    output2 <- rbind(output2, specs(temp2))
-                    output3 <- rbind(output3, specs(temp3))
-                    output4 <- rbind(output4, specs(temp4))
-                    output5 <- rbind(output5, specs(temp5))
-                    output6 <- rbind(output6, specs(temp6))
-                    output7 <- rbind(output7, specs(temp7))
-                    output8 <- rbind(output8, specs(temp8))
-                    output9 <- rbind(output9, specs(temp9))
-                    output10 <- rbind(output10, specs(temp10))
+                    output1 <- rbind(output1, specs(temp1, "C"))
+                    output2 <- rbind(output2, specs(temp2, "C"))
+                    output3 <- rbind(output3, specs(temp3, "C"))
+                    output4 <- rbind(output4, specs(temp4, "C"))
+                    output5 <- rbind(output5, specs(temp5, "C"))
+                    output6 <- rbind(output6, specs(temp6, "C"))
+                    output7 <- rbind(output7, specs(temp7, "C"))
+                    output8 <- rbind(output8, specs(temp8, "C"))
+                    output9 <- rbind(output9, specs(temp9, "C"))
+                    output10 <- rbind(output10, specs(temp10, "C"))
                   }
                   rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
                   
@@ -3128,16 +4066,16 @@ for(r in choices1d){
                   colleges0 <- tempAll[[3]]
                   rm(tempAll)
                   
-                  temp1 <- function1(students0, states0, colleges0, "Model D")
-                  temp2 <- function2(students0, states0, colleges0, "Model D")
-                  temp3 <- function3(students0, states0, colleges0, "Model D")
-                  temp4 <- function4(students0, states0, colleges0, "Model D")
-                  temp5 <- function5(students0, states0, colleges0, "Model D")
-                  temp6 <- function6(students0, states0, colleges0, "Model D")
-                  temp7 <- function7(students0, states0, colleges0, "Model D")
-                  temp8 <- function8(students0, states0, colleges0, "Model D")
-                  temp9 <- function9(students0, states0, colleges0, "Model D")
-                  temp10 <- function10(students0, states0, colleges0, "Model D")
+                  temp1 <- function1(students0, states0, colleges0, "Plan D")
+                  temp2 <- function2(students0, states0, colleges0, "Plan D")
+                  temp3 <- function3(students0, states0, colleges0, "Plan D")
+                  temp4 <- function4(students0, states0, colleges0, "Plan D")
+                  temp5 <- function5(students0, states0, colleges0, "Plan D")
+                  temp6 <- function6(students0, states0, colleges0, "Plan D")
+                  temp7 <- function7(students0, states0, colleges0, "Plan D")
+                  temp8 <- function8(students0, states0, colleges0, "Plan D")
+                  temp9 <- function9(students0, states0, colleges0, "Plan D")
+                  temp10 <- function10(students0, states0, colleges0, "Plan D")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -3145,27 +4083,27 @@ for(r in choices1d){
                   #### Bind output ####
                   
                   if(counter==1){
-                    output1 <- specs(temp1)
-                    output2 <- specs(temp2)
-                    output3 <- specs(temp3)
-                    output4 <- specs(temp4)
-                    output5 <- specs(temp5)
-                    output6 <- specs(temp6)
-                    output7 <- specs(temp7)
-                    output8 <- specs(temp8)
-                    output9 <- specs(temp9)
-                    output10 <- specs(temp10)
+                    output1 <- specs(temp1, "D")
+                    output2 <- specs(temp2, "D")
+                    output3 <- specs(temp3, "D")
+                    output4 <- specs(temp4, "D")
+                    output5 <- specs(temp5, "D")
+                    output6 <- specs(temp6, "D")
+                    output7 <- specs(temp7, "D")
+                    output8 <- specs(temp8, "D")
+                    output9 <- specs(temp9, "D")
+                    output10 <- specs(temp10, "D")
                   }else{
-                    output1 <- rbind(output1, specs(temp1))
-                    output2 <- rbind(output2, specs(temp2))
-                    output3 <- rbind(output3, specs(temp3))
-                    output4 <- rbind(output4, specs(temp4))
-                    output5 <- rbind(output5, specs(temp5))
-                    output6 <- rbind(output6, specs(temp6))
-                    output7 <- rbind(output7, specs(temp7))
-                    output8 <- rbind(output8, specs(temp8))
-                    output9 <- rbind(output9, specs(temp9))
-                    output10 <- rbind(output10, specs(temp10))
+                    output1 <- rbind(output1, specs(temp1, "D"))
+                    output2 <- rbind(output2, specs(temp2, "D"))
+                    output3 <- rbind(output3, specs(temp3, "D"))
+                    output4 <- rbind(output4, specs(temp4, "D"))
+                    output5 <- rbind(output5, specs(temp5, "D"))
+                    output6 <- rbind(output6, specs(temp6, "D"))
+                    output7 <- rbind(output7, specs(temp7, "D"))
+                    output8 <- rbind(output8, specs(temp8, "D"))
+                    output9 <- rbind(output9, specs(temp9, "D"))
+                    output10 <- rbind(output10, specs(temp10, "D"))
                   }
                   rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
                   
@@ -3200,52 +4138,78 @@ rm(choices1d, choices2d, choices3d, choices4d, choices5d, choices6d, choices7d, 
 #### Write File E                           ####
 ################################################
 
-# counter <- 0
-# for(r in choices1e){
-#   for(s in choices2e){
-#     for(t in choices3e){
-#       for(u in choices4e){
-#         for(v in choices5e){
-#           for(w in choices6e){
-#             for(x in choices7e){
-#               for(y in choices8e){
-#                 for(z in choices9e){
-#                   
-#                   counter <- counter + 1
-#                   
-#                   #### Run simulations #### 
-#                   #### End #### 
-#                   
-#                   #### Bind output ####
-#                   
-#                   if(counter==1){
-#                     output1 <- specs(temp1)
-#                     output2 <- specs(temp2)
-#                     # output3 <- specs(temp3)
-#                     output4 <- specs(temp4)
-#                     output5 <- specs(temp5)
-#                     output6 <- specs(temp6)
-#                     # output7 <- specs(temp7)
-#                     # output8 <- specs(temp8)
-#                     output9 <- specs(temp9)
-#                     output10 <- specs(temp10)
-#                   }else{
-#                     output1 <- rbind(output1, specs(temp1))
-#                     output2 <- rbind(output2, specs(temp2))
-#                     # output3 <- rbind(output3, specs(temp3))
-#                     output4 <- rbind(output4, specs(temp4))
-#                     output5 <- rbind(output5, specs(temp5))
-#                     output6 <- rbind(output6, specs(temp6))
-#                     # output7 <- rbind(output7, specs(temp7))
-#                     # output8 <- rbind(output8, specs(temp8))
-#                     output9 <- rbind(output9, specs(temp9))
-#                     output10 <- rbind(output10, specs(temp10))
-#                   }
-#                   rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
-#                   
-#                   #### End #### 
-#                   
-# }}}}}}}}}
+counter <- 0
+for(r in choices1e){
+  for(s in choices2e){
+    for(t in choices3e){
+      for(u in choices4e){
+        for(v in choices5e){
+          for(w in choices6e){
+            for(x in choices7e){
+              for(y in choices8e){
+                for(z in choices9e){
+                  
+                  print(Sys.time())
+                  counter <- counter + 1
+                  
+                  #### Run simulations #### 
+                  
+                  tempAll <- functionE(
+                    studentDF, 
+                    stateDF, 
+                    collegeDF, 
+                    r, s, t, u, v, w, x, y, z
+                  )
+                  
+                  students0 <- functionX(tempAll[[1]])
+                  states0 <- tempAll[[2]]
+                  colleges0 <- tempAll[[3]]
+                  rm(tempAll)
+                  
+                  temp1 <- function1(students0, states0, colleges0, "Plan E")
+                  temp2 <- function2(students0, states0, colleges0, "Plan E")
+                  temp3 <- function3(students0, states0, colleges0, "Plan E")
+                  temp4 <- function4(students0, states0, colleges0, "Plan E")
+                  temp5 <- function5(students0, states0, colleges0, "Plan E")
+                  temp6 <- function6(students0, states0, colleges0, "Plan E")
+                  temp7 <- function7(students0, states0, colleges0, "Plan E")
+                  temp8 <- function8(students0, states0, colleges0, "Plan E")
+                  temp9 <- function9(students0, states0, colleges0, "Plan E")
+                  temp10 <- function10(students0, states0, colleges0, "Plan E")
+                  rm(students0, states0, colleges0)
+                  
+                  #### End #### 
+                  
+                  #### Bind output ####
+                  
+                  if(counter==1){
+                    output1 <- specs(temp1, "E")
+                    output2 <- specs(temp2, "E")
+                    output3 <- specs(temp3, "E")
+                    output4 <- specs(temp4, "E")
+                    output5 <- specs(temp5, "E")
+                    output6 <- specs(temp6, "E")
+                    output7 <- specs(temp7, "E")
+                    output8 <- specs(temp8, "E")
+                    output9 <- specs(temp9, "E")
+                    output10 <- specs(temp10, "E")
+                  }else{
+                    output1 <- rbind(output1, specs(temp1, "E"))
+                    output2 <- rbind(output2, specs(temp2, "E"))
+                    output3 <- rbind(output3, specs(temp3, "E"))
+                    output4 <- rbind(output4, specs(temp4, "E"))
+                    output5 <- rbind(output5, specs(temp5, "E"))
+                    output6 <- rbind(output6, specs(temp6, "E"))
+                    output7 <- rbind(output7, specs(temp7, "E"))
+                    output8 <- rbind(output8, specs(temp8, "E"))
+                    output9 <- rbind(output9, specs(temp9, "E"))
+                    output10 <- rbind(output10, specs(temp10, "E"))
+                  }
+                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+                  
+                  #### End #### 
+                  
+}}}}}}}}}
 
 #### Write File E #### 
 
@@ -3254,23 +4218,18 @@ setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
 sheetList <- list(
   Sheet1 = output1,
   Sheet2 = output2,
-  # Sheet3 = output3,
+  Sheet3 = output3,
   Sheet4 = output4,
   Sheet5 = output5,
   Sheet6 = output6,
-  # Sheet7 = output7,
-  # Sheet8 = output8,
+  Sheet7 = output7,
+  Sheet8 = output8,
   Sheet9 = output9,
   Sheet10 = output10
 )
 
 write_xlsx(sheetList, "Plan E.xlsx")
-rm(sheetList, output1, output2, 
-   # output3, 
-   output4, output5, output6, 
-   # output7, 
-   # output8, 
-   output9, output10, counter)
+rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
 rm(choices1e, choices2e, choices3e, choices4e, choices5e, choices6e, choices7e, choices8e, choices9e)
 
 #### End #### 
@@ -3279,52 +4238,83 @@ rm(choices1e, choices2e, choices3e, choices4e, choices5e, choices6e, choices7e, 
 #### Write File F                           ####
 ################################################
 
-# counter <- 0
-# for(r in choices1f){
-#   for(s in choices2f){
-#     for(t in choices3f){
-#       for(u in choices4f){
-#         for(v in choices5f){
-#           for(w in choices6f){
-#             for(x in choices7f){
-#               for(y in choices8f){
-#                 for(z in choices9f){
-#                   
-#                   counter <- counter + 1
-#                   
-#                   #### Run simulations #### 
-#                   #### End #### 
-#                   
-#                   #### Bind output ####
-#                   
-#                   if(counter==1){
-#                     output1 <- specs(temp1)
-#                     # output2 <- specs(temp2)
-#                     output3 <- specs(temp3)
-#                     output4 <- specs(temp4)
-#                     output5 <- specs(temp5)
-#                     # output6 <- specs(temp6)
-#                     output7 <- specs(temp7)
-#                     output8 <- specs(temp8)
-#                     output9 <- specs(temp9)
-#                     output10 <- specs(temp10)
-#                   }else{
-#                     output1 <- rbind(output1, specs(temp1))
-#                     # output2 <- rbind(output2, specs(temp2))
-#                     output3 <- rbind(output3, specs(temp3))
-#                     output4 <- rbind(output4, specs(temp4))
-#                     output5 <- rbind(output5, specs(temp5))
-#                     # output6 <- rbind(output6, specs(temp6))
-#                     output7 <- rbind(output7, specs(temp7))
-#                     output8 <- rbind(output8, specs(temp8))
-#                     output9 <- rbind(output9, specs(temp9))
-#                     output10 <- rbind(output10, specs(temp10))
-#                   }
-#                   rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
-#                   
-#                   #### End #### 
-#                   
-# }}}}}}}}}
+counter <- 0
+for(r in choices1f){
+  for(s in choices2f){
+    for(t in choices3f){
+      for(u in choices4f){
+        for(v in choices5f){
+          for(w in choices6f){
+            for(x in choices7f){
+              for(y in choices8f){
+                for(z in choices9f){
+
+                  print(Sys.time())
+                  counter <- counter + 1
+
+                  #### Run simulations ####
+                  
+                  tempAll <- functionF(
+                    studentDF, 
+                    stateDF, 
+                    collegeDF, 
+                    r, s, t, u, v, w, x, y, z
+                  )
+                  
+                  students0 <- functionX(tempAll[[1]])
+                  states0 <- tempAll[[2]]
+                  colleges0 <- tempAll[[3]]
+                  rm(tempAll)
+                  
+                  temp1 <- function1(students0, states0, colleges0, "Plan F")
+                  # temp2 <- function2(students0, states0, colleges0, "Plan F")
+                  temp3 <- function3(students0, states0, colleges0, "Plan F")
+                  temp4 <- function4(students0, states0, colleges0, "Plan F")
+                  temp5 <- function5(students0, states0, colleges0, "Plan F")
+                  # temp6 <- function6(students0, states0, colleges0, "Plan F")
+                  temp7 <- function7(students0, states0, colleges0, "Plan F")
+                  temp8 <- function8(students0, states0, colleges0, "Plan F")
+                  temp9 <- function9(students0, states0, colleges0, "Plan F")
+                  temp10 <- function10(students0, states0, colleges0, "Plan F")
+                  rm(students0, states0, colleges0)
+                  
+                  #### End ####
+
+                  #### Bind output ####
+
+                  if(counter==1){
+                    output1 <- specs(temp1, "F")
+                    # output2 <- specs(temp2, "F")
+                    output3 <- specs(temp3, "F")
+                    output4 <- specs(temp4, "F")
+                    output5 <- specs(temp5, "F")
+                    # output6 <- specs(temp6, "F")
+                    output7 <- specs(temp7, "F")
+                    output8 <- specs(temp8, "F")
+                    output9 <- specs(temp9, "F")
+                    output10 <- specs(temp10, "F")
+                  }else{
+                    output1 <- rbind(output1, specs(temp1, "F"))
+                    # output2 <- rbind(output2, specs(temp2, "F"))
+                    output3 <- rbind(output3, specs(temp3, "F"))
+                    output4 <- rbind(output4, specs(temp4, "F"))
+                    output5 <- rbind(output5, specs(temp5, "F"))
+                    # output6 <- rbind(output6, specs(temp6, "F"))
+                    output7 <- rbind(output7, specs(temp7, "F"))
+                    output8 <- rbind(output8, specs(temp8, "F"))
+                    output9 <- rbind(output9, specs(temp9, "F"))
+                    output10 <- rbind(output10, specs(temp10, "F"))
+                  }
+                  rm(temp1, 
+                     # temp2, 
+                     temp3, temp4, temp5, 
+                     # temp6, 
+                     temp7, temp8, temp9, temp10
+                  )
+
+                  #### End ####
+
+}}}}}}}}}
 
 #### Write File F #### 
 
@@ -3359,64 +4349,83 @@ rm(choices1f, choices2f, choices3f, choices4f, choices5f, choices6f, choices7f, 
 #### Write File G                           ####
 ################################################
 
-# counter <- 0
-# for(r in choices1g){
-#   for(s in choices2g){
-#     for(t in choices3g){
-#       for(u in choices4g){
-#         for(v in choices5g){
-#           for(w in choices6g){
-#             for(x in choices7g){
-#               for(y in choices8g){
-#                 for(z in choices9g){
-#                   
-#                   counter <- counter + 1
-#                   
-#                   #### Run simulations #### 
-#                   
-#                   temp1 <- data.frame(`Hello` = c("Hello"))
-#                   temp2 <- data.frame(`Hello` = c("Hello"))
-#                   temp3 <- data.frame(`Hello` = c("Hello"))
-#                   temp4 <- data.frame(`Hello` = c("Hello"))
-#                   temp5 <- data.frame(`Hello` = c("Hello"))
-#                   temp6 <- data.frame(`Hello` = c("Hello"))
-#                   temp7 <- data.frame(`Hello` = c("Hello"))
-#                   temp8 <- data.frame(`Hello` = c("Hello"))
-#                   temp9 <- data.frame(`Hello` = c("Hello"))
-#                   temp10 <- data.frame(`Hello` = c("Hello"))
-#                   
-#                   #### End #### 
-#                   
-#                   #### Bind output ####
-#                   
-#                   if(counter==1){
-#                     output1 <- specs(temp1)
-#                     # output2 <- specs(temp2)
-#                     output3 <- specs(temp3)
-#                     output4 <- specs(temp4)
-#                     output5 <- specs(temp5)
-#                     # output6 <- specs(temp6)
-#                     output7 <- specs(temp7)
-#                     output8 <- specs(temp8)
-#                     output9 <- specs(temp9)
-#                     output10 <- specs(temp10)
-#                   }else{
-#                     output1 <- rbind(output1, specs(temp1))
-#                     # output2 <- rbind(output2, specs(temp2))
-#                     output3 <- rbind(output3, specs(temp3))
-#                     output4 <- rbind(output4, specs(temp4))
-#                     output5 <- rbind(output5, specs(temp5))
-#                     # output6 <- rbind(output6, specs(temp6))
-#                     output7 <- rbind(output7, specs(temp7))
-#                     output8 <- rbind(output8, specs(temp8))
-#                     output9 <- rbind(output9, specs(temp9))
-#                     output10 <- rbind(output10, specs(temp10))
-#                   }
-#                   rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
-#                   
-#                   #### End #### 
-#                   
-# }}}}}}}}}
+counter <- 0
+for(r in choices1g){
+  for(s in choices2g){
+    for(t in choices3g){
+      for(u in choices4g){
+        for(v in choices5g){
+          for(w in choices6g){
+            for(x in choices7g){
+              for(y in choices8g){
+                for(z in choices9g){
+
+                  print(Sys.time())
+                  counter <- counter + 1
+
+                  #### Run simulations #### 
+                  
+                  tempAll <- functionG(
+                    studentDF, 
+                    stateDF, 
+                    collegeDF, 
+                    r, s, t, u, v, w, x, y, z
+                  )
+                  
+                  students0 <- functionX(tempAll[[1]])
+                  states0 <- tempAll[[2]]
+                  colleges0 <- tempAll[[3]]
+                  rm(tempAll)
+                  
+                  temp1 <- function1(students0, states0, colleges0, "Plan G")
+                  # temp2 <- function2(students0, states0, colleges0, "Plan G")
+                  temp3 <- function3(students0, states0, colleges0, "Plan G")
+                  temp4 <- function4(students0, states0, colleges0, "Plan G")
+                  temp5 <- function5(students0, states0, colleges0, "Plan G")
+                  # temp6 <- function6(students0, states0, colleges0, "Plan G")
+                  temp7 <- function7(students0, states0, colleges0, "Plan G")
+                  temp8 <- function8(students0, states0, colleges0, "Plan G")
+                  temp9 <- function9(students0, states0, colleges0, "Plan G")
+                  temp10 <- function10(students0, states0, colleges0, "Plan G")
+                  rm(students0, states0, colleges0)
+                  
+                  #### End #### 
+                  
+                  #### Bind output ####
+                  
+                  if(counter==1){
+                    output1 <- specs(temp1, "G")
+                    # output2 <- specs(temp2, "G")
+                    output3 <- specs(temp3, "G")
+                    output4 <- specs(temp4, "G")
+                    output5 <- specs(temp5, "G")
+                    # output6 <- specs(temp6, "G")
+                    output7 <- specs(temp7, "G")
+                    output8 <- specs(temp8, "G")
+                    output9 <- specs(temp9, "G")
+                    output10 <- specs(temp10, "G")
+                  }else{
+                    output1 <- rbind(output1, specs(temp1, "G"))
+                    # output2 <- rbind(output2, specs(temp2, "G"))
+                    output3 <- rbind(output3, specs(temp3, "G"))
+                    output4 <- rbind(output4, specs(temp4, "G"))
+                    output5 <- rbind(output5, specs(temp5, "G"))
+                    # output6 <- rbind(output6, specs(temp6, "G"))
+                    output7 <- rbind(output7, specs(temp7, "G"))
+                    output8 <- rbind(output8, specs(temp8, "G"))
+                    output9 <- rbind(output9, specs(temp9, "G"))
+                    output10 <- rbind(output10, specs(temp10, "G"))
+                  }
+                  rm(temp1, 
+                     # temp2, 
+                     temp3, temp4, temp5, 
+                     # temp6, 
+                     temp7, temp8, temp9, temp10
+                  )
+                  
+                  #### End #### 
+
+}}}}}}}}}
 
 #### Write File G #### 
 
@@ -3447,6 +4456,114 @@ rm(choices1g, choices2g, choices3g, choices4g, choices5g, choices6g, choices7g, 
 
 #### End #### 
 
+################################################
+#### Write File H                           ####
+################################################
+
+counter <- 0
+for(r in choices1h){
+  for(s in choices2h){
+    for(t in choices3h){
+      for(u in choices4h){
+        for(v in choices5h){
+          for(w in choices6h){
+            for(x in choices7h){
+              for(y in choices8h){
+                for(z in choices9h){
+
+                  print(Sys.time())
+                  counter <- counter + 1
+
+                  #### Run simulations ####
+                  
+                  tempAll <- functionH(
+                    studentDF, 
+                    stateDF, 
+                    collegeDF, 
+                    r, s, t, u, v, w, x, y, z
+                  )
+                  
+                  students0 <- functionX(tempAll[[1]])
+                  states0 <- tempAll[[2]]
+                  colleges0 <- tempAll[[3]]
+                  rm(tempAll)
+                  
+                  temp1 <- function1(students0, states0, colleges0, "Plan H")
+                  temp2 <- function2(students0, states0, colleges0, "Plan H")
+                  # temp3 <- function3(students0, states0, colleges0, "Plan H")
+                  temp4 <- function4(students0, states0, colleges0, "Plan H")
+                  temp5 <- function5(students0, states0, colleges0, "Plan H")
+                  temp6 <- function6(students0, states0, colleges0, "Plan H")
+                  # temp7 <- function7(students0, states0, colleges0, "Plan H")
+                  # temp8 <- function8(students0, states0, colleges0, "Plan H")
+                  temp9 <- function9(students0, states0, colleges0, "Plan H")
+                  temp10 <- function10(students0, states0, colleges0, "Plan H")
+                  rm(students0, states0, colleges0)
+                  
+                  #### End ####
+
+                  #### Bind output ####
+
+                  if(counter==1){
+                    output1 <- specs(temp1, "H")
+                    output2 <- specs(temp2, "H")
+                    # output3 <- specs(temp3, "H")
+                    output4 <- specs(temp4, "H")
+                    output5 <- specs(temp5, "H")
+                    output6 <- specs(temp6, "H")
+                    # output7 <- specs(temp7, "H")
+                    # output8 <- specs(temp8, "H")
+                    output9 <- specs(temp9, "H")
+                    output10 <- specs(temp10, "H")
+                  }else{
+                    output1 <- rbind(output1, specs(temp1, "H"))
+                    output2 <- rbind(output2, specs(temp2, "H"))
+                    # output3 <- rbind(output3, specs(temp3, "H"))
+                    output4 <- rbind(output4, specs(temp4, "H"))
+                    output5 <- rbind(output5, specs(temp5, "H"))
+                    output6 <- rbind(output6, specs(temp6, "H"))
+                    # output7 <- rbind(output7, specs(temp7, "H"))
+                    # output8 <- rbind(output8, specs(temp8, "H"))
+                    output9 <- rbind(output9, specs(temp9, "H"))
+                    output10 <- rbind(output10, specs(temp10, "H"))
+                  }
+                  rm(temp1, temp2, 
+                     # temp3,
+                     temp4, temp5, temp6, 
+                     # temp7, temp8, 
+                     temp9, temp10)
+
+                  #### End ####
+
+}}}}}}}}}
+
+#### Write File H #### 
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+
+sheetList <- list(
+  Sheet1 = output1,
+  Sheet2 = output2,
+  # Sheet3 = output3,
+  Sheet4 = output4,
+  Sheet5 = output5,
+  Sheet6 = output6,
+  # Sheet7 = output7,
+  # Sheet8 = output8,
+  Sheet9 = output9,
+  Sheet10 = output10
+)
+
+write_xlsx(sheetList, "Plan H.xlsx")
+rm(sheetList, output1, output2, 
+   # output3, 
+   output4, output5, output6, 
+   # output7, 
+   # output8, 
+   output9, output10, counter)
+rm(choices1h, choices2h, choices3h, choices4h, choices5h, choices6h, choices7h, choices8h, choices9h)
+
+#### End #### 
 
 
 
