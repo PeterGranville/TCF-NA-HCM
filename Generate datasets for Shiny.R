@@ -241,6 +241,8 @@ f3 <- aggregate(data=f3, `Total revenue` ~ `UNITID`, FUN=mean)
 
 fAll <- rbind(
   f1, f2, f3
+) %>% filter(
+  duplicated(`UNITID`)==FALSE # Removes 5 rows, preference goes to F1 and 2024 
 )
 rm(f1, f2, f3)
 
@@ -265,6 +267,10 @@ collegeDF <- collegeDF %>% mutate(
   )
 ) %>% select(
   -(`Imputed revenue`)
+)
+
+collegeDF <- collegeDF %>% filter(
+  duplicated(`UNITID`)==FALSE
 )
 
 #### End #### 
@@ -2249,10 +2255,427 @@ functionD <- function(
 
 ################################################
 #### Function E: [Plan E]                   ####
-#### Fed-state partnership: Increase        ####
-#### federal and state investment to equal  ####
-#### X% of revenue                          ####
+#### Fed-state partnership: Government      ####
+#### sends states subsidy in exchange for   ####
+#### X pricing policy                       ####
 ################################################
+
+functionE <- function(
+    
+  #### List inputs ####
+  
+  studentData, 
+  stateData, 
+  collegeData, 
+  select1,
+  select2,
+  select3,
+  select4,
+  select5,
+  select6,
+  select7,
+  select8,
+  select9
+  
+  #### End #### 
+  
+){
+  
+  # #### Empty inputs (comment out) ####
+  # 
+  # studentData <- studentDF
+  # stateData <- stateDF
+  # collegeData <- collegeDF
+  # select1 <- "No tuition charged"
+  # select2 <- "$10,000 per eligible FTE"
+  # select3 <- "No restriction based on enrollment intensity"
+  # select4 <- "No means testing"
+  # select5 <- "Yes"
+  # select6 <- "Skipped"
+  # select7 <- "Only two-year institutions"
+  # select8 <- "No"
+  # select9 <- "25% and above"
+  # 
+  # #### End #### 
+  
+  #### [S] Institutional eligibility ####
+  
+  collegeData <- collegeData %>% mutate(
+    `Eligible` = ifelse(
+      `CONTROL`==1, 
+      "Yes", 
+      "No"
+    )
+  )
+  
+  if(select7=="Only two-year institutions"){
+    collegeData <- collegeData %>% mutate(
+      `Eligible` = ifelse(
+        `Level` != "Two-year", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [S] Student eligibility ####
+  
+  studentData <- studentData %>% mutate(
+    `Eligible` = ifelse(
+      `Citizenship`=="Citizen or eligible non-citizen", 
+      "Yes", 
+      "No"
+    )
+  ) 
+  
+  # Is student eligibility limited on the basis of enrollment intensity?
+  if(select3=="Restricted to students enrolled full-time"){
+    studentData <- studentData %>% mutate(
+      `Eligible` = ifelse(
+        `Enrollment intensity`=="Part-time", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  # Is student eligibility limited on a financial basis?
+  if(select4=="Pell Grant recipients only"){
+    studentData <- studentData %>% mutate(
+      `Eligible` = ifelse(
+        `Receives Pell`=="No", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  # Is student eligibility limited to in-state students?
+  if(select5=="Yes"){
+    studentData <- studentData %>% mutate(
+      `Eligible` = ifelse(
+        `Tuition jurisdiction`=="Out-of-state tuition", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Combine eligibility ####
+  
+  eligibleColleges <- collegeData %>% filter(`Eligible`=="Yes")
+  studentData <- studentData %>% mutate(
+    `Eligible` = ifelse(
+      (`UNITID` %in% eligibleColleges$`UNITID`)==FALSE,
+      "No", 
+      `Eligible`
+    )
+  )
+  rm(eligibleColleges)
+  
+  #### End #### 
+  
+  #### [S] Target ####
+  
+  if(select1=="No tuition charged"){
+    studentData <- studentData %>% mutate(
+      `Target tuition` = rep(0)
+    )
+  }
+  
+  if(select1=="No unmet need"){
+    studentData <- studentData %>% mutate(
+      `Unmet need` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount` + `EFC`))
+    )
+    studentData <- studentData %>% mutate(
+      `Target unmet need` = rep(0)
+    )
+  }
+  
+  if(select1=="Net price capped at 10% family income"){
+    studentData <- studentData %>% mutate(
+      `Net price` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`))
+    )
+    studentData <- studentData %>% mutate(
+      `Target net price` = `Family income` * 0.1
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Calculate average delta ####
+  
+  if(select1=="No tuition charged"){
+    studentData <- studentData %>% mutate(
+      `Delta` = ifelse(
+        `Eligible`=="Yes", 
+        pmax(`Tuition and fees paid` - `Target tuition`, 0), 
+        NA
+      )
+    )
+  }
+  if(select1=="No unmet need"){
+    studentData <- studentData %>% mutate(
+      `Delta` = ifelse(
+        `Eligible`=="Yes", 
+        pmax(`Unmet need` - `Target unmet need`, 0), 
+        NA
+      )
+    )
+  }
+  if(select1=="Net price capped at 10% family income"){
+    studentData <- studentData %>% mutate(
+      `Delta` = ifelse(
+        `Eligible`=="Yes", 
+        pmax(`Net price` - `Target net price`, 0), 
+        NA
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [S] Define flat subsidy ####
+  
+  if(select2=="$5,000 per eligible FTE"){flatSubsidy <- 5000}
+  if(select2=="$10,000 per eligible FTE"){flatSubsidy <- 10000}
+  if(select2=="$15,000 per eligible FTE"){flatSubsidy <- 15000}
+  
+  #### End #### 
+  
+  #### [C] Calculate participation costs ####
+  
+  # Eligible FTEs 
+  studentData <- studentData %>% mutate(
+    `Eligible FTEs` = ifelse(
+      `Eligible`=="No", 
+      0, 
+      ifelse(
+        `Enrollment intensity`=="Full-time", 
+        1, 
+        0.5
+      )
+    )
+  )
+  
+  eligibleFTEs <- aggregate(
+    data=studentData, 
+    `Eligible FTEs` ~ `STABBR` + `Level`, 
+    FUN=sum
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`), 
+    names_from=`Level`, 
+    values_from=`Eligible FTEs`
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs` = `Two-year`
+    ) %>% select(
+      -(`Four-year`)
+    )
+  }else{
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs (four-year)` = `Four-year`, 
+      `Eligible FTEs (two-year)` = `Two-year`
+    ) %>% mutate(
+      `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
+    )
+  }
+  stateData <- left_join(x=stateData, y=eligibleFTEs, by="STABBR")
+  rm(eligibleFTEs)
+  
+  stateData <- stateData %>% mutate(
+    `Federal money per FTE` = rep(flatSubsidy)
+  ) %>% mutate(
+    `Federal block grant` = `Federal money per FTE` * `Eligible FTEs`
+  )
+
+  #### End #### 
+  
+  #### [C] Calculate overflow and backfill #### 
+  
+  trueDelta <- aggregate(
+    data=studentData, 
+    `Delta` ~ `STABBR` + `Eligible`, 
+    FUN=sum
+  ) %>% filter(
+    `Eligible`=="Yes"
+  ) %>% select(
+    -(`Eligible`)
+  ) %>% rename(
+    `Cost of enactment` = `Delta`
+  )
+  stateData <- left_join(x=stateData, y=trueDelta, by="STABBR")
+  rm(trueDelta)
+  
+  stateData <- stateData %>% mutate(
+    `Overflow or backfill` = ifelse(
+      `Federal block grant` >= `Cost of enactment`,
+      "Overflow", 
+      "Backfill"
+    )
+  ) %>% mutate(
+    `Overflow amount` = ifelse(
+      `Overflow or backfill`=="Overflow",
+      `Federal block grant` - `Cost of enactment`,
+      0
+    ), 
+    `Backfill amount` = ifelse(
+      `Overflow or backfill`=="Backfill",
+      `Cost of enactment`- `Federal block grant`,
+      0
+    )
+  ) %>% mutate(
+    `Total state contributions` = `Backfill amount`
+  )
+  
+  #### End #### 
+  
+  #### [C] Calculate increase in state funding ####
+  
+  stateData <- stateData %>% mutate(
+    `Total state contributions as a share of education appropriations` = `Total state contributions` / `Education Appropriations`
+  )
+  
+  #### End ####
+  
+  #### [S] State participation: Financial ####
+  
+  if(select9=="15% and above"){maxIncrease <- 0.15}
+  if(select9=="25% and above"){maxIncrease <- 0.25}
+  if(select9=="35% and above"){maxIncrease <- 0.35}
+  
+  stateData <- stateData %>% mutate(
+    `Participation status` = rep("Yes")
+  ) %>% mutate(
+    `Participation status` = ifelse(
+      `Total state contributions as a share of education appropriations` > maxIncrease, 
+      "No",
+      `Participation status`
+    )
+  ) %>% mutate(
+    `Turn down due to finances` = ifelse(
+      `Total state contributions as a share of education appropriations` > maxIncrease, 
+      "Yes",  
+      "No"
+    )
+  )
+  
+  rm(maxIncrease)
+  
+  #### End #### 
+  
+  #### [S] State participation: Political ####
+  
+  if(select8=="Yes"){
+    stateData <- stateData %>% mutate(
+      `Participation status` = ifelse(
+        `State` %in% c("Florida", "Georgia", "Kansas", "Mississippi", "South Carolina", "Wisconsin", "Wyoming"),
+        "No",
+        `Participation status`
+      )
+    )
+  }
+  
+  #### End ####
+  
+  #### [C] Combine participation ####
+  
+  participantStates <- stateData %>% filter(
+    `Participation status`=="Yes"
+  )
+  
+  studentData <- studentData %>% mutate(
+    `Participant` = ifelse(
+      `STABBR` %in% participantStates$`STABBR`, 
+      "Yes", 
+      "No"
+    )
+  ) %>% mutate(
+    `Participant` = ifelse(
+      `Eligible`=="No", 
+      "No", 
+      `Participant`
+    )
+  )
+  
+  rm(participantStates)
+  
+  #### End #### 
+  
+  #### [C] Store pricing and aid changes ####
+  
+  if(select1=="No tuition charged"){
+    studentData <- studentData %>% mutate(
+      `New tuition subsidy` = ifelse(
+        `Participant`=="Yes", 
+        `Delta`, 
+        0
+      ), 
+      `New grants` = rep(0)
+    )
+  }else{
+    studentData <- studentData %>% mutate(
+      `New tuition subsidy` = rep(0), 
+      `New grants` = ifelse(
+        `Participant`=="Yes", 
+        `Delta`, 
+        0
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Store institutional funding changes ####
+  
+  stateData <- stateData %>% mutate(
+    `Overflow per FTE` = `Overflow amount` / `Eligible FTEs`
+  ) 
+  
+  importOverflow <- stateData %>% select(
+    `STABBR`, 
+    `Overflow per FTE`
+  )
+  studentData <- left_join(x=studentData, y=importOverflow, by="STABBR")
+  rm(importOverflow)
+  
+  studentData <- studentData %>% mutate(
+    `Overflow per FTE` = ifelse(
+      is.na(`Overflow per FTE`), 
+      0, 
+      `Overflow per FTE`
+    )
+  ) %>% mutate(
+    `Overflow per FTE` = ifelse(
+      `Participant`=="Yes", 
+      `Overflow per FTE`, 
+      0
+    )
+  ) %>% mutate(
+    `Overflow` = ifelse(
+      `Enrollment intensity` == "Part-time", 
+      `Overflow per FTE` * 0.5, 
+      `Overflow per FTE`
+    )
+  ) %>% select(
+    -(`Overflow per FTE`)
+  )
+  
+  #### End #### 
+  
+  #### [C] Return list ####
+  
+  return(list(studentData, stateData, collegeData))
+  
+  #### End #### 
+
+}
 
 ################################################
 #### Function F: [Plan F]                   ####
@@ -2260,6 +2683,414 @@ functionD <- function(
 #### sends colleges subsidy in exchange for ####
 #### X pricing policy                       ####
 ################################################
+
+functionF <- function(
+    
+  #### List inputs ####
+  
+  studentData, 
+  stateData, 
+  collegeData, 
+  select1,
+  select2,
+  select3,
+  select4,
+  select5,
+  select6,
+  select7,
+  select8,
+  select9
+  
+  #### End #### 
+  
+){
+  
+  # #### Empty inputs (comment out) ####
+  # 
+  # studentData <- studentDF
+  # stateData <- stateDF
+  # collegeData <- collegeDF
+  # select1 <- "No tuition charged"
+  # select2 <- "$10,000 per eligible FTE"
+  # select3 <- "No restriction based on enrollment intensity"
+  # select4 <- "No means testing"
+  # select5 <- "Yes"
+  # select6 <- "Public and nonprofit only"
+  # select7 <- "Only two-year institutions"
+  # select8 <- "Skipped"
+  # select9 <- "10% and above"
+  # 
+  # #### End ####
+  
+  #### [S] Institutional eligibility ####
+  
+  if(select6=="Public only"){eligibleControls <- c(1)}
+  if(select6=="Public and nonprofit only"){eligibleControls <- c(1, 2)}
+  if(select6=="All controls"){eligibleControls <- c(1, 2, 3)}
+  
+  collegeData <- collegeData %>% mutate(
+    `Eligible` = ifelse(
+      `CONTROL` %in% eligibleControls, 
+      "Yes", 
+      "No"
+    )
+  )
+  
+  if(select7=="Only two-year institutions"){
+    collegeData <- collegeData %>% mutate(
+      `Eligible` = ifelse(
+        `Level` != "Two-year", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [S] Student eligibility ####
+  
+  studentData <- studentData %>% mutate(
+    `Eligible` = ifelse(
+      `Citizenship`=="Citizen or eligible non-citizen", 
+      "Yes", 
+      "No"
+    )
+  ) 
+  
+  # Is student eligibility limited on the basis of enrollment intensity?
+  if(select3=="Restricted to students enrolled full-time"){
+    studentData <- studentData %>% mutate(
+      `Eligible` = ifelse(
+        `Enrollment intensity`=="Part-time", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  # Is student eligibility limited on a financial basis?
+  if(select4=="Pell Grant recipients only"){
+    studentData <- studentData %>% mutate(
+      `Eligible` = ifelse(
+        `Receives Pell`=="No", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  # Is student eligibility limited to in-state students?
+  if(select5=="Yes"){
+    studentData <- studentData %>% mutate(
+      `Eligible` = ifelse(
+        `Tuition jurisdiction`=="Out-of-state tuition", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Combine eligibility ####
+  
+  eligibleColleges <- collegeData %>% filter(`Eligible`=="Yes")
+  studentData <- studentData %>% mutate(
+    `Eligible` = ifelse(
+      (`UNITID` %in% eligibleColleges$`UNITID`)==FALSE,
+      "No", 
+      `Eligible`
+    )
+  )
+  rm(eligibleColleges)
+  
+  #### End #### 
+  
+  #### [S] Target ####
+  
+  if(select1=="No tuition charged"){
+    studentData <- studentData %>% mutate(
+      `Target tuition` = rep(0)
+    )
+  }
+  
+  if(select1=="No unmet need"){
+    studentData <- studentData %>% mutate(
+      `Unmet need` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount` + `EFC`))
+    )
+    studentData <- studentData %>% mutate(
+      `Target unmet need` = rep(0)
+    )
+  }
+  
+  if(select1=="Net price capped at 10% family income"){
+    studentData <- studentData %>% mutate(
+      `Net price` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`))
+    )
+    studentData <- studentData %>% mutate(
+      `Target net price` = `Family income` * 0.1
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Calculate average delta ####
+  
+  if(select1=="No tuition charged"){
+    studentData <- studentData %>% mutate(
+      `Delta` = ifelse(
+        `Eligible`=="Yes", 
+        pmax(`Tuition and fees paid` - `Target tuition`, 0), 
+        NA
+      )
+    )
+  }
+  if(select1=="No unmet need"){
+    studentData <- studentData %>% mutate(
+      `Delta` = ifelse(
+        `Eligible`=="Yes", 
+        pmax(`Unmet need` - `Target unmet need`, 0), 
+        NA
+      )
+    )
+  }
+  if(select1=="Net price capped at 10% family income"){
+    studentData <- studentData %>% mutate(
+      `Delta` = ifelse(
+        `Eligible`=="Yes", 
+        pmax(`Net price` - `Target net price`, 0), 
+        NA
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [S] Define flat subsidy ####
+  
+  if(select2=="$5,000 per eligible FTE"){flatSubsidy <- 5000}
+  if(select2=="$10,000 per eligible FTE"){flatSubsidy <- 10000}
+  if(select2=="$15,000 per eligible FTE"){flatSubsidy <- 15000}
+  
+  #### End #### 
+  
+  #### [C] Calculate participation costs ####
+  
+  # Eligible FTEs 
+  studentData <- studentData %>% mutate(
+    `Eligible FTEs` = ifelse(
+      `Eligible`=="No", 
+      0, 
+      ifelse(
+        `Enrollment intensity`=="Full-time", 
+        1, 
+        0.5
+      )
+    )
+  )
+  
+  eligibleFTEs <- aggregate(
+    data=studentData, 
+    `Eligible FTEs` ~ `UNITID` + `Level`, 
+    FUN=sum
+  ) %>% pivot_wider(
+    id_cols=c(`UNITID`), 
+    names_from=`Level`, 
+    values_from=`Eligible FTEs`
+  ) 
+  
+  if(select7=="Only two-year institutions"){
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs` = `Two-year`
+    ) %>% select(
+      -(`Four-year`)
+    )
+  }else{
+    eligibleFTEs <- eligibleFTEs %>% rename(
+      `Eligible FTEs (four-year)` = `Four-year`, 
+      `Eligible FTEs (two-year)` = `Two-year`
+    ) %>% mutate(
+      `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
+    )
+  }
+  
+  collegeData <- left_join(x=collegeData, y=eligibleFTEs, by="UNITID")
+  rm(eligibleFTEs)
+  
+  collegeData <- collegeData %>% mutate(
+    `Federal money per FTE` = rep(flatSubsidy)
+  ) %>% mutate(
+    `Federal block grant` = `Federal money per FTE` * `Eligible FTEs`
+  )
+  
+  #### End #### 
+  
+  #### [C] Calculate overflow and backfill #### 
+  
+  trueDelta <- aggregate(
+    data=studentData, 
+    `Delta` ~ `UNITID` + `Eligible`, 
+    FUN=sum
+  ) %>% filter(
+    `Eligible`=="Yes"
+  ) %>% select(
+    -(`Eligible`)
+  ) %>% rename(
+    `Cost of enactment` = `Delta`
+  )
+  collegeData <- left_join(x=collegeData, y=trueDelta, by="UNITID")
+  rm(trueDelta)
+  
+  collegeData <- collegeData %>% mutate(
+    `Overflow or backfill` = ifelse(
+      `Federal block grant` >= `Cost of enactment`,
+      "Overflow", 
+      "Backfill"
+    )
+  ) %>% mutate(
+    `Overflow amount` = ifelse(
+      `Overflow or backfill`=="Overflow",
+      `Federal block grant` - `Cost of enactment`,
+      0
+    ), 
+    `Backfill amount` = ifelse(
+      `Overflow or backfill`=="Backfill",
+      `Cost of enactment`- `Federal block grant`,
+      0
+    )
+  ) %>% mutate(
+    `Total college contributions` = `Backfill amount`
+  )
+  
+  #### End #### 
+  
+  #### [C] Calculate increase in college funding ####
+  
+  collegeData <- collegeData %>% mutate(
+    `Total college contributions as a share of annual revenue` = `Total college contributions` / `Total revenue`
+  )
+  
+  #### End ####
+  
+  #### [S] College participation: Financial ####
+  
+  if(select9=="5% and above"){maxIncrease <- 0.05}
+  if(select9=="10% and above"){maxIncrease <- 0.1}
+  if(select9=="15% and above"){maxIncrease <- 0.15}
+  
+  collegeData <- collegeData %>% mutate(
+    `Participation status` = rep("Yes")
+  ) %>% mutate(
+    `Participation status` = ifelse(
+      `Total college contributions as a share of annual revenue` > maxIncrease, 
+      "No",
+      `Participation status`
+    )
+  ) %>% mutate(
+    `Turn down due to finances` = ifelse(
+      `Total college contributions as a share of annual revenue` > maxIncrease, 
+      "Yes",  
+      "No"
+    )
+  )
+  
+  rm(maxIncrease)
+  
+  #### End #### 
+  
+  #### [C] Combine participation ####
+  
+  participantColleges <- collegeData %>% filter(
+    `Participation status`=="Yes"
+  )
+  
+  studentData <- studentData %>% mutate(
+    `Participant` = ifelse(
+      `UNITID` %in% participantColleges$`UNITID`, 
+      "Yes", 
+      "No"
+    )
+  ) %>% mutate(
+    `Participant` = ifelse(
+      `Eligible`=="No", 
+      "No", 
+      `Participant`
+    )
+  )
+  
+  rm(participantColleges)
+  
+  #### End #### 
+  
+  #### [C] Store pricing and aid changes ####
+  
+  if(select1=="No tuition charged"){
+    studentData <- studentData %>% mutate(
+      `New tuition subsidy` = ifelse(
+        `Participant`=="Yes", 
+        `Delta`, 
+        0
+      ), 
+      `New grants` = rep(0)
+    )
+  }else{
+    studentData <- studentData %>% mutate(
+      `New tuition subsidy` = rep(0), 
+      `New grants` = ifelse(
+        `Participant`=="Yes", 
+        `Delta`, 
+        0
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Store institutional funding changes ####
+  
+  collegeData <- collegeData %>% mutate(
+    `Overflow per FTE` = `Overflow amount` / `Eligible FTEs`
+  ) 
+  
+  importOverflow <- collegeData %>% select(
+    `UNITID`, 
+    `Overflow per FTE`
+  )
+  studentData <- left_join(x=studentData, y=importOverflow, by="UNITID")
+  rm(importOverflow)
+  
+  studentData <- studentData %>% mutate(
+    `Overflow per FTE` = ifelse(
+      is.na(`Overflow per FTE`), 
+      0, 
+      `Overflow per FTE`
+    )
+  ) %>% mutate(
+    `Overflow per FTE` = ifelse(
+      `Participant`=="Yes", 
+      `Overflow per FTE`, 
+      0
+    )
+  ) %>% mutate(
+    `Overflow` = ifelse(
+      `Enrollment intensity` == "Part-time", 
+      `Overflow per FTE` * 0.5, 
+      `Overflow per FTE`
+    )
+  ) %>% select(
+    -(`Overflow per FTE`)
+  )
+  
+  #### End #### 
+  
+  #### [C] Return list ####
+  
+  return(list(studentData, stateData, collegeData))
+  
+  #### End #### 
+  
+}
 
 ################################################
 #### Function G: [Plan G]                   ####
@@ -2417,6 +3248,284 @@ functionG <- function(
 }
 
 ################################################
+#### Function H: [Plan H]                   ####
+#### Federal government matches state       ####
+#### spending                               ####
+################################################
+
+functionH <- function(
+    
+  #### List inputs ####
+  
+  studentData,
+  stateData,
+  collegeData,
+  select1,
+  select2,
+  select3,
+  select4,
+  select5,
+  select6,
+  select7,
+  select8,
+  select9
+  
+  #### End ####
+  
+){
+  
+  # #### Empty inputs (comment out) ####
+  # 
+  # studentData <- studentDF
+  # stateData <- stateDF
+  # collegeData <- collegeDF
+  # select1 <- "All spending"
+  # select2 <- "10%"
+  # select3 <- "$1 federal for every $1 state"
+  # select4 <- "Skipped"
+  # select5 <- "Skipped"
+  # select6 <- "Skipped"
+  # select7 <- "Both two- and four-year institutions"
+  # select8 <- "Yes"
+  # select9 <- "Skipped"
+  # 
+  # #### End ####
+  
+  #### [S] Eligibility ####
+  
+  collegeData <- collegeData %>% mutate(
+    `Eligible` = ifelse(
+      `CONTROL`==1, 
+      "Yes", 
+      "No"
+    )
+  )
+  
+  if(select7=="Only two-year institutions"){
+    collegeData <- collegeData %>% mutate(
+      `Eligible` = ifelse(
+        `Level` != "Two-year", 
+        "No", 
+        `Eligible`
+      )
+    )
+  }
+  
+  studentData <- studentData %>% mutate(
+    `Eligible`=rep("Yes")
+  )
+  
+  eligibleColleges <- collegeData %>% filter(`Eligible`=="Yes")
+  studentData <- studentData %>% mutate(
+    `Eligible` = ifelse(
+      (`UNITID` %in% eligibleColleges$`UNITID`)==FALSE,
+      "No", 
+      `Eligible`
+    )
+  )
+  rm(eligibleColleges)
+  
+  #### End #### 
+  
+  #### [S] Increase in state spending ####
+  
+  if(select2=="5%"){stateIncrease <- 0.05}
+  if(select2=="10%"){stateIncrease <- 0.1}
+  if(select2=="20%"){stateIncrease <- 0.2}
+  
+  if(select7=="Only two-year institutions"){
+    stateData <- stateData %>% mutate(
+      `New Two-Year Education Appropriations` = `Two-Year Education Appropriations` * stateIncrease, 
+      `New Four-Year Education Appropriations` = rep(0)
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `New Two-Year Education Appropriations` = `Two-Year Education Appropriations` * stateIncrease, 
+      `New Four-Year Education Appropriations` = `Four-Year Education Appropriations` * stateIncrease
+    )
+  }
+  rm(stateIncrease)
+  
+  stateData <- stateData %>% mutate(
+    `Total New Education Appropriations` = `New Two-Year Education Appropriations` + `New Four-Year Education Appropriations`
+  )
+  
+  #### End #### 
+  
+  #### [C] Match variables ####
+  
+  if(select3=="$1 federal for every $0.50 state"){federalMatch <- 1 / 0.5}
+  if(select3=="$1 federal for every $1 state"){federalMatch <- 1}
+  if(select3=="$1 federal for every $2 state"){federalMatch <- 1 / 2}
+  
+  if(select1=="New spending"){
+    stateData <- stateData %>% mutate(
+      `Federal block grant` = `Total New Education Appropriations` * federalMatch
+    )
+  }else{
+    stateData <- stateData %>% mutate(
+      `Federal block grant` = (`Total New Education Appropriations` + `Education Appropriations`) * federalMatch
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Format for numeric functions #### 
+  
+  stateData <- stateData %>% mutate(
+    `Participation status` = rep("Yes")
+  ) %>% rename(
+    `Total state contributions` = `Total New Education Appropriations`
+  ) %>% mutate(
+    `Turn down due to finances` = rep("No")
+  ) %>% mutate(
+    `Total state contributions as a share of education appropriations` = `Total state contributions` / `Education Appropriations`
+  )
+  
+  #### End #### 
+  
+  #### [S] State participation: Political ####
+  
+  stateData <- stateData %>% mutate(
+    `Participation status` = rep("Yes")
+  )
+  
+  if(select8=="Yes"){
+    stateData <- stateData %>% mutate(
+      `Participation status` = ifelse(
+        `State` %in% c("Florida", "Georgia", "Kansas", "Mississippi", "South Carolina", "Wisconsin", "Wyoming"),
+        "No",
+        `Participation status`
+      )
+    )
+  }
+  
+  #### End #### 
+  
+  #### [C] Combine participation ####
+  
+  participantStates <- stateData %>% filter(
+    `Participation status`=="Yes"
+  )
+  
+  studentData <- studentData %>% mutate(
+    `Participant` = ifelse(
+      `STABBR` %in% participantStates$`STABBR`, 
+      "Yes", 
+      "No"
+    )
+  ) %>% mutate(
+    `Participant` = ifelse(
+      `Eligible`=="No", 
+      "No", 
+      `Participant`
+    )
+  )
+  
+  rm(participantStates)
+  
+  #### End ####
+  
+  #### [C] Calculate FTEs ####
+  
+  studentData <- studentData %>% mutate(`Count` = rep(1))
+  
+  importFTEs <- aggregate(
+    data=studentData, 
+    `Count` ~ `STABBR` + `Eligible` + `Enrollment intensity`,
+    FUN=sum
+  ) %>% filter(
+    `Eligible`=="Yes"
+  ) %>% select(
+    -(`Eligible`)
+  ) %>% pivot_wider(
+    id_cols=c(`STABBR`), 
+    names_from=`Enrollment intensity`, 
+    values_from=`Count`
+  ) %>% mutate(
+    `FTEs` = `Full-time` + (`Part-time` * 0.5)
+  ) %>% select(
+    `STABBR`, 
+    `FTEs`
+  )
+  stateData <- left_join(x=stateData, y=importFTEs, by="STABBR")
+  rm(importFTEs)
+  
+  #### End #### 
+  
+  #### [C] Store institutional funding changes ####
+  
+  stateData <- stateData %>% mutate(
+    `Total new funds` = `Federal block grant` + `Total state contributions`
+  ) %>% mutate(
+    `New funds for net price` = `Total new funds` * 0.5, 
+    `New funds for education` = `Total new funds` * 0.5
+  )
+  
+  stateData <- stateData %>% mutate(
+    `New funds for net price per FTE` = `New funds for net price` / `FTEs`, 
+    `Overflow per FTE` = `New funds for education` / `FTEs`
+  ) 
+  
+  importMoney <- stateData %>% select(
+    `STABBR`, 
+    `New funds for net price per FTE`, 
+    `Overflow per FTE`
+  )
+  studentData <- left_join(x=studentData, y=importMoney, by="STABBR")
+  rm(importMoney)
+  
+  studentData <- studentData %>% mutate(
+    `Overflow per FTE` = ifelse(
+      is.na(`Overflow per FTE`), 
+      0, 
+      `Overflow per FTE`
+    ), 
+    `New funds for net price per FTE` = ifelse(
+      is.na(`New funds for net price per FTE`), 
+      0, 
+      `New funds for net price per FTE`
+    )
+  ) %>% mutate(
+    `Overflow per FTE` = ifelse(
+      `Participant`=="Yes", 
+      `Overflow per FTE`, 
+      0
+    ), 
+    `New funds for net price per FTE` = ifelse(
+      `Participant`=="Yes", 
+      `New funds for net price per FTE`, 
+      0
+    )
+  ) %>% mutate(
+    `Overflow` = ifelse(
+      `Enrollment intensity` == "Part-time", 
+      `Overflow per FTE` * 0.5, 
+      `Overflow per FTE`
+    ), 
+    `New grants` = ifelse(
+      `Enrollment intensity` == "Part-time", 
+      `New funds for net price per FTE` * 0.5, 
+      `New funds for net price per FTE`
+    )
+  ) %>% select(
+    -(`Overflow per FTE`), 
+    -(`New funds for net price per FTE`)
+  ) %>% mutate(
+    `New tuition subsidy` = rep(0)
+  )
+  
+  #### End #### 
+  
+  #### [C] Return list ####
+  
+  return(list(studentData, stateData, collegeData))
+  
+  #### End #### 
+  
+}
+
+################################################
 #### Function X: Long-term impacts          ####
 ################################################
 
@@ -2474,24 +3583,25 @@ functionX <- function(students1){
 
 function1 <- function(students1, states1, colleges1, plan1){
   
-  if(plan1=="Plan G"){
-    states1 <- states1 %>% mutate(
-      `Participation status` = rep("Yes")
+  if((plan1 %in% c("Plan F", "Plan G"))==FALSE){
+    participantStates <- states1 %>% filter(
+      `Participation status`=="Yes"
     )
+    colleges1 <- colleges1 %>% mutate(
+      `Participant` = ifelse(
+        (`Eligible`=="Yes") & (`STABBR` %in% participantStates$`STABBR`), 
+        "Yes", 
+        "No"
+      )
+    )
+    rm(participantStates)
   }
   
-  participantStates <- states1 %>% filter(
-    `Participation status`=="Yes"
-  )
-  
-  colleges1 <- colleges1 %>% mutate(
-    `Participant` = ifelse(
-      (`Eligible`=="Yes") & (`STABBR` %in% participantStates$`STABBR`), 
-      "Yes", 
-      "No"
+  if(plan1=="Plan G"){
+    colleges1 <- colleges1 %>% mutate(
+      `Participant` = `Eligible`
     )
-  )
-  rm(participantStates)
+  }
   
   students1 <- students1 %>% mutate(`Count` = rep(1))
   
@@ -2580,14 +3690,27 @@ function1 <- function(students1, states1, colleges1, plan1){
   )
   rm(degreesPerYear)
   
-  results1 <- colleges1 %>% select(
-    `UNITID`,
-    `Participant`,
-    `Total participating students`, 
-    `Share participating`, 
-    `Total funds received by students`, 
-    `Increased expected degrees and certificates`
-  )
+  if(plan1=="Plan F"){
+    results1 <- colleges1 %>% select(
+      `UNITID`,
+      `Participation status`,
+      `Total participating students`, 
+      `Share participating`, 
+      `Total funds received by students`, 
+      `Increased expected degrees and certificates`
+    ) %>% rename(
+      `Participant` = `Participation status`
+    )
+  }else{
+    results1 <- colleges1 %>% select(
+      `UNITID`,
+      `Participant`,
+      `Total participating students`, 
+      `Share participating`, 
+      `Total funds received by students`, 
+      `Increased expected degrees and certificates`
+    )
+  }
   
   return(results1)
 }
@@ -2607,75 +3730,73 @@ function2 <- function(students1, states1, colleges1, plan1){
     `Total state contributions`, 
     `Total state contributions as a share of education appropriations`
   )
+
+  students1 <- students1 %>% mutate(`Count` = rep(1))
   
-  if(plan1 != "Plan H"){
-    students1 <- students1 %>% mutate(`Count` = rep(1))
-    
-    publicStudents <- aggregate(
-      data=students1, 
-      `Count` ~ `Participant` + `STABBR` + `Control`, 
-      FUN=sum
-    ) %>% filter(
-      `Control` == "Public"
-    ) %>% select(
-      -(`Control`)
-    ) 
-    
-    if(sum(publicStudents$`Count`[publicStudents$`Participant`=="Yes"])==0){
-      publicStudents <- publicStudents %>% add_row(
-        `STABBR` = NA, 
-        `Participant` = "Yes",
-        `Count` = 0
-      )
-    }
-    if(sum(publicStudents$`Count`[publicStudents$`Participant`=="No"])==0){
-      publicStudents <- publicStudents %>% add_row(
-        `STABBR` = NA, 
-        `Participant` = "No",
-        `Count` = 0
-      )
-    }
-    
-    publicStudents <- publicStudents %>% pivot_wider(
-      id_cols=c(`STABBR`), 
-      names_from=`Participant`,
-      values_from=`Count`
-    ) %>% mutate(
-      `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
-      `No` = ifelse(is.na(`No`), 0, `No`)
-    ) %>% mutate(
-      `Share of students at public institutions participating` = `Yes` / (`Yes` + `No`)
-    ) %>% select(
-      `STABBR`,
+  publicStudents <- aggregate(
+    data=students1, 
+    `Count` ~ `Participant` + `STABBR` + `Control`, 
+    FUN=sum
+  ) %>% filter(
+    `Control` == "Public"
+  ) %>% select(
+    -(`Control`)
+  ) 
+  
+  if(sum(publicStudents$`Count`[publicStudents$`Participant`=="Yes"])==0){
+    publicStudents <- publicStudents %>% add_row(
+      `STABBR` = NA, 
+      `Participant` = "Yes",
+      `Count` = 0
+    )
+  }
+  if(sum(publicStudents$`Count`[publicStudents$`Participant`=="No"])==0){
+    publicStudents <- publicStudents %>% add_row(
+      `STABBR` = NA, 
+      `Participant` = "No",
+      `Count` = 0
+    )
+  }
+  
+  publicStudents <- publicStudents %>% pivot_wider(
+    id_cols=c(`STABBR`), 
+    names_from=`Participant`,
+    values_from=`Count`
+  ) %>% mutate(
+    `Yes` = ifelse(is.na(`Yes`), 0, `Yes`), 
+    `No` = ifelse(is.na(`No`), 0, `No`)
+  ) %>% mutate(
+    `Share of students at public institutions participating` = `Yes` / (`Yes` + `No`)
+  ) %>% select(
+    `STABBR`,
+    `Share of students at public institutions participating`
+  )
+  states1 <- left_join(x=states1, y=publicStudents, by="STABBR") %>% mutate(
+    `Share of students at public institutions participating` = ifelse(
+      is.na(`Share of students at public institutions participating`),
+      0, 
       `Share of students at public institutions participating`
     )
-    states1 <- left_join(x=states1, y=publicStudents, by="STABBR") %>% mutate(
-      `Share of students at public institutions participating` = ifelse(
-        is.na(`Share of students at public institutions participating`),
-        0, 
-        `Share of students at public institutions participating`
-      )
+  )
+  rm(publicStudents)
+  
+  participantStudents <- aggregate(
+    data=students1, 
+    `Count` ~ `Participant` + `STABBR`,
+    FUN=sum
+  ) %>% filter(
+    `Participant`=="Yes"
+  ) %>% rename(
+    `Number of participating students` = `Count`
+  )
+  results1 <- left_join(x=states1, y=participantStudents, by="STABBR") %>% mutate(
+    `Number of participating students` = ifelse(
+      is.na(`Number of participating students`),
+      0, 
+      `Number of participating students`
     )
-    rm(publicStudents)
-    
-    participantStudents <- aggregate(
-      data=students1, 
-      `Count` ~ `Participant` + `STABBR`,
-      FUN=sum
-    ) %>% filter(
-      `Participant`=="Yes"
-    ) %>% rename(
-      `Number of participating students` = `Count`
-    )
-    results1 <- left_join(x=states1, y=participantStudents, by="STABBR") %>% mutate(
-      `Number of participating students` = ifelse(
-        is.na(`Number of participating students`),
-        0, 
-        `Number of participating students`
-      )
-    )
-    rm(participantStudents)
-  }
+  )
+  rm(participantStudents)
   
   return(results1)
 }
@@ -2685,7 +3806,7 @@ function2 <- function(students1, states1, colleges1, plan1){
 #### Function 3: Net price percentiles #### 
 
 function3 <- function(students1, states1, colleges1, plan1){
-  
+
   students1 <- students1 %>% mutate(
     `Pre-policy net price` = pmax(0, (`Tuition and fees paid` + `Non-tuition expense budget`) - (`Federal grant amount` + `VA/DOD grant amount` + `State grant amount` + `Institutional grant amount` + `Private grant amount`))
   ) %>% mutate(
@@ -2783,8 +3904,12 @@ function4 <- function(students1, states1, colleges1, plan1){
 
 function5 <- function(students1, states1, colleges1, plan1){
   
-  if(plan1=="Plan G"){
-    annualCost <- sum(students1$`New grants`, na.rm=TRUE)
+  if(plan1 %in% c("Plan F", "Plan G")){
+    if(plan1=="Plan F"){
+      annualCost <- sum(colleges1$`Total college contributions`, na.rm=TRUE) + sum(colleges1$`Federal block grant`, na.rm=TRUE)
+    }else{
+      annualCost <- sum(students1$`New grants`, na.rm=TRUE)
+    }
   }else{
     annualCost <- sum(states1$`Total state contributions`, na.rm=TRUE) + sum(states1$`Federal block grant`, na.rm=TRUE)
   }
@@ -2818,14 +3943,21 @@ function6 <- function(students1, states1, colleges1, plan1){
     )
   }
   
+  if(plan1=="Plan H"){
+    states1 <- states1 %>% mutate(
+      `Overflow amount` = rep(NA),
+      `Federal money per FTE` = rep(NA)
+    )
+  }
+  
   results1 <- states1 %>% select(
     `State`,
-    `STABBR`, 
-    `Federal block grant`, 
-    `Total state contributions`, 
-    `Overflow amount`, 
-    `Federal money per FTE`, 
-    `Federal money per FTE (four-year)`, 
+    `STABBR`,
+    `Federal block grant`,
+    `Total state contributions`,
+    `Overflow amount`,
+    `Federal money per FTE`,
+    `Federal money per FTE (four-year)`,
     `Federal money per FTE (two-year)`
   )
   return(results1)
@@ -2836,8 +3968,7 @@ function6 <- function(students1, states1, colleges1, plan1){
 #### Function 7: Student participation #### 
 
 function7 <- function(students1, states1, colleges1, plan1){
-  # Data won't come from Plan E
-  
+
   students1 <- students1 %>% mutate(
     `Count` = rep(1)
   ) %>% mutate(
@@ -3110,8 +4241,7 @@ function7 <- function(students1, states1, colleges1, plan1){
 #### Function 8: Student debt #### 
 
 function8 <- function(students1, states1, colleges1, plan1){
-  # Data won't come from Plan E
-  
+
   students1 <- students1 %>% mutate(
     `Pre-policy student loans` = `Federal loan amount` + `Parent loan amount`
   ) %>% mutate(
@@ -3182,11 +4312,15 @@ function10 <- function(students1, states1, colleges1, plan1){
   # MSI funding: $1.3 billion, per https://www.congress.gov/crs-product/R43237
   totalFederalSpending <- (37.9 + 2.1 + 1.3) * 1000000000
   
-  if(plan1=="Plan G"){
-    federalMoney <- sum(students1$`New grants`)
+  if(plan1 %in% c("Plan F", "Plan G")){
+    if(plan1=="Plan F"){
+      federalMoney <- sum(colleges1$`Federal block grant`[colleges1$`Participation status`=="Yes"], na.rm=TRUE)
+    }else{
+      federalMoney <- sum(students1$`New grants`)
+    }
     federalIncrease <- federalMoney / totalFederalSpending
     stateMoney <- 0
-    stateIncrease <- 0
+    stateIncrease <- 0 
     stateTurnDown <- 0
   }else{
     federalMoney <- sum(states1$`Federal block grant`[states1$`Participation status`=="Yes"], na.rm=TRUE)
@@ -3258,8 +4392,8 @@ choices1f <- choices1e
 choices1g <- choices1b
 
 choices1h <- c(
-  "All spending", 
-  "New spending"
+  "All support", 
+  "New support"
 )
 
 #### End #### 
@@ -4490,12 +5624,12 @@ for(r in choices1h){
                   
                   temp1 <- function1(students0, states0, colleges0, "Plan H")
                   temp2 <- function2(students0, states0, colleges0, "Plan H")
-                  # temp3 <- function3(students0, states0, colleges0, "Plan H")
+                  temp3 <- function3(students0, states0, colleges0, "Plan H")
                   temp4 <- function4(students0, states0, colleges0, "Plan H")
                   temp5 <- function5(students0, states0, colleges0, "Plan H")
                   temp6 <- function6(students0, states0, colleges0, "Plan H")
-                  # temp7 <- function7(students0, states0, colleges0, "Plan H")
-                  # temp8 <- function8(students0, states0, colleges0, "Plan H")
+                  temp7 <- function7(students0, states0, colleges0, "Plan H")
+                  temp8 <- function8(students0, states0, colleges0, "Plan H")
                   temp9 <- function9(students0, states0, colleges0, "Plan H")
                   temp10 <- function10(students0, states0, colleges0, "Plan H")
                   rm(students0, states0, colleges0)
@@ -4507,31 +5641,27 @@ for(r in choices1h){
                   if(counter==1){
                     output1 <- specs(temp1, "H")
                     output2 <- specs(temp2, "H")
-                    # output3 <- specs(temp3, "H")
+                    output3 <- specs(temp3, "H")
                     output4 <- specs(temp4, "H")
                     output5 <- specs(temp5, "H")
                     output6 <- specs(temp6, "H")
-                    # output7 <- specs(temp7, "H")
-                    # output8 <- specs(temp8, "H")
+                    output7 <- specs(temp7, "H")
+                    output8 <- specs(temp8, "H")
                     output9 <- specs(temp9, "H")
                     output10 <- specs(temp10, "H")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "H"))
                     output2 <- rbind(output2, specs(temp2, "H"))
-                    # output3 <- rbind(output3, specs(temp3, "H"))
+                    output3 <- rbind(output3, specs(temp3, "H"))
                     output4 <- rbind(output4, specs(temp4, "H"))
                     output5 <- rbind(output5, specs(temp5, "H"))
                     output6 <- rbind(output6, specs(temp6, "H"))
-                    # output7 <- rbind(output7, specs(temp7, "H"))
-                    # output8 <- rbind(output8, specs(temp8, "H"))
+                    output7 <- rbind(output7, specs(temp7, "H"))
+                    output8 <- rbind(output8, specs(temp8, "H"))
                     output9 <- rbind(output9, specs(temp9, "H"))
                     output10 <- rbind(output10, specs(temp10, "H"))
                   }
-                  rm(temp1, temp2, 
-                     # temp3,
-                     temp4, temp5, temp6, 
-                     # temp7, temp8, 
-                     temp9, temp10)
+                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
 
                   #### End ####
 
@@ -4544,23 +5674,18 @@ setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
 sheetList <- list(
   Sheet1 = output1,
   Sheet2 = output2,
-  # Sheet3 = output3,
+  Sheet3 = output3,
   Sheet4 = output4,
   Sheet5 = output5,
   Sheet6 = output6,
-  # Sheet7 = output7,
-  # Sheet8 = output8,
+  Sheet7 = output7,
+  Sheet8 = output8,
   Sheet9 = output9,
   Sheet10 = output10
 )
 
 write_xlsx(sheetList, "Plan H.xlsx")
-rm(sheetList, output1, output2, 
-   # output3, 
-   output4, output5, output6, 
-   # output7, 
-   # output8, 
-   output9, output10, counter)
+rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
 rm(choices1h, choices2h, choices3h, choices4h, choices5h, choices6h, choices7h, choices8h, choices9h)
 
 #### End #### 
