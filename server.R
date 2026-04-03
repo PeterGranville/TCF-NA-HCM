@@ -340,6 +340,8 @@ shinyServer(function(output, input)({
   
   choices11g <- choices11a
   
+  choices11h <- choices11a
+  
   #### End #### 
   
   #### Set choice lists ####
@@ -511,24 +513,29 @@ shinyServer(function(output, input)({
   
   #### End #### 
   
-  #### Make alternative defaults ####
-  
-  selected10 <- reactive({
-    
-    switch(input$goal, 
-           "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices10a[2],
-           "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices10b[2], 
-           "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%" = choices10c[2], 
-           "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices10d[2], 
-           "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy" = choices10e[2], 
-           "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy" = choices10f[3], 
-           "[Plan G] Increase federal grants to students by X%" = choices10g[3], 
-           "[Plan H] Federal match for state support for public higher education" = choices10h[2]
-    )
-    
-  })
-  
-  #### End #### 
+  # #### Make alternative defaults ####
+  # 
+  # selected10 <- reactive({
+  # 
+  #   optionNum <- 1 # I may turn this to 2 later 
+  #   optionNumNoState <- 1 # I may turn this to 3 later 
+  #   
+  #   switch(input$goal,
+  #          "[Plan A] Fed-state partnership: Reduce tuition and fees to $X" = choices10a[optionNum],
+  #          "[Plan B] Fed-state partnership: Reduce tuition and fees by X%" = choices10b[optionNum],
+  #          "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%" = choices10c[optionNum],
+  #          "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income" = choices10d[optionNum],
+  #          "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy" = choices10e[optionNum],
+  #          "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy" = choices10f[optionNumNoState], # No state role 
+  #          "[Plan G] Increase federal grants to students by X%" = choices10g[optionNumNoState], # No state role 
+  #          "[Plan H] Federal match for state support for public higher education" = choices10h[optionNum]
+  #   )
+  #   
+  #   rm(optionNum, optionNumNoState)
+  # 
+  # })
+  # 
+  # #### End #### 
   
   #### Set question visibilities ####
   
@@ -549,28 +556,113 @@ shinyServer(function(output, input)({
     "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
     "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
     "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
-    # "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy", 
-    # "[Plan G] Increase federal grants to students by X%", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy",
+    # "[Plan G] Increase federal grants to students by X%",
     "[Plan H] Federal match for state support for public higher education"
   )
   
-  visibility3 <- visibility1
+  visibility3 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy",
+    # "[Plan G] Increase federal grants to students by X%",
+    "[Plan H] Federal match for state support for public higher education"
+  )
   
-  visibility4 <- visibility1
+  visibility4 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy"
+    # ,
+    # "[Plan G] Increase federal grants to students by X%",
+    # "[Plan H] Federal match for state support for public higher education"
+  )
   
-  visibility5 <- visibility1
+  visibility5 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy"
+    # ,
+    # "[Plan G] Increase federal grants to students by X%",
+    # "[Plan H] Federal match for state support for public higher education"
+  )
   
-  visibility6 <- visibility2 # No state participation
+  visibility6 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    # "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy",
+    "[Plan G] Increase federal grants to students by X%"
+    # ,
+    # "[Plan H] Federal match for state support for public higher education"
+  ) 
   
-  visibility7 <- visibility1
+  visibility7 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy",
+    "[Plan G] Increase federal grants to students by X%",
+    "[Plan H] Federal match for state support for public higher education"
+  )
   
-  visibility8 <- visibility1
+  visibility8 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    # "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy",
+    # "[Plan G] Increase federal grants to students by X%",
+    "[Plan H] Federal match for state support for public higher education"
+  )
   
-  visibility9 <- visibility1
+  visibility9 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy"
+    # ,
+    # "[Plan G] Increase federal grants to students by X%",
+    # "[Plan H] Federal match for state support for public higher education"
+  )
   
-  visibility10 <- visibility1
+  visibility10 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy",
+    "[Plan G] Increase federal grants to students by X%",
+    "[Plan H] Federal match for state support for public higher education"
+  )
   
-  visibility11 <- visibility1
+  visibility11 <- c(
+    "[Plan A] Fed-state partnership: Reduce tuition and fees to $X",
+    "[Plan B] Fed-state partnership: Reduce tuition and fees by X%", 
+    "[Plan C] Fed-state partnership: Increase grants to reduce unmet need by X%", 
+    "[Plan D] Fed-state partnership: Increase grants to reduce net price to X% family income", 
+    "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy", 
+    "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy",
+    "[Plan G] Increase federal grants to students by X%",
+    "[Plan H] Federal match for state support for public higher education"
+  )
   
   #### End #### 
   
@@ -661,7 +753,7 @@ shinyServer(function(output, input)({
            "[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy" = "Skipped", 
            "[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy" = "Is institutional eligibility limited to certain controls?", 
            "[Plan G] Increase federal grants to students by X%" = "Is institutional eligibility limited to certain controls?", 
-           "[Plan H] Federal match for state support for public higher education" = ""
+           "[Plan H] Federal match for state support for public higher education" = "Skipped"
     )
     
   })
@@ -840,8 +932,10 @@ shinyServer(function(output, input)({
     if(input$goal %in% visibility10){
       selectInput("select10", 
                   label=question10(), 
-                  choices=choices10(),
-                  selected=selected10())
+                  choices=choices10()
+                  # ,
+                  # selected=selected10()
+                  )
     }
     
   })
@@ -859,12 +953,64 @@ shinyServer(function(output, input)({
   #### End #### 
   
   ###############################################
+  #### Return policy index                   ####
+  ###############################################
+  
+  # #### Return policy index ####
+  # 
+  # output$policyIndex <- renderText({
+  # 
+  #   printGoal <- input$goal
+  #   printSelect1 <- input$select1
+  #   printSelect2 <- input$select2
+  #   printSelect3 <- input$select3
+  #   printSelect4 <- input$select4
+  #   printSelect5 <- input$select5
+  #   printSelect6 <- input$select6
+  #   printSelect7 <- input$select7
+  #   printSelect8 <- input$select8
+  #   printSelect9 <- input$select9
+  #   printSelect10 <- input$select10
+  #   printSelect11 <- input$select11
+  #   
+  #   if(substr(printGoal, 7, 7) %in% c("G")){printSelect2 <- "Skipped"}
+  #   if(substr(printGoal, 7, 7) %in% c("G")){printSelect3 <- "Skipped"}
+  #   if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect4 <- "Skipped"}
+  #   if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect5 <- "Skipped"}
+  #   if(substr(printGoal, 7, 7) %in% c("E", "H")){printSelect6 <- "Skipped"}
+  #   if(substr(printGoal, 7, 7) %in% c("F", "G")){printSelect8 <- "Skipped"}
+  #   if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect9 <- "Skipped"}
+  # 
+  #   inputCombos <- read.csv(
+  #     "Simulation results/Input combos.csv",
+  #     header=TRUE,
+  #     check.names=FALSE
+  #   ) %>% filter(
+  #     `Plan` == substr(printGoal, 7, 7),
+  #     `Choice1` == printSelect1,
+  #     `Choice2` == printSelect2,
+  #     `Choice3` == printSelect3,
+  #     `Choice4` == printSelect4,
+  #     `Choice5` == printSelect5,
+  #     `Choice6` == printSelect6,
+  #     `Choice7` == printSelect7,
+  #     `Choice8` == printSelect8,
+  #     `Choice9` == printSelect9
+  #   )
+  # 
+  #   print(paste("The selected policy index is ", inputCombos$`Policy index`[1], ". The selected policy is ", printGoal, ". The selected plan is ", substr(printGoal, 7, 7), ".", sep=""))
+  # 
+  # })
+  # 
+  # #### End #### 
+  
+  ###############################################
   #### Visuals generation                    ####
   ###############################################
   
   #### Write function to load data ####
   
-  loadData <- function(printGoal1, figureOrTable, selection10, selection11, forDescription){
+  loadData <- function(printGoal1, figureOrTable, selection10, selection11, forDescription, finalDigit){
     
     if(printGoal1=="[Plan A] Fed-state partnership: Reduce tuition and fees to $X"){
       modelChar <- "A"
@@ -893,7 +1039,7 @@ shinyServer(function(output, input)({
     
     if(figureOrTable=="Figure"){
       if(selection10=="Institutional participation map"){
-        dataNum <- "1"
+        dataNum <- paste("1-", finalDigit, sep="") # Special rule to break up large datasets 
       } 
       if(selection10=="State participation map"){
         dataNum <- "2"
@@ -962,17 +1108,17 @@ shinyServer(function(output, input)({
     printSelect10 <- input$select10
     printSelect11 <- input$select11
     
+    if(substr(printGoal, 7, 7) %in% c("G")){printSelect2 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G")){printSelect3 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect4 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect5 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("E", "H")){printSelect6 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("F", "G")){printSelect8 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect9 <- "Skipped"}
+    
     #### End #### 
     
     #### Load data and filter for selected simulation ####
-
-    figureData <- loadData(
-      printGoal1 = printGoal, 
-      figureOrTable = "Figure", 
-      selection10 = printSelect10, 
-      selection11 = printSelect11, 
-      forDescription = FALSE
-    )
     
     inputCombos <- read.csv(
       "Simulation results/Input combos.csv", 
@@ -991,11 +1137,57 @@ shinyServer(function(output, input)({
       `Choice9` == printSelect9
     )
     
+    lastDigit <- substr(
+      inputCombos$`Policy index`[1], 
+      nchar(inputCombos$`Policy index`[1]), # Last digit 
+      nchar(inputCombos$`Policy index`[1])  # Last digit 
+    )
+      
+    figureData <- loadData(
+      printGoal1 = printGoal, 
+      figureOrTable = "Figure", 
+      selection10 = printSelect10, 
+      selection11 = printSelect11, 
+      forDescription = FALSE, 
+      finalDigit = lastDigit
+    )
+    rm(lastDigit)
+    
     figureData <- figureData %>% filter(
       `Policy index` == inputCombos$`Policy index`[1]
     )
     rm(inputCombos)
 
+    #### End #### 
+    
+    #### Set color palette ####
+    
+    colorValues1 <- c(
+      "#2F2F2F", # (charcoal)
+      "#4C78A8", # (steel blue)
+      "#F58518", # (warm orange)
+      "#54A24B", # (leaf green)
+      "#E45756"   # (muted red)
+    ) 
+    
+    colorValues2 <- c(
+      "#7F8C8D", # (gray)
+      "#A1C9F4", # (pastel blue)
+      "#FFB482", # (peach)
+      "#8DE5A1", # (mint green)
+      "#FF9F9B"  # (soft coral)
+    )
+    
+    colorValues3 <- c(  
+      "#7F8C8D", # (gray)
+      "#1F77B4", # (blue)
+      "#FF7F0E", # (orange)
+      "#2CA02C", # (green)
+      "#D62728"  # (red)
+    )
+    
+    colorValues <- colorValues1
+    
     #### End #### 
     
     #### Institutional participation map [1] #### 
@@ -1042,14 +1234,16 @@ shinyServer(function(output, input)({
         "Total participating students: ", comma(figureData$`Total participating students`), '\n',
         "Share participating: ", percent(figureData$`Share participating`, accuracy=0.1), '\n',
         "Total funds received by students: ", dollar(round(figureData$`Total funds received by students`, -3)), '\n',
-        "Increased expected degrees and certificates: ", comma(round(figureData$`Increased expected degrees and certificates`)),
+        "Increased expected degrees and certificates: ", comma(round(figureData$`Increased expected degrees and certificates`)), 
         sep=""
       )
       
       figure1 <- plot_geo(
         figureData, 
-        locationmode='USA-states'
-      ) %>% add_trace(type="scatter", mode="markers", lat=~LATITUDE, lon=~LONGITUD, text=~hover, color=~`Participant`, colors = rev(c("#1B98E0","black"))) %>% layout(geo = list(scope = 'usa'))
+        locationmode='USA-states', 
+        width=900, 
+        height=500
+      ) %>% add_trace(type="scatter", mode="markers", lat=~LATITUDE, lon=~LONGITUD, text=~hover, color=~`Participant`, colors = colorValues[c(1,3)]) %>% layout(geo = list(scope = 'usa'))
     }
     
     #### End #### 
@@ -1081,7 +1275,10 @@ shinyServer(function(output, input)({
         sep=""
       )
       
-      figure1 <- plot_ly() %>%
+      figure1 <- plot_ly(
+        width=800, 
+        height=500
+      ) %>%
         add_trace(
           data = filter(figureData, `Participation status` == "Yes"),
           type = "choropleth",
@@ -1090,8 +1287,14 @@ shinyServer(function(output, input)({
           z = 1,
           text = ~hover,
           name = "Yes",
-          colorscale = list(c(0, "lightblue"), c(1, "lightblue")),
-          showscale = FALSE
+          colorscale = list(c(0, colorValues[3]), c(1, colorValues[3])),
+          showscale = FALSE, 
+          marker = list(
+            line = list(
+              color = "black",  
+              width = 1  
+            )
+          )
         ) %>%
         add_trace(
           data = filter(figureData, `Participation status` == "No"),
@@ -1101,8 +1304,14 @@ shinyServer(function(output, input)({
           z = 1,
           text = ~hover,
           name = "No",
-          colorscale = list(c(0, "lightgray"), c(1, "lightgray")),
-          showscale = FALSE
+          colorscale = list(c(0, colorValues2[1]), c(1, colorValues2[1])),
+          showscale = FALSE, 
+          marker = list(
+            line = list(
+              color = "black",
+              width = 1   
+            )
+          )
         ) %>%
         layout(
           geo = list(scope = "usa")
@@ -1128,12 +1337,33 @@ shinyServer(function(output, input)({
         )
       )
       
+      figureData <- figureData %>% mutate(
+        `Policy status` = factor(
+          `Policy status`, 
+          levels=c(
+            "Pre-policy net price", 
+            "Post-policy net price"
+          )
+        )
+      ) %>% mutate(
+        `Percentile` = paste(`Percentile`, "th", sep="")
+      )
+      
+      figureData$hover <- paste(
+        "Participant status: ", figureData$`Participant2`, '\n',
+        "Policy status: ", figureData$`Policy status`, '\n',
+        "Net price percentile: ", figureData$`Percentile`, '\n',
+        "Net price: ", dollar(figureData$`Net price`, accuracy=1),
+        sep=""
+      )
+      
       figure1 <- ggplot(
         data=figureData,
         mapping=aes(
           x=`Percentile`, 
           y=`Net price`, 
-          fill=`Policy status`
+          fill=`Policy status`, 
+          text=`hover`
         )
       ) + geom_bar(
         stat="identity", 
@@ -1142,11 +1372,14 @@ shinyServer(function(output, input)({
         . ~ `Participant2`
       ) + scale_y_continuous(
         labels=dollar_format()
-      ) + scale_x_continuous(
-        breaks=c(10, 20, 30, 40, 50, 60, 70, 80, 90)
+      ) + scale_x_discrete(
+        breaks=c("10th", "20th", "30th", "40th", "50th", "60th", "70th", "80th", "90th"), 
+        name="Net price percentile"
+      ) + scale_fill_manual(
+        values=colorValues[c(2, 3)]
       )
       
-      figure1 <- ggplotly(figure1)
+      figure1 <- ggplotly(figure1, tooltip="text", width=900, height=500)
       
     }
     
@@ -1169,21 +1402,39 @@ shinyServer(function(output, input)({
       
       figureData <- figureData %>% mutate(
         `Percentage point change in population attainment` = `Percentage point change in population attainment` * 100
+      ) %>% select(
+        -(`State`)
+      ) %>% rename(
+        `State` = `STABBR`
+      )
+      
+      figureData$hover <- paste(
+        "State: ", figureData$`State`, '\n',
+        "Attainment level: ", figureData$`Level`, '\n',
+        "Percentage point change in population attainment: ", round(figureData$`Percentage point change in population attainment`, 3), "pp",
+        sep=""
       )
       
       figure1 <- ggplot(
         data=figureData, 
         mapping=aes(
           x=`Percentage point change in population attainment`,
-          y=`STABBR`, 
-          fill=`Level`
+          y=`State`, 
+          fill=`Level`, 
+          text=`hover`
         )
       ) + geom_bar(
         stat="identity", 
         position=position_dodge()
-      ) + scale_y_discrete(limits=rev)
+      ) + scale_y_discrete(
+        limits=rev
+      ) + scale_fill_manual(
+        values=colorValues[c(2, 5)]
+      ) + scale_x_continuous(
+        label = scales::label_number(suffix = "pp")
+      )
     
-      figure1 <- ggplotly(figure1)
+      figure1 <- ggplotly(figure1, tooltip="text", width=800, height=1500)
       
     }
     
@@ -1215,17 +1466,32 @@ shinyServer(function(output, input)({
       
       figureData <- figureData %>% filter(
         `Indicator` <= 5
+      ) %>% rename(
+        `Years since participation` = `Year`
+      )
+      
+      figureData$hover <- paste(
+        "Years since participation: ", figureData$`Years since participation`, '\n',
+        "Cost minus cumulative tax revenue from increased earnings: ", dollar(round(figureData$`Cost minus cumulative tax revenue from increased earnings`, -6), accuracy=1),
+        sep=""
       )
       
       figure1 <- ggplot(
         data=figureData, 
         mapping=aes(
-          x=`Year`, 
-          y=`Cost minus cumulative tax revenue from increased earnings`
+          x=`Years since participation`, 
+          y=`Cost minus cumulative tax revenue from increased earnings`, 
+          text=`hover`
         )
-      ) + geom_point() + geom_line() + geom_hline(yintercept=0) + scale_y_continuous(labels=dollar_format(accuracy=1))
+      ) + geom_point() + geom_line() + geom_hline(
+        yintercept=0
+      ) + scale_y_continuous(
+        labels=dollar_format(accuracy=1)
+      ) + scale_fill_manual(
+        values=colorValues[c(1)]
+      )
       
-      figure1 <- ggplotly(figure1)
+      figure1 <- ggplotly(figure1, tooltip="text", width=800, height=500)
       
     }
     
@@ -1251,14 +1517,28 @@ shinyServer(function(output, input)({
         values_to="Amount"
       )
       
-      figureData <- figureData %>% filter(`STABBR` != "DC")
+      figureData <- figureData %>% filter(
+        `STABBR` != "DC"
+      ) %>% select(
+        -(`State`)
+      ) %>% rename(
+        `State` = `STABBR`
+      )
+      
+      figureData$hover <- paste(
+        "State: ", figureData$`State`, '\n',
+        "Category: ", figureData$`Category`, '\n',
+        "Amount: ", dollar(round(figureData$`Amount`, -6), accuracy=1),
+        sep=""
+      )
       
       figure1 <- ggplot(
         data=figureData, 
         mapping=aes(
           x=`Amount`,
-          y=`STABBR`, 
-          fill=`Category`
+          y=`State`, 
+          fill=`Category`, 
+          text=`hover`
         )
       ) + geom_bar(
         stat="identity", 
@@ -1267,9 +1547,11 @@ shinyServer(function(output, input)({
         limits=rev
       ) + scale_x_continuous(
         labels=dollar_format(accuracy=1)
+      ) + scale_fill_manual(
+        values=colorValues[c(2, 3, 4)]
       )
       
-      figure1 <- ggplotly(figure1)
+      figure1 <- ggplotly(figure1, tooltip="text", width=800, height=1500)
       
     }
     
@@ -1300,17 +1582,17 @@ shinyServer(function(output, input)({
     printSelect10 <- input$select10
     printSelect11 <- input$select11
     
+    if(substr(printGoal, 7, 7) %in% c("G")){printSelect2 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G")){printSelect3 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect4 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect5 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("E", "H")){printSelect6 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("F", "G")){printSelect8 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect9 <- "Skipped"}
+    
     #### End #### 
     
     #### Load data and filter for selected simulation ####
-    
-    tableData <- loadData(
-      printGoal1 = printGoal, 
-      figureOrTable = "Table", 
-      selection10 = printSelect10, 
-      selection11 = printSelect11, 
-      forDescription = FALSE
-    )
     
     inputCombos <- read.csv(
       "Simulation results/Input combos.csv", 
@@ -1328,6 +1610,22 @@ shinyServer(function(output, input)({
       `Choice8` == printSelect8, 
       `Choice9` == printSelect9
     )
+    
+    lastDigit <- substr(
+      inputCombos$`Policy index`[1], 
+      nchar(inputCombos$`Policy index`[1]), # Last digit 
+      nchar(inputCombos$`Policy index`[1])  # Last digit 
+    )
+    
+    tableData <- loadData(
+      printGoal1 = printGoal, 
+      figureOrTable = "Table", 
+      selection10 = printSelect10, 
+      selection11 = printSelect11, 
+      forDescription = FALSE, 
+      finalDigit = lastDigit
+    )
+    rm(lastDigit)
     
     tableData <- tableData %>% filter(
       `Policy index` == inputCombos$`Policy index`[1]
@@ -1376,6 +1674,14 @@ shinyServer(function(output, input)({
     printSelect9 <- input$select9
     printSelect10 <- input$select10
     printSelect11 <- input$select11
+    
+    if(substr(printGoal, 7, 7) %in% c("G")){printSelect2 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G")){printSelect3 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect4 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect5 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("E", "H")){printSelect6 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("F", "G")){printSelect8 <- "Skipped"}
+    if(substr(printGoal, 7, 7) %in% c("G", "H")){printSelect9 <- "Skipped"}
     
     #### End #### 
     
@@ -1433,15 +1739,15 @@ shinyServer(function(output, input)({
     }
     
     if(printGoal=="[Plan E] Fed-state partnership: Government sends states flat per-FTE subsidy in exchange for X pricing policy"){
-      policyDescription <- paste("Under the selected plan, the federal government sends states block grants in exchange for the state enacting the following pricing or aid policy for eligible students at eligible public institutions:", printSelect1, ". States can repurpose leftover funds after enacting the policy.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends states block grants in exchange for the state enacting the following pricing or aid policy for eligible students at eligible public institutions: ", printSelect1, ". States can repurpose leftover funds after enacting the policy.", sep="")
     }
     
     if(printGoal=="[Plan F] Fed-college partnership: Government sends colleges flat per-FTE subsidy in exchange for X pricing policy"){
-      policyDescription <- paste("Under the selected plan, the federal government sends colleges block grants in exchange for the college enacting the following pricing or aid policy for eligible students:", printSelect1, ". Colleges can repurpose leftover funds after enacting the policy.", sep="")
+      policyDescription <- paste("Under the selected plan, the federal government sends colleges block grants in exchange for the college enacting the following pricing or aid policy for eligible students: ", printSelect1, ". Colleges can repurpose leftover funds after enacting the policy.", sep="")
     }
     
     if(printGoal=="[Plan G] Increase federal grants to students by X%"){
-      policyDescription <- paste("Under the selected plan, each eligible student receiving federal grants will see their federal grants increase by", printSelect1, ". This includes the Pell Grant, FSEOG, and TEACH Grants. It does not include federal work study.", sep="")
+      policyDescription <- paste("Under the selected plan, each eligible student receiving federal grants will see their federal grants increase by ", printSelect1, ". This includes the Pell Grant, FSEOG, and TEACH Grants. It does not include federal work study.", sep="")
     }
     
     if(printGoal=="[Plan H] Federal match for state support for public higher education"){

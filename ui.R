@@ -14,26 +14,30 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                   tags$head(tags$style(".shiny-output-error{color: grey;}")),
                   tags$style(type="text/css",
                              ".shiny-output-error { visibility: hidden; }",
-                             ".shiny-output-error:before { visibility: visible; content: 'Please wait for the app to load or make another selection.'; }"
+                             ".shiny-output-error:before { visibility: visible; content: 'Please wait for the app to load.'; }"
                   ),
                   
                   #### End #### 
                   
                   #### Title panel ####
                   
-                  titlePanel("Model V2"), 
+                  titlePanel(
+                    title=div(
+                      h1("CAPSTONE Model"),
+                      h3("Cost And Performance Simulation for Tertiary Outcomes & National Effects"), 
+                      hr(),
+                    ), 
+                    windowTitle="CAPSTONE Model"
+                  ),
                   
-                  helpText("Introductory text will go here."), 
+                  helpText("How would large-scale investments in higher education reduce financial barriers for students, improve degree attainment, and strengthen the economy? Explore these outcomes, and the policy design choices that affect those outcomes, using the CAPSTONE Model."), 
                   
-                  helpText("Introductory text will go here."), 
+                  helpText("To begin, select one of eight plans, each offering a different approach to federal investment. Next, choose the policy design choices in the dropdown menus that follow."), 
                   
-                  helpText("Introductory text will go here."), 
+                  helpText("The last two dropdown menus offer ten different ways to view outcomes of your selected plan and policy design choices. Use those menus and the 'Figure View' and 'Table View' tabs to see projected impacts."), 
                   
-                  helpText("Introductory text will go here."), 
-                  
-                  helpText("Introductory text will go here."), 
-                  
-                  helpText("Introductory text will go here."), 
+                  helpText("The CAPSTONE Model is built by synthesizing data from the Integrated Postsecondary Education Data System and the National Postsecondary Student Aid Study. It is open-source, meaning all our data and methods are transparent. Documentation of methods can be found", tags$a(href = "https://docs.google.com/document/d/18ebSr14Vw9eKj78IWp3HlYaHoz-RkBUIHW1CNxeJcV8/edit?usp=sharing", "here.")), 
+                  hr(),
                   
                   #### End #### 
                   
@@ -74,8 +78,14 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                     
                     mainPanel(
                       
+                      #### Description #### 
+                      
                       textOutput("description1"), 
                       br(), 
+                      # textOutput("policyIndex"),
+                      # br(),
+                      
+                      #### End #### 
                       
                       tabsetPanel(
                         tabPanel("Figure View", fluid=TRUE,
@@ -83,7 +93,8 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                                  #### Figure 1 #### 
                                  
                                  br(),
-                                 plotlyOutput("figure1")
+                                 plotlyOutput("figure1"), 
+                                 br()
                                  
                                  #### End #### 
                         ),  
@@ -92,7 +103,8 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                                  #### Table 1 #### 
                                  
                                  br(),
-                                 tableOutput("table1")
+                                 tableOutput("table1"), 
+                                 br()
                                  
                                  #### End #### 
                                  
