@@ -585,6 +585,17 @@ functionA <- function(
       `Eligible FTEs (four-year)` = `Four-year`, 
       `Eligible FTEs (two-year)` = `Two-year`
     ) %>% mutate(
+      `Eligible FTEs (four-year)` = ifelse(
+        is.na(`Eligible FTEs (four-year)`),
+        0,
+        `Eligible FTEs (four-year)`
+      ),
+      `Eligible FTEs (two-year)` = ifelse(
+        is.na(`Eligible FTEs (two-year)`),
+        0,
+        `Eligible FTEs (two-year)`
+      )
+    ) %>% mutate(
       `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
     )
   }
@@ -618,6 +629,27 @@ functionA <- function(
       `Federal block grant (two-year)` = `Federal money per FTE (two-year)` * `Eligible FTEs (two-year)`,
       `State cost of entry (four-year)` = `State cost of entry per FTE (four-year)` * `Eligible FTEs (four-year)`, 
       `State cost of entry (two-year)` = `State cost of entry per FTE (two-year)` * `Eligible FTEs (two-year)`
+    ) %>% mutate(
+      `Federal block grant (four-year)` = ifelse(
+        is.na(`Federal block grant (four-year)`),
+        0,
+        `Federal block grant (four-year)`
+      ),
+      `Federal block grant (two-year)` = ifelse(
+        is.na(`Federal block grant (two-year)`),
+        0,
+        `Federal block grant (two-year)`
+      ),
+      `State cost of entry (four-year)` = ifelse(
+        is.na(`State cost of entry (four-year)`),
+        0,
+        `State cost of entry (four-year)`
+      ),
+      `State cost of entry (two-year)` = ifelse(
+        is.na(`State cost of entry (two-year)`),
+        0,
+        `State cost of entry (two-year)`
+      )
     ) %>% mutate(
       `Federal block grant` = `Federal block grant (four-year)` + `Federal block grant (two-year)`, 
       `State cost of entry` = `State cost of entry (four-year)` + `State cost of entry (two-year)`
@@ -1062,6 +1094,17 @@ functionB <- function(
       `Eligible FTEs (four-year)` = `Four-year`, 
       `Eligible FTEs (two-year)` = `Two-year`
     ) %>% mutate(
+      `Eligible FTEs (four-year)` = ifelse(
+        is.na(`Eligible FTEs (four-year)`),
+        0,
+        `Eligible FTEs (four-year)`
+      ),
+      `Eligible FTEs (two-year)` = ifelse(
+        is.na(`Eligible FTEs (two-year)`),
+        0,
+        `Eligible FTEs (two-year)`
+      )
+    ) %>% mutate(
       `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
     )
   }
@@ -1095,6 +1138,27 @@ functionB <- function(
       `Federal block grant (two-year)` = `Federal money per FTE (two-year)` * `Eligible FTEs (two-year)`,
       `State cost of entry (four-year)` = `State cost of entry per FTE (four-year)` * `Eligible FTEs (four-year)`, 
       `State cost of entry (two-year)` = `State cost of entry per FTE (two-year)` * `Eligible FTEs (two-year)`
+    ) %>% mutate(
+      `Federal block grant (four-year)` = ifelse(
+        is.na(`Federal block grant (four-year)`),
+        0,
+        `Federal block grant (four-year)`
+      ),
+      `Federal block grant (two-year)` = ifelse(
+        is.na(`Federal block grant (two-year)`),
+        0,
+        `Federal block grant (two-year)`
+      ),
+      `State cost of entry (four-year)` = ifelse(
+        is.na(`State cost of entry (four-year)`),
+        0,
+        `State cost of entry (four-year)`
+      ),
+      `State cost of entry (two-year)` = ifelse(
+        is.na(`State cost of entry (two-year)`),
+        0,
+        `State cost of entry (two-year)`
+      )
     ) %>% mutate(
       `Federal block grant` = `Federal block grant (four-year)` + `Federal block grant (two-year)`, 
       `State cost of entry` = `State cost of entry (four-year)` + `State cost of entry (two-year)`
@@ -1543,6 +1607,17 @@ functionC <- function(
       `Eligible FTEs (four-year)` = `Four-year`, 
       `Eligible FTEs (two-year)` = `Two-year`
     ) %>% mutate(
+      `Eligible FTEs (four-year)` = ifelse(
+        is.na(`Eligible FTEs (four-year)`),
+        0,
+        `Eligible FTEs (four-year)`
+      ),
+      `Eligible FTEs (two-year)` = ifelse(
+        is.na(`Eligible FTEs (two-year)`),
+        0,
+        `Eligible FTEs (two-year)`
+      )
+    ) %>% mutate(
       `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
     )
   }
@@ -1576,6 +1651,27 @@ functionC <- function(
       `Federal block grant (two-year)` = `Federal money per FTE (two-year)` * `Eligible FTEs (two-year)`,
       `State cost of entry (four-year)` = `State cost of entry per FTE (four-year)` * `Eligible FTEs (four-year)`, 
       `State cost of entry (two-year)` = `State cost of entry per FTE (two-year)` * `Eligible FTEs (two-year)`
+    ) %>% mutate(
+      `Federal block grant (four-year)` = ifelse(
+        is.na(`Federal block grant (four-year)`),
+        0,
+        `Federal block grant (four-year)`
+      ),
+      `Federal block grant (two-year)` = ifelse(
+        is.na(`Federal block grant (two-year)`),
+        0,
+        `Federal block grant (two-year)`
+      ),
+      `State cost of entry (four-year)` = ifelse(
+        is.na(`State cost of entry (four-year)`),
+        0,
+        `State cost of entry (four-year)`
+      ),
+      `State cost of entry (two-year)` = ifelse(
+        is.na(`State cost of entry (two-year)`),
+        0,
+        `State cost of entry (two-year)`
+      )
     ) %>% mutate(
       `Federal block grant` = `Federal block grant (four-year)` + `Federal block grant (two-year)`, 
       `State cost of entry` = `State cost of entry (four-year)` + `State cost of entry (two-year)`
@@ -2025,6 +2121,17 @@ functionD <- function(
       `Eligible FTEs (four-year)` = `Four-year`, 
       `Eligible FTEs (two-year)` = `Two-year`
     ) %>% mutate(
+      `Eligible FTEs (four-year)` = ifelse(
+        is.na(`Eligible FTEs (four-year)`),
+        0,
+        `Eligible FTEs (four-year)`
+      ),
+      `Eligible FTEs (two-year)` = ifelse(
+        is.na(`Eligible FTEs (two-year)`),
+        0,
+        `Eligible FTEs (two-year)`
+      )
+    ) %>% mutate(
       `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
     )
   }
@@ -2058,6 +2165,27 @@ functionD <- function(
       `Federal block grant (two-year)` = `Federal money per FTE (two-year)` * `Eligible FTEs (two-year)`,
       `State cost of entry (four-year)` = `State cost of entry per FTE (four-year)` * `Eligible FTEs (four-year)`, 
       `State cost of entry (two-year)` = `State cost of entry per FTE (two-year)` * `Eligible FTEs (two-year)`
+    ) %>% mutate(
+      `Federal block grant (four-year)` = ifelse(
+        is.na(`Federal block grant (four-year)`),
+        0,
+        `Federal block grant (four-year)`
+      ),
+      `Federal block grant (two-year)` = ifelse(
+        is.na(`Federal block grant (two-year)`),
+        0,
+        `Federal block grant (two-year)`
+      ),
+      `State cost of entry (four-year)` = ifelse(
+        is.na(`State cost of entry (four-year)`),
+        0,
+        `State cost of entry (four-year)`
+      ),
+      `State cost of entry (two-year)` = ifelse(
+        is.na(`State cost of entry (two-year)`),
+        0,
+        `State cost of entry (two-year)`
+      )
     ) %>% mutate(
       `Federal block grant` = `Federal block grant (four-year)` + `Federal block grant (two-year)`, 
       `State cost of entry` = `State cost of entry (four-year)` + `State cost of entry (two-year)`
@@ -2483,6 +2611,17 @@ functionE <- function(
       `Eligible FTEs (four-year)` = `Four-year`, 
       `Eligible FTEs (two-year)` = `Two-year`
     ) %>% mutate(
+      `Eligible FTEs (four-year)` = ifelse(
+        is.na(`Eligible FTEs (four-year)`),
+        0,
+        `Eligible FTEs (four-year)`
+      ),
+      `Eligible FTEs (two-year)` = ifelse(
+        is.na(`Eligible FTEs (two-year)`),
+        0,
+        `Eligible FTEs (two-year)`
+      )
+    ) %>% mutate(
       `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
     )
   }
@@ -2716,7 +2855,7 @@ functionF <- function(
   # select4 <- "No means testing"
   # select5 <- "Yes"
   # select6 <- "Public and nonprofit only"
-  # select7 <- "Only two-year institutions"
+  # select7 <- "Both two- and four-year institutions"
   # select8 <- "Skipped"
   # select9 <- "10% and above"
   # 
@@ -2910,6 +3049,17 @@ functionF <- function(
     eligibleFTEs <- eligibleFTEs %>% rename(
       `Eligible FTEs (four-year)` = `Four-year`, 
       `Eligible FTEs (two-year)` = `Two-year`
+    ) %>% mutate(
+      `Eligible FTEs (four-year)` = ifelse(
+        is.na(`Eligible FTEs (four-year)`),
+        0,
+        `Eligible FTEs (four-year)`
+      ),
+      `Eligible FTEs (two-year)` = ifelse(
+        is.na(`Eligible FTEs (two-year)`),
+        0,
+        `Eligible FTEs (two-year)`
+      )
     ) %>% mutate(
       `Eligible FTEs` = `Eligible FTEs (four-year)` + `Eligible FTEs (two-year)`
     )

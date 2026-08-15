@@ -3673,7 +3673,7 @@ for(j in jValues){
   # 
   # #### End #### 
   
-  #### Integrate College Scorecard and IPEDS data on dependency status ####
+  #### Integrate College Scorecard data on dependency status ####
   
   setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS Data")
   
