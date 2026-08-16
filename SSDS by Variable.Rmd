@@ -1,0 +1,597 @@
+---
+title: "Distributions of SSDS Variables by Zero-EFC Status"
+author: "Peter Granville"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  dpi     = 110
+)
+```
+
+<!-- ===================================================================== -->
+<!--  1. CONFIGURATION                                                     -->
+<!--  Everything you would normally want to change lives in this one       -->
+<!--  chunk. To group by something other than state, change GROUP_VAR.     -->
+<!-- ===================================================================== -->
+
+```{r config}
+## ---- THE GROUPING VARIABLE -------------------------------------------
+## Change these two lines to group by anything else in the file, e.g.
+##   GROUP_VAR <- "Control";  GROUP_LABEL <- "Institutional control"
+##   GROUP_VAR <- "Region";   GROUP_LABEL <- "Region"
+##   GROUP_VAR <- "C18BASIC"; GROUP_LABEL <- "Carnegie classification"
+## Nothing else in the script needs to be touched.
+GROUP_VAR   <- "Zero-EFC"
+GROUP_LABEL <- "Zero-EFC status"
+
+## ---- THE ANALYSIS VARIABLES ------------------------------------------
+ANALYSIS_VARS <- c(
+  "Race",
+  "Gender",
+  "Age",
+  "Race NPSAS",
+  "Citizenship",
+  "Veteran status",
+  "Dependency status",
+  "Parent status",
+  "First-gen status",
+  "Enrollment intensity",
+  "Enrollment intensity NPSAS",
+  "Zero-EFC",
+  "EFC",
+  "Family income",
+  "Tuition jurisdiction",
+  "Tuition jurisdiction (with in-district)",
+  "Tuition and fees paid",
+  "Non-tuition expense budget",
+  "Applied for federal aid",
+  "Receives federal grants",
+  "Receives VA/DOD grants",
+  "Receives state grants",
+  "Receives institutional grants",
+  "Receives private grants",
+  "Receives federal loans",
+  "Receives parent loans",
+  "Receives Pell",
+  "Federal grant amount",
+  "VA/DOD grant amount",
+  "State grant amount",
+  "Institutional grant amount",
+  "Private grant amount",
+  "Federal loan amount",
+  "Parent loan amount"
+)
+
+## ---- DATA SOURCE AND SAMPLING ----------------------------------------
+DATA_PATH  <- "All merged adjusted student data.csv"
+
+SAMPLE_N       <- 3e6          # target number of sampled rows
+SEED           <- 20260815     # for the row draw and any tie-breaking
+SAMPLE_METHOD  <- "awk"        # "awk" (fast, macOS/Linux) or "r" (portable, slower)
+CACHE_PATH     <- file.path(dirname(DATA_PATH), "sample_3M_cache.rds")
+REFRESH_SAMPLE <- FALSE        # TRUE forces a brand new draw from the CSV
+
+## ---- PRESENTATION -----------------------------------------------------
+MIN_GROUP_N <- 200    # drop groups with fewer than this many sampled rows
+TRIM_TAILS  <- 0.005  # x-axis zooms to this/1-this quantile on numeric charts
+SAVE_PNGS   <- FALSE  # TRUE also writes one .png per variable to OUT_DIR
+OUT_DIR     <- file.path(dirname(DATA_PATH), "charts")
+
+## Variables whose x-axis should be formatted as dollars.
+DOLLAR_VARS <- c(
+  "EFC", "Family income", "Tuition and fees paid", "Non-tuition expense budget",
+  "Federal grant amount", "VA/DOD grant amount", "State grant amount",
+  "Institutional grant amount", "Private grant amount",
+  "Federal loan amount", "Parent loan amount"
+)
+
+## Most aid-amount variables are heavily zero-inflated: in many states more
+## than half of students receive $0, which squashes the box flat against the
+## axis. Add variable names here to plot the distribution *conditional on
+## receiving a positive amount* instead. The chart caption always reports the
+## share of zeros either way. Example:
+# CONDITION_ON_POSITIVE <- c("State grant amount", "Private grant amount")
+CONDITION_ON_POSITIVE <- c(
+  "Federal grant amount",
+  "VA/DOD grant amount",
+  "State grant amount",
+  "Institutional grant amount",
+  "Private grant amount",
+  "Federal loan amount",
+  "Parent loan amount"
+)
+
+## ---- VARIABLE TYPES ---------------------------------------------------
+## Explicit classification wins; anything not listed here is auto-detected
+## (numeric column -> numeric, everything else -> categorical). If you swap in
+## a different file, you can safely delete this vector and rely on auto-detect.
+VAR_TYPES <- c(
+  "Race"                                    = "categorical",
+  "Gender"                                  = "categorical",
+  "Age"                                     = "numeric",
+  "Race NPSAS"                              = "categorical",
+  "Citizenship"                             = "categorical",
+  "Veteran status"                          = "categorical",
+  "Dependency status"                       = "categorical",
+  "Parent status"                           = "categorical",
+  "First-gen status"                        = "categorical",
+  "Enrollment intensity"                    = "categorical",
+  "Enrollment intensity NPSAS"              = "categorical",
+  "Zero-EFC"                                = "categorical",
+  "EFC"                                     = "numeric",
+  "Family income"                           = "numeric",
+  "Tuition jurisdiction"                    = "categorical",
+  "Tuition jurisdiction (with in-district)" = "categorical",
+  "Tuition and fees paid"                   = "numeric",
+  "Non-tuition expense budget"              = "numeric",
+  "Applied for federal aid"                 = "categorical",
+  "Receives federal grants"                 = "categorical",
+  "Receives VA/DOD grants"                  = "categorical",
+  "Receives state grants"                   = "categorical",
+  "Receives institutional grants"           = "categorical",
+  "Receives private grants"                 = "categorical",
+  "Receives federal loans"                  = "categorical",
+  "Receives parent loans"                   = "categorical",
+  "Receives Pell"                           = "categorical",
+  "Federal grant amount"                    = "numeric",
+  "VA/DOD grant amount"                     = "numeric",
+  "State grant amount"                      = "numeric",
+  "Institutional grant amount"              = "numeric",
+  "Private grant amount"                    = "numeric",
+  "Federal loan amount"                     = "numeric",
+  "Parent loan amount"                      = "numeric"
+)
+```
+
+```{r packages}
+library(data.table)
+library(dplyr)
+library(ggplot2)
+
+theme_set(
+  theme_minimal(base_size = 11) +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor   = element_blank(),
+      plot.title         = element_text(face = "bold", size = 13),
+      plot.subtitle      = element_text(colour = "grey35", size = 10),
+      plot.caption       = element_text(colour = "grey40", hjust = 0, size = 8.5),
+      legend.position    = "bottom",
+      legend.title       = element_blank(),
+      axis.title.y       = element_blank(),
+      ## Extra right margin so the last axis label is never clipped.
+      plot.margin        = margin(6, 18, 6, 6)
+    )
+)
+
+KEEP_COLS <- unique(c(GROUP_VAR, ANALYSIS_VARS))
+```
+
+<!-- ===================================================================== -->
+<!--  2. DRAW THE SAMPLE                                                   -->
+<!--  The source file is ~11.6 GB / ~18 million rows, so it is never read  -->
+<!--  into memory whole. We stream it once, keep each row with probability -->
+<!--  p = SAMPLE_N / (estimated rows), keep only the columns we need, and  -->
+<!--  cache the result. Later knits reuse the cache and are near-instant.  -->
+<!-- ===================================================================== -->
+
+```{r sample-data}
+## Estimate the row count from the file size and the average bytes per row in
+## the first 50 MB. Far cheaper than counting 18 million lines, and only needs
+## to be accurate enough to set the sampling probability.
+estimate_total_rows <- function(path, probe_bytes = 50e6) {
+  size  <- file.info(path)$size
+  con   <- file(path, "rb"); on.exit(close(con))
+  probe <- readBin(con, "raw", n = min(probe_bytes, size))
+  n_nl  <- sum(probe == as.raw(0x0a))
+  if (n_nl == 0) stop("Could not find any line breaks in the probe.")
+  floor(size / (length(probe) / n_nl))
+}
+
+## Method 1: let awk do the sampling before the data ever reaches R.
+sample_with_awk <- function(path, p, keep_cols, seed) {
+  cmd <- sprintf(
+    "awk 'BEGIN{srand(%d)} NR==1 || rand()<%.10f' %s",
+    seed, p, shQuote(path)
+  )
+  fread(
+    cmd = cmd, select = keep_cols, stringsAsFactors = TRUE,
+    check.names = FALSE, showProgress = TRUE
+  )
+}
+
+## Method 2: pure R fallback (no shell tools; works on Windows). Streams the
+## file in blocks, samples within each block, and parses only the kept rows so
+## the raw text never accumulates.
+sample_with_r <- function(path, p, keep_cols, block = 5e5) {
+  con <- file(path, "r"); on.exit(close(con))
+  hdr <- readLines(con, n = 1L)
+  out <- list(); i <- 1L
+  repeat {
+    lns <- readLines(con, n = block)
+    if (!length(lns)) break
+    sel <- lns[runif(length(lns)) < p]
+    if (length(sel)) {
+      out[[i]] <- fread(
+        text = c(hdr, sel), select = keep_cols,
+        stringsAsFactors = FALSE, check.names = FALSE, showProgress = FALSE
+      )
+      i <- i + 1L
+    }
+  }
+  res <- rbindlist(out, use.names = TRUE)
+  chr <- names(res)[vapply(res, is.character, logical(1))]
+  if (length(chr)) res[, (chr) := lapply(.SD, as.factor), .SDcols = chr]
+  res[]
+}
+
+## Cheap and safe: only touches the CSV if it is actually reachable, so the
+## report still knits from cache when the external drive is unplugged.
+EST_ROWS <- tryCatch(estimate_total_rows(DATA_PATH), error = function(e) NA_real_)
+
+cache_ok <- file.exists(CACHE_PATH) && !REFRESH_SAMPLE
+if (cache_ok) {
+  dat <- readRDS(CACHE_PATH)
+  ## A cache drawn for a different GROUP_VAR won't have the column we need.
+  if (!all(KEEP_COLS %in% names(dat))) {
+    message("Cache is missing required columns - redrawing the sample.")
+    cache_ok <- FALSE
+  }
+}
+
+if (!cache_ok) {
+  if (!file.exists(DATA_PATH)) {
+    stop("Cannot find the data file at:\n  ", DATA_PATH,
+         "\nIs the TOSHIBA EXT drive mounted?")
+  }
+  set.seed(SEED)
+  est_rows <- estimate_total_rows(DATA_PATH)
+  ## Oversample slightly so we land at or above SAMPLE_N, then trim exactly.
+  p <- min(1, (SAMPLE_N / est_rows) * 1.03)
+  message(sprintf("Estimated %s rows; sampling with p = %.4f ...",
+                  format(est_rows, big.mark = ","), p))
+
+  dat <- if (identical(SAMPLE_METHOD, "awk")) {
+    sample_with_awk(DATA_PATH, p, KEEP_COLS, SEED)
+  } else {
+    sample_with_r(DATA_PATH, p, KEEP_COLS)
+  }
+
+  missing_cols <- setdiff(KEEP_COLS, names(dat))
+  if (length(missing_cols)) {
+    stop("These columns were not found in the CSV: ",
+         paste(missing_cols, collapse = ", "))
+  }
+
+  if (nrow(dat) > SAMPLE_N) dat <- dat[sample(.N, SAMPLE_N)]
+  saveRDS(dat, CACHE_PATH, compress = FALSE)
+  message(sprintf("Cached %s sampled rows to %s",
+                  format(nrow(dat), big.mark = ","), CACHE_PATH))
+}
+
+setDF(dat)
+dat[[GROUP_VAR]] <- as.character(dat[[GROUP_VAR]])
+dat[[GROUP_VAR]][trimws(dat[[GROUP_VAR]]) == ""] <- NA_character_
+```
+
+```{r group-sizes}
+group_sizes <- dat %>%
+  filter(!is.na(.data[[GROUP_VAR]])) %>%
+  count(group = .data[[GROUP_VAR]], name = "n_sampled") %>%
+  arrange(desc(n_sampled)) %>%
+  mutate(share = n_sampled / sum(n_sampled))
+
+KEEP_GROUPS <- group_sizes$group[group_sizes$n_sampled >= MIN_GROUP_N]
+DROPPED     <- setdiff(group_sizes$group, KEEP_GROUPS)
+N_GROUPS    <- length(KEEP_GROUPS)
+
+## Chart height scales with the number of groups, so the charts stay readable
+## whether GROUP_VAR has 4 categories or 55.
+FIG_HEIGHT <- max(4, min(22, 0.17 * N_GROUPS + 2.4))
+
+if (SAVE_PNGS) dir.create(OUT_DIR, showWarnings = FALSE, recursive = TRUE)
+```
+
+## About this report
+
+```{r overview, results='asis'}
+cat(sprintf(
+"Every chart below shows how one analysis variable is distributed across
+values of **%s** (`%s`).
+
+- **Source:** `%s`
+- **Sample:** %s rows drawn at random from an estimated %s rows in the full
+  file (about %.1f%%). Sampling is a single streaming pass, so no more than the
+  sampled rows are ever held in memory. The draw is cached at
+  `%s` &mdash; delete that file or set `REFRESH_SAMPLE <- TRUE` to redraw.
+- **Groups shown:** %d of %d, after dropping any with fewer than %s sampled rows%s.
+- **Chart types:** categorical variables are shown as 100%%-stacked bars
+  (composition within each group); numeric variables as boxplots ordered by
+  median, with outlier points suppressed and the axis zoomed to the %.1f&ndash;%.1f
+  percentile range so long tails do not flatten the boxes.
+
+Because these are sampled figures, treat small differences between groups as
+noise. Percentages for the largest groups are accurate to well under a
+percentage point; the smallest groups shown are considerably noisier.\n\n",
+  GROUP_LABEL, GROUP_VAR,
+  basename(DATA_PATH),
+  format(nrow(dat), big.mark = ","),
+  format(estimate_total_rows(DATA_PATH), big.mark = ","),
+  100 * nrow(dat) / estimate_total_rows(DATA_PATH),
+  basename(CACHE_PATH),
+  N_GROUPS, nrow(group_sizes), format(MIN_GROUP_N, big.mark = ","),
+  if (length(DROPPED)) paste0(" (dropped: ", paste(DROPPED, collapse = ", "), ")") else "",
+  100 * TRIM_TAILS, 100 * (1 - TRIM_TAILS)
+))
+```
+
+```{r type-table}
+resolve_type <- function(var, column) {
+  if (var %in% names(VAR_TYPES)) return(unname(VAR_TYPES[[var]]))
+  if (is.numeric(column)) "numeric" else "categorical"
+}
+
+VAR_TYPE_RESOLVED <- vapply(
+  ANALYSIS_VARS,
+  function(v) resolve_type(v, dat[[v]]),
+  character(1)
+)
+
+knitr::kable(
+  data.frame(
+    Variable = ANALYSIS_VARS,
+    Type     = VAR_TYPE_RESOLVED,
+    Distinct = vapply(ANALYSIS_VARS,
+                      function(v) format(length(unique(dat[[v]])), big.mark = ","),
+                      character(1)),
+    `Missing (%)` = vapply(ANALYSIS_VARS,
+                           function(v) sprintf("%.2f", 100 * mean(is.na(dat[[v]]))),
+                           character(1)),
+    check.names = FALSE, row.names = NULL
+  ),
+  caption = "Analysis variables, as classified for plotting."
+)
+```
+
+<!-- ===================================================================== -->
+<!--  3. PLOTTING FUNCTIONS                                                -->
+<!--  Both take the grouping variable as an argument, so they work          -->
+<!--  unchanged if GROUP_VAR is swapped out.                                -->
+<!-- ===================================================================== -->
+
+```{r plot-helpers}
+x_labeller <- function(var) {
+  if (var %in% DOLLAR_VARS) scales::label_dollar(accuracy = 1, big.mark = ",")
+  else scales::label_number(big.mark = ",", drop0trailing = TRUE)
+}
+
+## Put "Yes" before "No" so the stacked bars read the intuitive way.
+tidy_levels <- function(f) {
+  lv <- levels(f)
+  if (setequal(setdiff(lv, "(Missing)"), c("Yes", "No"))) {
+    lv <- c("Yes", "No", intersect("(Missing)", lv))
+    f  <- factor(as.character(f), levels = lv)
+  }
+  f
+}
+
+## ---- Categorical: 100% stacked horizontal bars ------------------------
+plot_categorical <- function(data, var, group_var, group_label) {
+  d <- data %>%
+    select(grp = all_of(group_var), val = all_of(var)) %>%
+    filter(!is.na(grp), grp %in% KEEP_GROUPS) %>%
+    mutate(val = ifelse(is.na(as.character(val)), "(Missing)", as.character(val))) %>%
+    mutate(val = tidy_levels(factor(val)))
+
+  ## Reference level: "Yes" for binary variables, otherwise the most common
+  ## level overall. Groups get sorted by its share, and it is placed first so
+  ## it sits at the left edge of every bar where it is easiest to compare.
+  ref <- if ("Yes" %in% levels(d$val)) "Yes" else {
+    names(sort(table(d$val), decreasing = TRUE))[1]
+  }
+  by_freq  <- names(sort(table(d$val), decreasing = TRUE))
+  lvl_ord  <- c(ref, setdiff(by_freq, c(ref, "(Missing)")))
+  if ("(Missing)" %in% levels(d$val)) lvl_ord <- c(lvl_ord, "(Missing)")
+  d$val <- factor(as.character(d$val), levels = lvl_ord)
+
+  shares <- d %>%
+    count(grp, val, name = "n") %>%
+    group_by(grp) %>%
+    mutate(share = n / sum(n), n_grp = sum(n)) %>%
+    ungroup()
+
+  ord <- shares %>%
+    filter(val == ref) %>%
+    arrange(share) %>%
+    pull(grp)
+  ord <- c(ord, setdiff(unique(shares$grp), ord))
+  shares$grp <- factor(shares$grp, levels = ord)
+
+  ## Keep the legend readable: long category names need fewer columns.
+  lab_len  <- max(nchar(levels(shares$val)))
+  leg_cols <- min(nlevels(shares$val),
+                  if (lab_len > 30) 2 else if (lab_len > 18) 3 else 4)
+
+  ggplot(shares, aes(x = share, y = grp, fill = val)) +
+    geom_col(width = 0.78, position = position_stack(reverse = TRUE)) +
+    scale_x_continuous(labels = scales::label_percent(accuracy = 1),
+                       expand = expansion(mult = c(0, 0.005))) +
+    scale_fill_viridis_d(option = "D", end = 0.92, direction = -1) +
+    guides(fill = guide_legend(ncol = leg_cols, byrow = TRUE)) +
+    labs(
+      title    = var,
+      subtitle = sprintf("Composition by %s, sorted by share \"%s\"",
+                         tolower(group_label), ref),
+      x        = "Share of sampled students",
+      caption  = sprintf(
+        "n = %s sampled students across %d %s groups; %d categories. Bars sum to 100%%.",
+        format(sum(shares$n), big.mark = ","), length(unique(shares$grp)),
+        tolower(group_label), nlevels(shares$val))
+    )
+}
+
+## ---- Numeric: horizontal boxplots ordered by median -------------------
+plot_numeric <- function(data, var, group_var, group_label) {
+  d <- data %>%
+    select(grp = all_of(group_var), val = all_of(var)) %>%
+    filter(!is.na(grp), grp %in% KEEP_GROUPS)
+
+  n_all      <- nrow(d)
+  pct_miss   <- 100 * mean(is.na(d$val))
+  d          <- filter(d, !is.na(val))
+  pct_zero   <- 100 * mean(d$val == 0)
+  conditioned <- var %in% CONDITION_ON_POSITIVE
+  if (conditioned) d <- filter(d, val > 0)
+
+  if (!nrow(d) || length(unique(d$val)) < 2) {
+    return(list(plot = NULL, note = sprintf(
+      "*Not plotted: `%s` has no variation among the sampled rows%s.*",
+      var, if (conditioned) " with a positive value" else "")))
+  }
+
+  med <- d %>%
+    group_by(grp) %>%
+    summarise(m = median(val), .groups = "drop") %>%
+    arrange(m)
+  d$grp <- factor(d$grp, levels = med$grp)
+
+  ## Zoom rather than filter: coord_cartesian keeps every row in the boxplot
+  ## statistics and only clips the view. The window is the span of the drawn
+  ## whiskers, tightened further if the TRIM_TAILS percentiles are narrower.
+  ## Using the raw percentiles alone lets one very long tail (income, parent
+  ## loans) squash every box flat against the axis.
+  wh <- d %>%
+    group_by(grp) %>%
+    summarise(
+      q1 = quantile(val, 0.25),
+      q3 = quantile(val, 0.75),
+      lo = min(val[val >= q1 - 1.5 * (q3 - q1)]),
+      hi = max(val[val <= q3 + 1.5 * (q3 - q1)]),
+      .groups = "drop"
+    )
+  qt   <- unname(quantile(d$val, c(TRIM_TAILS, 1 - TRIM_TAILS), na.rm = TRUE))
+  lims <- c(max(min(wh$lo), qt[1]), min(max(wh$hi), qt[2]))
+  if (!all(is.finite(lims)) || lims[1] >= lims[2]) {
+    lims <- range(d$val, na.rm = TRUE)
+  }
+  lims <- lims + c(-1, 1) * diff(lims) * 0.02
+  if (min(d$val, na.rm = TRUE) >= 0) lims[1] <- max(0, lims[1])
+
+  p <- ggplot(d, aes(x = val, y = grp)) +
+    geom_boxplot(outlier.shape = NA, fill = "#3B7EA1", colour = "grey25",
+                 alpha = 0.85, linewidth = 0.3, width = 0.7) +
+    scale_x_continuous(labels = x_labeller(var)) +
+    coord_cartesian(xlim = lims) +
+    labs(
+      title    = var,
+      subtitle = sprintf("Distribution by %s, sorted by median%s",
+                         tolower(group_label),
+                         if (conditioned) " (positive values only)" else ""),
+      x        = var,
+      caption  = sprintf(paste0(
+        "n = %s sampled students across %d %s groups. %.1f%% missing, ",
+        "%.1f%% exactly zero%s.\n",
+        "Boxes span the interquartile range; whiskers reach 1.5 x IQR; ",
+        "outlier points suppressed.\n",
+        "Axis clipped to %s-%s, so the extreme tail is not shown."),
+        format(nrow(d), big.mark = ","), length(unique(d$grp)),
+        tolower(group_label), pct_miss, pct_zero,
+        if (conditioned) "; zeros excluded" else "",
+        x_labeller(var)(lims[1]), x_labeller(var)(lims[2]))
+    )
+
+  note <- if (!conditioned && pct_zero >= 40) sprintf(
+    paste0("> **Note:** %.0f%% of sampled students have $0 for this variable, ",
+           "so the boxes sit on or near zero. Add `\"%s\"` to ",
+           "`CONDITION_ON_POSITIVE` in the config chunk to see the ",
+           "distribution among recipients only."), pct_zero, var) else NULL
+
+  list(plot = p, note = note)
+}
+```
+
+<!-- ===================================================================== -->
+<!--  4. GROUP SIZES                                                       -->
+<!-- ===================================================================== -->
+
+## Sampled students per `r tolower(GROUP_LABEL)`
+
+```{r group-size-chart, fig.width=9, fig.height=FIG_HEIGHT}
+group_sizes %>%
+  filter(group %in% KEEP_GROUPS) %>%
+  mutate(group = factor(group, levels = rev(sort(unique(group))))) %>%
+  ggplot(aes(x = n_sampled, y = group)) +
+  geom_col(fill = "#3B7EA1", width = 0.78) +
+  scale_x_continuous(labels = scales::label_number(big.mark = ","),
+                     expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title    = sprintf("Sample size by %s", tolower(GROUP_LABEL)),
+    x        = "Sampled students",
+    caption  = "Read every chart below against these denominators; the smallest groups are the noisiest."
+  )
+```
+
+<!-- ===================================================================== -->
+<!--  5. ONE CHART PER ANALYSIS VARIABLE                                   -->
+<!-- ===================================================================== -->
+
+# Distributions by `r tolower(GROUP_LABEL)`
+
+```{r render-all, results='asis', fig.width=9, fig.height=FIG_HEIGHT}
+for (v in ANALYSIS_VARS) {
+
+  cat("\n\n## ", v, "\n\n", sep = "")
+
+  if (identical(unname(VAR_TYPE_RESOLVED[[v]]), "numeric")) {
+    res <- plot_numeric(dat, v, GROUP_VAR, GROUP_LABEL)
+    p   <- res$plot
+    if (is.null(p)) {
+      cat(res$note, "\n\n")
+      next
+    }
+    if (!is.null(res$note)) cat(res$note, "\n\n")
+  } else {
+    p <- plot_categorical(dat, v, GROUP_VAR, GROUP_LABEL)
+  }
+
+  print(p)
+  cat("\n\n")
+
+  if (SAVE_PNGS) {
+    fname <- file.path(OUT_DIR, sprintf(
+      "%s-%s-by-%s.png", format(Sys.Date()),
+      gsub("[^A-Za-z0-9]+", "-", tolower(v)), tolower(GROUP_VAR)))
+    ggsave(fname, p, width = 9, height = FIG_HEIGHT, dpi = 200, bg = "white")
+  }
+}
+```
+
+<!-- ===================================================================== -->
+<!--  6. REPRODUCIBILITY                                                   -->
+<!-- ===================================================================== -->
+
+# Reproducibility
+
+```{r session, results='asis'}
+cat(sprintf(
+"- Sample seed: `%d`; sampling method: `%s`.\n
+- Cached sample: `%s` (%s rows). Delete it or set `REFRESH_SAMPLE <- TRUE` to redraw.\n
+- Note that `awk`'s random number generator is not identical across
+  implementations, so the exact rows drawn may differ between machines. The
+  cache file, not the seed, is what makes a specific set of figures
+  reproducible &mdash; keep it if you need the numbers to stay fixed.\n\n",
+  SEED, SAMPLE_METHOD, CACHE_PATH, format(nrow(dat), big.mark = ",")))
+```
+
+```{r session-info}
+sessionInfo()
+```
