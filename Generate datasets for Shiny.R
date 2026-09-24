@@ -15,6 +15,23 @@ mem.maxVSize(32000)
 
 #### End ####
 
+runResultsA <- FALSE
+runResultsB <- FALSE
+runResultsC <- FALSE
+runResultsD <- FALSE
+runResultsE <- FALSE
+runResultsF <- FALSE
+runResultsG <- FALSE
+runResultsH <- FALSE
+
+wdPrefix <- "/Volumes/TOSHIBA EXT/Fed State Modeling/"
+# wdPrefix <- "/Users/petergranvillecb/Desktop/Peter/"
+# wdPrefix <- "/Users/petergranvillelf/Desktop/Peter/"
+# wdPrefix <- "/Users/petergranvillelv/Desktop/Peter/"
+# wdPrefix <- "/Users/petergranvillekp/Desktop/Peter/"
+# wdPrefix <- "/Users/petergranvillerf/Desktop/Peter/"
+# wdPrefix <- "/Users/petergranvillerw/Desktop/Peter/"
+
 #### Write function to add model specification columns #### 
 
 specs <- function(
@@ -55,7 +72,7 @@ specs <- function(
 
 #### Load processed output ####
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling")
+setwd(wdPrefix)
 
 studentDF <- read.csv(
   "All merged adjusted student data.csv",
@@ -71,7 +88,7 @@ studentDF <- read.csv(
 
 #### Load SHEEO data ####
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS data")
+setwd(paste(wdPrefix, "IPEDS data", sep=""))
 
 stateDF <- read_excel(
   path="SHEEO_SHEF_FY24_Sector_Data.xlsx", 
@@ -162,7 +179,7 @@ stateDF$STABBR[51] <- "DC"
 
 #### Load IPEDS data ####
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS data")
+setwd(paste(wdPrefix, "IPEDS data", sep=""))
 
 collegeDF <- read.csv("hd2024.csv", header=TRUE) %>% select(
   `UNITID`, 
@@ -275,6 +292,69 @@ collegeDF <- collegeDF %>% filter(
 
 #### End #### 
 
+#### Load sector lookup, merge with main dataset ####
+
+typicalExpenses <- data.frame(
+  `SECTOR` = numeric(),
+  `Typical expenses per FTE` = numeric(),
+  check.names=FALSE
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Public, 4-year or above
+  `SECTOR` = 1,
+  `Typical expenses per FTE` = 39332
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Private not-for-profit, 4-year or above
+  `SECTOR` = 2,
+  `Typical expenses per FTE` = 51263
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Private for-profit, 4-year or above
+  `SECTOR` = 3,
+  `Typical expenses per FTE` = 17373
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Public, 2-year
+  `SECTOR` = 4,
+  `Typical expenses per FTE` = 21108
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Private not-for-profit, 2-year
+  `SECTOR` = 5,
+  `Typical expenses per FTE` = 26814
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Private for-profit, 2-year
+  `SECTOR` = 6,
+  `Typical expenses per FTE` = 14662
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Public, less-than 2-year
+  `SECTOR` = 7,
+  `Typical expenses per FTE` = 15000 # Placeholder
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Private not-for-profit, less-than 2-year
+  `SECTOR` = 8,
+  `Typical expenses per FTE` = 15000 # Placeholder
+)
+typicalExpenses <- typicalExpenses %>% add_row(
+  # Private for-profit, less-than 2-year
+  `SECTOR` = 9,
+  `Typical expenses per FTE` = 15000 # Placeholder
+)
+
+sectorLookup <- read.csv("hd2024.csv", header=TRUE) %>% select(
+  `UNITID`,
+  `SECTOR`
+)
+sectorLookup <- left_join(x=sectorLookup, y=typicalExpenses, by="SECTOR")
+studentDF <- left_join(x=studentDF, y=sectorLookup, by="UNITID")
+rm(sectorLookup)
+
+#### End ####
+
 ################################################
 #### Additional steps                       ####
 ################################################
@@ -326,7 +406,7 @@ saveCollege <- collegeDF %>% select(
   `LATITUDE`
 )
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2")
+setwd(paste(wdPrefix, "Model-V3", sep=""))
 write.csv(saveCollege, "College info.csv", row.names=FALSE)
 rm(saveCollege)
 
@@ -372,7 +452,7 @@ functionA <- function(
   # select6 <- "Skipped"
   # select7 <- "Both two- and four-year institutions"
   # select8 <- "No"
-  # select9 <- "35% and above"
+  # select9 <- "5% and above"
   # 
   # #### End ####
 
@@ -401,11 +481,7 @@ functionA <- function(
   #### [S] Student eligibility ####
   
   studentData <- studentData %>% mutate(
-    `Eligible` = ifelse(
-      `Citizenship`=="Citizen or eligible non-citizen", 
-      "Yes", 
-      "No"
-    )
+    `Eligible` = rep("Yes")
   ) 
   
   # Is student eligibility limited on the basis of enrollment intensity?
@@ -466,15 +542,27 @@ functionA <- function(
   }
   if(select1=="$1,000 at all eligible institutions"){
     studentData <- studentData %>% mutate(
-      `Target tuition` = pmin(1000, `Tuition and fees paid`)
+      `Target tuition` = ifelse(
+        `Enrollment intensity`=="Full-time",
+        pmin(1000, `Tuition and fees paid`), 
+        pmin(500, `Tuition and fees paid`)
+      )
     )
   }
   if(select1=="$1,000 at eligible two-year institutions and $3,000 at eligible four-year institutions"){
     studentData <- studentData %>% mutate(
       `Target tuition` = ifelse(
         `Level`=="Four-year",
-        pmin(3000, `Tuition and fees paid`), 
-        pmin(1000, `Tuition and fees paid`)
+        ifelse(
+          `Enrollment intensity`=="Full-time",
+          pmin(3000, `Tuition and fees paid`), 
+          pmin(1500, `Tuition and fees paid`)
+        ), 
+        ifelse(
+          `Enrollment intensity`=="Full-time",
+          pmin(1000, `Tuition and fees paid`), 
+          pmin(500, `Tuition and fees paid`)
+        )
       )
     )
   }
@@ -725,9 +813,9 @@ functionA <- function(
   
   #### [S] State participation: Financial ####
   
-  if(select9=="15% and above"){maxIncrease <- 0.15}
-  if(select9=="25% and above"){maxIncrease <- 0.25}
-  if(select9=="35% and above"){maxIncrease <- 0.35}
+  if(select9=="5% and above"){maxIncrease <- 0.05}
+  if(select9=="10% and above"){maxIncrease <- 0.10}
+  if(select9=="20% and above"){maxIncrease <- 0.20}
   
   stateData <- stateData %>% mutate(
     `Participation status` = rep("Yes")
@@ -885,7 +973,7 @@ functionB <- function(
   # select6 <- "Skipped"
   # select7 <- "Both two- and four-year institutions"
   # select8 <- "No"
-  # select9 <- "35% and above"
+  # select9 <- "5% and above"
   # 
   # #### End ####
   
@@ -914,11 +1002,7 @@ functionB <- function(
   #### [S] Student eligibility ####
   
   studentData <- studentData %>% mutate(
-    `Eligible` = ifelse(
-      `Citizenship`=="Citizen or eligible non-citizen", 
-      "Yes", 
-      "No"
-    )
+    `Eligible` = rep("Yes")
   ) 
   
   # Is student eligibility limited on the basis of enrollment intensity?
@@ -1234,9 +1318,9 @@ functionB <- function(
   
   #### [S] State participation: Financial ####
   
-  if(select9=="15% and above"){maxIncrease <- 0.15}
-  if(select9=="25% and above"){maxIncrease <- 0.25}
-  if(select9=="35% and above"){maxIncrease <- 0.35}
+  if(select9=="5% and above"){maxIncrease <- 0.05}
+  if(select9=="10% and above"){maxIncrease <- 0.10}
+  if(select9=="20% and above"){maxIncrease <- 0.20}
   
   stateData <- stateData %>% mutate(
     `Participation status` = rep("Yes")
@@ -1394,7 +1478,7 @@ functionC <- function(
   # select6 <- "Skipped"
   # select7 <- "Both two- and four-year institutions"
   # select8 <- "No"
-  # select9 <- "35% and above"
+  # select9 <- "5% and above"
   # 
   # #### End ####
   
@@ -1423,11 +1507,7 @@ functionC <- function(
   #### [S] Student eligibility ####
   
   studentData <- studentData %>% mutate(
-    `Eligible` = ifelse(
-      `Citizenship`=="Citizen or eligible non-citizen", 
-      "Yes", 
-      "No"
-    )
+    `Eligible` = rep("Yes")
   ) 
   
   # Is student eligibility limited on the basis of enrollment intensity?
@@ -1747,9 +1827,9 @@ functionC <- function(
   
   #### [S] State participation: Financial ####
   
-  if(select9=="15% and above"){maxIncrease <- 0.15}
-  if(select9=="25% and above"){maxIncrease <- 0.25}
-  if(select9=="35% and above"){maxIncrease <- 0.35}
+  if(select9=="5% and above"){maxIncrease <- 0.05}
+  if(select9=="10% and above"){maxIncrease <- 0.10}
+  if(select9=="20% and above"){maxIncrease <- 0.20}
   
   stateData <- stateData %>% mutate(
     `Participation status` = rep("Yes")
@@ -1908,7 +1988,7 @@ functionD <- function(
   # select6 <- "Skipped"
   # select7 <- "Both two- and four-year institutions"
   # select8 <- "No"
-  # select9 <- "35% and above"
+  # select9 <- "5% and above"
   # 
   # #### End ####
   
@@ -1937,11 +2017,7 @@ functionD <- function(
   #### [S] Student eligibility ####
   
   studentData <- studentData %>% mutate(
-    `Eligible` = ifelse(
-      `Citizenship`=="Citizen or eligible non-citizen", 
-      "Yes", 
-      "No"
-    )
+    `Eligible` = rep("Yes")
   ) 
   
   # Is student eligibility limited on the basis of enrollment intensity?
@@ -2261,9 +2337,9 @@ functionD <- function(
   
   #### [S] State participation: Financial ####
   
-  if(select9=="15% and above"){maxIncrease <- 0.15}
-  if(select9=="25% and above"){maxIncrease <- 0.25}
-  if(select9=="35% and above"){maxIncrease <- 0.35}
+  if(select9=="5% and above"){maxIncrease <- 0.05}
+  if(select9=="10% and above"){maxIncrease <- 0.10}
+  if(select9=="20% and above"){maxIncrease <- 0.20}
   
   stateData <- stateData %>% mutate(
     `Participation status` = rep("Yes")
@@ -2422,7 +2498,7 @@ functionE <- function(
   # select6 <- "Skipped"
   # select7 <- "Only two-year institutions"
   # select8 <- "No"
-  # select9 <- "25% and above"
+  # select9 <- "5% and above"
   # 
   # #### End #### 
   
@@ -2451,11 +2527,7 @@ functionE <- function(
   #### [S] Student eligibility ####
   
   studentData <- studentData %>% mutate(
-    `Eligible` = ifelse(
-      `Citizenship`=="Citizen or eligible non-citizen", 
-      "Yes", 
-      "No"
-    )
+    `Eligible` = rep("Yes")
   ) 
   
   # Is student eligibility limited on the basis of enrollment intensity?
@@ -2685,9 +2757,9 @@ functionE <- function(
   
   #### [S] State participation: Financial ####
   
-  if(select9=="15% and above"){maxIncrease <- 0.15}
-  if(select9=="25% and above"){maxIncrease <- 0.25}
-  if(select9=="35% and above"){maxIncrease <- 0.35}
+  if(select9=="5% and above"){maxIncrease <- 0.05}
+  if(select9=="10% and above"){maxIncrease <- 0.10}
+  if(select9=="20% and above"){maxIncrease <- 0.20}
   
   stateData <- stateData %>% mutate(
     `Participation status` = rep("Yes")
@@ -2890,11 +2962,7 @@ functionF <- function(
   #### [S] Student eligibility ####
   
   studentData <- studentData %>% mutate(
-    `Eligible` = ifelse(
-      `Citizenship`=="Citizen or eligible non-citizen", 
-      "Yes", 
-      "No"
-    )
+    `Eligible` = rep("Yes")
   ) 
   
   # Is student eligibility limited on the basis of enrollment intensity?
@@ -3127,7 +3195,7 @@ functionF <- function(
   
   if(select9=="5% and above"){maxIncrease <- 0.05}
   if(select9=="10% and above"){maxIncrease <- 0.1}
-  if(select9=="15% and above"){maxIncrease <- 0.15}
+  if(select9=="20% and above"){maxIncrease <- 0.2}
   
   collegeData <- collegeData %>% mutate(
     `Participation status` = rep("Yes")
@@ -3681,42 +3749,59 @@ functionH <- function(
 
 functionX <- function(students1){
   
-  #### Increase in degrees from net price ####
+  # #### Inducement effects on enrollment #### 
+  # 
+  # students1 <- students1 %>% mutate(
+  #   `Inducement coefficient` = ifelse(
+  #     `SECTOR` %in% (1:3),
+  #     0.1,
+  #     0.05
+  #   )
+  # ) %>% mutate(
+  #   `Original weight` = rep(1),
+  #   `New weight` = 1 * (
+  #     # Inducement effect from net price: 
+  #     1.044 ^ ((`New grants` + `New tuition subsidy`) / 1000)
+  #   ) * (
+  #     # Inducement effect from college spending: 
+  #     1.1 ^ (`Overflow` / (`Typical expenses per FTE` * `Inducement coefficient`))
+  #   )
+  # ) %>% select(
+  #   -(`Inducement coefficient`)
+  # )
+  # 
+  # #### End #### 
+  
+  #### Inducement effects on certificates and degrees ####
   
   students1 <- students1 %>% mutate(
-    `New expected certificates` = pmin(1, `Expected certificates` * (1 + ((`New grants` + `New tuition subsidy`) / 5000))),
-    `New expected associate's degrees` = pmin(1, `Expected associate's degrees` * (1 + ((`New grants` + `New tuition subsidy`) / 15000))), 
-    `New expected bachelor's degrees` = pmin(1, `Expected bachelor's degrees` * (1 + ((`New grants` + `New tuition subsidy`) / 25000))) 
-  )
-  
-  #### End #### 
-  
-  #### Increase in degrees from overflow ####
-  
-  students1 <- students1 %>% mutate(
-    `New expected certificates` = pmin(1, `New expected certificates` * (1 + (`Overflow` / 5000))),
-    `New expected associate's degrees` = pmin(1, `New expected associate's degrees` * (1 + (`Overflow` / 15000))), 
-    `New expected bachelor's degrees` = pmin(1, `New expected bachelor's degrees` * (1 + (`Overflow` / 25000))) 
-  )
-  
-  #### End #### 
-  
-  #### Increase in earnings from attainment ####
-  
-  students1 <- students1 %>% mutate(
+    `New expected certificates` = `Expected certificates` * (
+      # From net price: 
+      1.1 ^ ((`New grants` + `New tuition subsidy`) / 1000)
+    ) * (
+      # From spending: 
+      1.14 ^ (`Overflow` / (`Typical expenses per FTE` * 0.1))
+    )
+  ) %>% mutate(
+    `New expected associate's degrees` = `Expected associate's degrees` * (
+      # From net price: 
+      1.1 ^ ((`New grants` + `New tuition subsidy`) / 1000)
+    ) * (
+      # From spending: 
+      1.14 ^ (`Overflow` / (`Typical expenses per FTE` * 0.1))
+    )
+  ) %>% mutate(
+    `New expected bachelor's degrees` = `Expected bachelor's degrees` * (
+      # From net price: 
+      1.1 ^ ((`New grants` + `New tuition subsidy`) / 1000)
+    ) * (
+      # From spending: 
+      1.14 ^ (`Overflow` / (`Typical expenses per FTE` * 0.1))
+    )
+  ) %>% mutate(
     `Gain: Certificates` = `New expected certificates` - `Expected certificates`, 
     `Gain: Associate's degrees` = `New expected associate's degrees` - `Expected associate's degrees`, 
     `Gain: Bachelor's degrees` = `New expected bachelor's degrees` - `Expected bachelor's degrees`
-  ) %>% mutate(
-    `Gain: Earnings` = (`Gain: Certificates` * 3000) + (`Gain: Associate's degrees` * 8000) + (`Gain: Bachelor's degrees` * 20000)
-  )
-  
-  #### End #### 
-  
-  #### Increase in taxes from earnings ####
-  
-  students1 <- students1 %>% mutate(
-    `Increase: Taxes` = `Gain: Earnings` * 0.2
   )
   
   #### End #### 
@@ -4050,7 +4135,7 @@ function4 <- function(students1, states1, colleges1, plan1){
 
 #### End #### 
 
-#### Function 5: Economic impact #### 
+#### Function 5: Annual cost #### 
 
 function5 <- function(students1, states1, colleges1, plan1){
   
@@ -4063,12 +4148,9 @@ function5 <- function(students1, states1, colleges1, plan1){
   }else{
     annualCost <- sum(states1$`Total state contributions`, na.rm=TRUE) + sum(states1$`Federal block grant`, na.rm=TRUE)
   }
-  
-  annualTax <- sum(students1$`Increase: Taxes`)
-  
+
   results1 <- data.frame(
-    `Annual cost` = c(annualCost), 
-    `Increase in annual taxes` = c(annualTax), 
+    `Annual cost` = c(annualCost),
     check.names=FALSE
   )
   
@@ -4505,6 +4587,51 @@ function10 <- function(students1, states1, colleges1, plan1){
 
 #### End #### 
 
+#### Function 11: Cohort impacts ####
+
+function11 <- function(students1, states1, colleges1, plan1){
+  
+  students1 <- students1 %>% mutate(
+    `Pre-policy student loans` = `Federal loan amount` + `Parent loan amount`
+  ) %>% mutate(
+    `Post-policy student loans` = pmax(`Pre-policy student loans` - (`New grants` + `New tuition subsidy`), 0) 
+  ) %>% mutate(
+    `Pre-policy borrower status` = ifelse(`Pre-policy student loans` > 0, 1, 0),
+    `Post-policy borrower status` = ifelse(`Post-policy student loans` > 0, 1, 0) 
+  ) %>% mutate(
+    `Count` = rep(1)
+  )
+  
+  results1 <- aggregate(
+    data=students1, 
+    cbind(
+      `Count`,
+      `Expected certificates`, 
+      `Expected associate's degrees`,
+      `Expected bachelor's degrees`,
+      `New expected certificates`, 
+      `New expected associate's degrees`,
+      `New expected bachelor's degrees`,
+      `Pre-policy borrower status`, 
+      `Post-policy borrower status`, 
+      `Pre-policy student loans`, 
+      `Post-policy student loans`, 
+      `New grants`, 
+      `New tuition subsidy`, 
+      `Overflow`
+    ) ~ `UNITID` + `Participant` + `Entering status` + `First-time status` + `Enrollment intensity`, 
+    FUN=sum
+  ) %>% filter(
+    `Participant` == "Yes", 
+    `Entering status` == "Entering", 
+    `First-time status` == "First-time"
+  )
+  
+  return(results1)
+}
+
+#### End #### 
+
 ################################################
 #### Set choice lists                       ####
 ################################################
@@ -4542,7 +4669,7 @@ choices1f <- choices1e
 choices1g <- choices1b
 
 choices1h <- c(
-  "All support", 
+  "All support",
   "New support"
 )
 
@@ -4551,8 +4678,8 @@ choices1h <- c(
 #### Choice list 2 ####
 
 choices2a <- c(
-  "$0.10", 
-  "$0.25", 
+  "$0.10",
+  "$0.25",
   "$0.50",
   "$1.00"
 )
@@ -4564,8 +4691,8 @@ choices2c <- choices2a
 choices2d <- choices2a
 
 choices2e <- c(
-  "$5,000 per eligible FTE", 
-  "$10,000 per eligible FTE", 
+  "$5,000 per eligible FTE",
+  "$10,000 per eligible FTE",
   "$15,000 per eligible FTE"
 )
 
@@ -4577,7 +4704,7 @@ choices2g <- c(
 
 choices2h <- c(
   "5%",
-  "10%", 
+  "10%",
   "20%"
 )
 
@@ -4605,8 +4732,8 @@ choices3g <- c(
 )
 
 choices3h <- c(
-  "$1 federal for every $0.50 state", 
-  "$1 federal for every $1 state", 
+  "$1 federal for every $0.50 state",
+  "$1 federal for every $1 state",
   "$1 federal for every $2 state"
 )
 
@@ -4641,9 +4768,11 @@ choices4h <- c(
 
 #### Choice list 5 ####
 
+# EDIT MADE 09-18-2026 TO REDUCE COMBINATIONS: 
 choices5a <- c(
-  "Yes",
-  "No"
+  "Yes"
+  # ,
+  # "No"
 )
 
 choices5b <- choices5a
@@ -4669,7 +4798,7 @@ choices5h <- c(
 #### Choice list 6 ####
 
 choices6a <- c(
-  "Yes", 
+  "Yes",
   "No"
 )
 
@@ -4684,8 +4813,8 @@ choices6e <- c(
 )
 
 choices6f <- c(
-  "Public only", 
-  "Public and nonprofit only", 
+  "Public only",
+  "Public and nonprofit only",
   "All controls"
 )
 
@@ -4749,10 +4878,12 @@ choices8h <- choices8a
 
 #### Choice list 9 ####
 
+# EDIT MADE 09-18-2026 TO REDUCE COMBINATIONS: 
 choices9a <- c(
-  "15% and above",
-  "25% and above",
-  "35% and above"
+  "5% and above",
+  "10% and above"
+  # ,
+  # "20% and above"
 )
 
 choices9b <- choices9a
@@ -4763,11 +4894,7 @@ choices9d <- choices9a
 
 choices9e <- choices9a
 
-choices9f <- c(
-  "5% and above",
-  "10% and above",
-  "15% and above"
-)
+choices9f <- choices9a
 
 choices9g <- c(
   "Skipped"
@@ -4803,7 +4930,7 @@ choices9h <- c(
 
 #### Save index of choice lists #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
 allCombos <- data.frame(
   `Plan` = character(),
@@ -5022,6 +5149,8 @@ write.csv(allCombos, "Input combos.csv", row.names=FALSE)
 #### Write File A                           ####
 ################################################
 
+if(runResultsA==TRUE){
+
 counter <- 0
 for(r in choices1a){
   for(s in choices2a){
@@ -5060,6 +5189,7 @@ for(r in choices1a){
                   temp8 <- function8(students0, states0, colleges0, "Plan A")
                   temp9 <- function9(students0, states0, colleges0, "Plan A")
                   temp10 <- function10(students0, states0, colleges0, "Plan A")
+                  temp11 <- function11(students0, states0, colleges0, "Plan A")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -5077,6 +5207,7 @@ for(r in choices1a){
                     output8 <- specs(temp8, "A")
                     output9 <- specs(temp9, "A")
                     output10 <- specs(temp10, "A")
+                    output11 <- specs(temp11, "A")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "A"))
                     output2 <- rbind(output2, specs(temp2, "A"))
@@ -5088,8 +5219,9 @@ for(r in choices1a){
                     output8 <- rbind(output8, specs(temp8, "A"))
                     output9 <- rbind(output9, specs(temp9, "A"))
                     output10 <- rbind(output10, specs(temp10, "A"))
+                    output11 <- rbind(output11, specs(temp11, "A"))
                   }
-                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10, temp11)
                   
                   #### End #### 
                   
@@ -5097,31 +5229,34 @@ for(r in choices1a){
 
 #### Write File A #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
-sheetList <- list(
-  Sheet1 = output1,
-  Sheet2 = output2,
-  Sheet3 = output3,
-  Sheet4 = output4,
-  Sheet5 = output5,
-  Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
-  Sheet9 = output9,
-  Sheet10 = output10
-)
+write.csv(output1, "A-1.csv", row.names = FALSE)
+write.csv(output2, "A-2.csv", row.names = FALSE)
+write.csv(output3, "A-3.csv", row.names = FALSE)
+write.csv(output4, "A-4.csv", row.names = FALSE)
+write.csv(output5, "A-5.csv", row.names = FALSE)
+write.csv(output6, "A-6.csv", row.names = FALSE)
+write.csv(output7, "A-7.csv", row.names = FALSE)
+write.csv(output8, "A-8.csv", row.names = FALSE)
+write.csv(output9, "A-9.csv", row.names = FALSE)
+write.csv(output10, "A-10.csv", row.names = FALSE)
+write.csv(output11, "A-11.csv", row.names = FALSE)
 
-write_xlsx(sheetList, "Plan A.xlsx")
-rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
+rm(output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, counter)
 rm(choices1a, choices2a, choices3a, choices4a, choices5a, choices6a, choices7a, choices8a, choices9a)
+rm(r, s, t, u, v, w, x, y, z)
 
 #### End #### 
+
+}
 
 ################################################
 #### Write File B                           ####
 ################################################
 
+if(runResultsB==TRUE){
+  
 counter <- 0
 for(r in choices1b){
   for(s in choices2b){
@@ -5160,6 +5295,7 @@ for(r in choices1b){
                   temp8 <- function8(students0, states0, colleges0, "Plan B")
                   temp9 <- function9(students0, states0, colleges0, "Plan B")
                   temp10 <- function10(students0, states0, colleges0, "Plan B")
+                  temp11 <- function11(students0, states0, colleges0, "Plan B")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -5177,6 +5313,7 @@ for(r in choices1b){
                     output8 <- specs(temp8, "B")
                     output9 <- specs(temp9, "B")
                     output10 <- specs(temp10, "B")
+                    output11 <- specs(temp11, "B")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "B"))
                     output2 <- rbind(output2, specs(temp2, "B"))
@@ -5188,8 +5325,9 @@ for(r in choices1b){
                     output8 <- rbind(output8, specs(temp8, "B"))
                     output9 <- rbind(output9, specs(temp9, "B"))
                     output10 <- rbind(output10, specs(temp10, "B"))
+                    output11 <- rbind(output11, specs(temp11, "B"))
                   }
-                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10, temp11)
                   
                   #### End #### 
                   
@@ -5197,31 +5335,34 @@ for(r in choices1b){
 
 #### Write File B #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
-sheetList <- list(
-  Sheet1 = output1,
-  Sheet2 = output2,
-  Sheet3 = output3,
-  Sheet4 = output4,
-  Sheet5 = output5,
-  Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
-  Sheet9 = output9,
-  Sheet10 = output10
-)
+write.csv(output1, "B-1.csv", row.names = FALSE)
+write.csv(output2, "B-2.csv", row.names = FALSE)
+write.csv(output3, "B-3.csv", row.names = FALSE)
+write.csv(output4, "B-4.csv", row.names = FALSE)
+write.csv(output5, "B-5.csv", row.names = FALSE)
+write.csv(output6, "B-6.csv", row.names = FALSE)
+write.csv(output7, "B-7.csv", row.names = FALSE)
+write.csv(output8, "B-8.csv", row.names = FALSE)
+write.csv(output9, "B-9.csv", row.names = FALSE)
+write.csv(output10, "B-10.csv", row.names = FALSE)
+write.csv(output11, "B-11.csv", row.names = FALSE)
 
-write_xlsx(sheetList, "Plan B.xlsx")
-rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
+rm(output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, counter)
 rm(choices1b, choices2b, choices3b, choices4b, choices5b, choices6b, choices7b, choices8b, choices9b)
+rm(r, s, t, u, v, w, x, y, z)
 
 #### End #### 
+
+}
 
 ################################################
 #### Write File C                           ####
 ################################################
 
+if(runResultsC==TRUE){
+  
 counter <- 0
 for(r in choices1c){
   for(s in choices2c){
@@ -5260,6 +5401,7 @@ for(r in choices1c){
                   temp8 <- function8(students0, states0, colleges0, "Plan C")
                   temp9 <- function9(students0, states0, colleges0, "Plan C")
                   temp10 <- function10(students0, states0, colleges0, "Plan C")
+                  temp11 <- function11(students0, states0, colleges0, "Plan C")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -5277,6 +5419,7 @@ for(r in choices1c){
                     output8 <- specs(temp8, "C")
                     output9 <- specs(temp9, "C")
                     output10 <- specs(temp10, "C")
+                    output11 <- specs(temp11, "C")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "C"))
                     output2 <- rbind(output2, specs(temp2, "C"))
@@ -5288,8 +5431,9 @@ for(r in choices1c){
                     output8 <- rbind(output8, specs(temp8, "C"))
                     output9 <- rbind(output9, specs(temp9, "C"))
                     output10 <- rbind(output10, specs(temp10, "C"))
+                    output11 <- rbind(output11, specs(temp11, "C"))
                   }
-                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10, temp11)
                   
                   #### End #### 
                   
@@ -5297,31 +5441,34 @@ for(r in choices1c){
 
 #### Write File C #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
-sheetList <- list(
-  Sheet1 = output1,
-  Sheet2 = output2,
-  Sheet3 = output3,
-  Sheet4 = output4,
-  Sheet5 = output5,
-  Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
-  Sheet9 = output9,
-  Sheet10 = output10
-)
+write.csv(output1, "C-1.csv", row.names = FALSE)
+write.csv(output2, "C-2.csv", row.names = FALSE)
+write.csv(output3, "C-3.csv", row.names = FALSE)
+write.csv(output4, "C-4.csv", row.names = FALSE)
+write.csv(output5, "C-5.csv", row.names = FALSE)
+write.csv(output6, "C-6.csv", row.names = FALSE)
+write.csv(output7, "C-7.csv", row.names = FALSE)
+write.csv(output8, "C-8.csv", row.names = FALSE)
+write.csv(output9, "C-9.csv", row.names = FALSE)
+write.csv(output10, "C-10.csv", row.names = FALSE)
+write.csv(output11, "C-11.csv", row.names = FALSE)
 
-write_xlsx(sheetList, "Plan C.xlsx")
-rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
+rm(output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, counter)
 rm(choices1c, choices2c, choices3c, choices4c, choices5c, choices6c, choices7c, choices8c, choices9c)
+rm(r, s, t, u, v, w, x, y, z)
 
 #### End #### 
+
+}
 
 ################################################
 #### Write File D                           ####
 ################################################
 
+if(runResultsD==TRUE){
+  
 counter <- 0
 for(r in choices1d){
   for(s in choices2d){
@@ -5360,6 +5507,7 @@ for(r in choices1d){
                   temp8 <- function8(students0, states0, colleges0, "Plan D")
                   temp9 <- function9(students0, states0, colleges0, "Plan D")
                   temp10 <- function10(students0, states0, colleges0, "Plan D")
+                  temp11 <- function11(students0, states0, colleges0, "Plan D")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -5377,6 +5525,7 @@ for(r in choices1d){
                     output8 <- specs(temp8, "D")
                     output9 <- specs(temp9, "D")
                     output10 <- specs(temp10, "D")
+                    output11 <- specs(temp11, "D")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "D"))
                     output2 <- rbind(output2, specs(temp2, "D"))
@@ -5388,8 +5537,9 @@ for(r in choices1d){
                     output8 <- rbind(output8, specs(temp8, "D"))
                     output9 <- rbind(output9, specs(temp9, "D"))
                     output10 <- rbind(output10, specs(temp10, "D"))
+                    output11 <- rbind(output11, specs(temp11, "D"))
                   }
-                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10, temp11)
                   
                   #### End #### 
                   
@@ -5397,31 +5547,34 @@ for(r in choices1d){
 
 #### Write File D #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
-sheetList <- list(
-  Sheet1 = output1,
-  Sheet2 = output2,
-  Sheet3 = output3,
-  Sheet4 = output4,
-  Sheet5 = output5,
-  Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
-  Sheet9 = output9,
-  Sheet10 = output10
-)
+write.csv(output1, "D-1.csv", row.names = FALSE)
+write.csv(output2, "D-2.csv", row.names = FALSE)
+write.csv(output3, "D-3.csv", row.names = FALSE)
+write.csv(output4, "D-4.csv", row.names = FALSE)
+write.csv(output5, "D-5.csv", row.names = FALSE)
+write.csv(output6, "D-6.csv", row.names = FALSE)
+write.csv(output7, "D-7.csv", row.names = FALSE)
+write.csv(output8, "D-8.csv", row.names = FALSE)
+write.csv(output9, "D-9.csv", row.names = FALSE)
+write.csv(output10, "D-10.csv", row.names = FALSE)
+write.csv(output11, "D-11.csv", row.names = FALSE)
 
-write_xlsx(sheetList, "Plan D.xlsx")
-rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
+rm(output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, counter)
 rm(choices1d, choices2d, choices3d, choices4d, choices5d, choices6d, choices7d, choices8d, choices9d)
+rm(r, s, t, u, v, w, x, y, z)
 
 #### End #### 
+
+}
 
 ################################################
 #### Write File E                           ####
 ################################################
 
+if(runResultsE==TRUE){
+  
 counter <- 0
 for(r in choices1e){
   for(s in choices2e){
@@ -5460,6 +5613,7 @@ for(r in choices1e){
                   temp8 <- function8(students0, states0, colleges0, "Plan E")
                   temp9 <- function9(students0, states0, colleges0, "Plan E")
                   temp10 <- function10(students0, states0, colleges0, "Plan E")
+                  temp11 <- function11(students0, states0, colleges0, "Plan E")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -5477,6 +5631,7 @@ for(r in choices1e){
                     output8 <- specs(temp8, "E")
                     output9 <- specs(temp9, "E")
                     output10 <- specs(temp10, "E")
+                    output11 <- specs(temp11, "E")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "E"))
                     output2 <- rbind(output2, specs(temp2, "E"))
@@ -5488,8 +5643,9 @@ for(r in choices1e){
                     output8 <- rbind(output8, specs(temp8, "E"))
                     output9 <- rbind(output9, specs(temp9, "E"))
                     output10 <- rbind(output10, specs(temp10, "E"))
+                    output11 <- rbind(output11, specs(temp11, "E"))
                   }
-                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10, temp11)
                   
                   #### End #### 
                   
@@ -5497,31 +5653,34 @@ for(r in choices1e){
 
 #### Write File E #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
-sheetList <- list(
-  Sheet1 = output1,
-  Sheet2 = output2,
-  Sheet3 = output3,
-  Sheet4 = output4,
-  Sheet5 = output5,
-  Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
-  Sheet9 = output9,
-  Sheet10 = output10
-)
+write.csv(output1, "E-1.csv", row.names = FALSE)
+write.csv(output2, "E-2.csv", row.names = FALSE)
+write.csv(output3, "E-3.csv", row.names = FALSE)
+write.csv(output4, "E-4.csv", row.names = FALSE)
+write.csv(output5, "E-5.csv", row.names = FALSE)
+write.csv(output6, "E-6.csv", row.names = FALSE)
+write.csv(output7, "E-7.csv", row.names = FALSE)
+write.csv(output8, "E-8.csv", row.names = FALSE)
+write.csv(output9, "E-9.csv", row.names = FALSE)
+write.csv(output10, "E-10.csv", row.names = FALSE)
+write.csv(output11, "E-11.csv", row.names = FALSE)
 
-write_xlsx(sheetList, "Plan E.xlsx")
-rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
+rm(output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, counter)
 rm(choices1e, choices2e, choices3e, choices4e, choices5e, choices6e, choices7e, choices8e, choices9e)
+rm(r, s, t, u, v, w, x, y, z)
 
 #### End #### 
+
+}
 
 ################################################
 #### Write File F                           ####
 ################################################
 
+if(runResultsF==TRUE){
+  
 counter <- 0
 for(r in choices1f){
   for(s in choices2f){
@@ -5560,6 +5719,7 @@ for(r in choices1f){
                   temp8 <- function8(students0, states0, colleges0, "Plan F")
                   temp9 <- function9(students0, states0, colleges0, "Plan F")
                   temp10 <- function10(students0, states0, colleges0, "Plan F")
+                  temp11 <- function11(students0, states0, colleges0, "Plan F")
                   rm(students0, states0, colleges0)
                   
                   #### End ####
@@ -5577,6 +5737,7 @@ for(r in choices1f){
                     output8 <- specs(temp8, "F")
                     output9 <- specs(temp9, "F")
                     output10 <- specs(temp10, "F")
+                    output11 <- specs(temp11, "F")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "F"))
                     # output2 <- rbind(output2, specs(temp2, "F"))
@@ -5588,12 +5749,13 @@ for(r in choices1f){
                     output8 <- rbind(output8, specs(temp8, "F"))
                     output9 <- rbind(output9, specs(temp9, "F"))
                     output10 <- rbind(output10, specs(temp10, "F"))
+                    output11 <- rbind(output11, specs(temp11, "F"))
                   }
                   rm(temp1, 
                      # temp2, 
                      temp3, temp4, temp5, 
                      # temp6, 
-                     temp7, temp8, temp9, temp10
+                     temp7, temp8, temp9, temp10, temp11
                   )
 
                   #### End ####
@@ -5602,37 +5764,40 @@ for(r in choices1f){
 
 #### Write File F #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
-sheetList <- list(
-  Sheet1 = output1,
-  # Sheet2 = output2,
-  Sheet3 = output3,
-  Sheet4 = output4,
-  Sheet5 = output5,
-  # Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
-  Sheet9 = output9,
-  Sheet10 = output10
-)
+write.csv(output1, "F-1.csv", row.names = FALSE)
+# write.csv(output2, "F-2.csv", row.names = FALSE)
+write.csv(output3, "F-3.csv", row.names = FALSE)
+write.csv(output4, "F-4.csv", row.names = FALSE)
+write.csv(output5, "F-5.csv", row.names = FALSE)
+# write.csv(output6, "F-6.csv", row.names = FALSE)
+write.csv(output7, "F-7.csv", row.names = FALSE)
+write.csv(output8, "F-8.csv", row.names = FALSE)
+write.csv(output9, "F-9.csv", row.names = FALSE)
+write.csv(output10, "F-10.csv", row.names = FALSE)
+write.csv(output11, "F-11.csv", row.names = FALSE)
 
-write_xlsx(sheetList, "Plan F.xlsx")
 rm(
-  sheetList, output1, 
+  output1, 
   # output2, 
   output3, output4, output5, 
   # output6, 
-  output7, output8, output9, output10, counter
+  output7, output8, output9, output10, output11, counter
 )
 rm(choices1f, choices2f, choices3f, choices4f, choices5f, choices6f, choices7f, choices8f, choices9f)
+rm(r, s, t, u, v, w, x, y, z)
 
 #### End #### 
+
+}
 
 ################################################
 #### Write File G                           ####
 ################################################
 
+if(runResultsG==TRUE){
+  
 counter <- 0
 for(r in choices1g){
   for(s in choices2g){
@@ -5671,6 +5836,7 @@ for(r in choices1g){
                   temp8 <- function8(students0, states0, colleges0, "Plan G")
                   temp9 <- function9(students0, states0, colleges0, "Plan G")
                   temp10 <- function10(students0, states0, colleges0, "Plan G")
+                  temp11 <- function11(students0, states0, colleges0, "Plan G")
                   rm(students0, states0, colleges0)
                   
                   #### End #### 
@@ -5688,6 +5854,7 @@ for(r in choices1g){
                     output8 <- specs(temp8, "G")
                     output9 <- specs(temp9, "G")
                     output10 <- specs(temp10, "G")
+                    output11 <- specs(temp11, "G")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "G"))
                     # output2 <- rbind(output2, specs(temp2, "G"))
@@ -5699,12 +5866,13 @@ for(r in choices1g){
                     output8 <- rbind(output8, specs(temp8, "G"))
                     output9 <- rbind(output9, specs(temp9, "G"))
                     output10 <- rbind(output10, specs(temp10, "G"))
+                    output11 <- rbind(output11, specs(temp11, "G"))
                   }
                   rm(temp1, 
                      # temp2, 
                      temp3, temp4, temp5, 
                      # temp6, 
-                     temp7, temp8, temp9, temp10
+                     temp7, temp8, temp9, temp10, temp11
                   )
                   
                   #### End #### 
@@ -5713,37 +5881,40 @@ for(r in choices1g){
 
 #### Write File G #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
-sheetList <- list(
-  Sheet1 = output1,
-  # Sheet2 = output2,
-  Sheet3 = output3,
-  Sheet4 = output4,
-  Sheet5 = output5,
-  # Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
-  Sheet9 = output9,
-  Sheet10 = output10
-)
+write.csv(output1, "G-1.csv", row.names = FALSE)
+# write.csv(output2, "G-2.csv", row.names = FALSE)
+write.csv(output3, "G-3.csv", row.names = FALSE)
+write.csv(output4, "G-4.csv", row.names = FALSE)
+write.csv(output5, "G-5.csv", row.names = FALSE)
+# write.csv(output6, "G-6.csv", row.names = FALSE)
+write.csv(output7, "G-7.csv", row.names = FALSE)
+write.csv(output8, "G-8.csv", row.names = FALSE)
+write.csv(output9, "G-9.csv", row.names = FALSE)
+write.csv(output10, "G-10.csv", row.names = FALSE)
+write.csv(output11, "G-11.csv", row.names = FALSE)
 
-write_xlsx(sheetList, "Plan G.xlsx")
 rm(
-  sheetList, output1, 
+  output1, 
   # output2, 
   output3, output4, output5, 
   # output6, 
-  output7, output8, output9, output10, counter
+  output7, output8, output9, output10, output11, counter
 )
 rm(choices1g, choices2g, choices3g, choices4g, choices5g, choices6g, choices7g, choices8g, choices9g)
+rm(r, s, t, u, v, w, x, y, z)
 
 #### End #### 
+
+}
 
 ################################################
 #### Write File H                           ####
 ################################################
 
+if(runResultsH==TRUE){
+  
 counter <- 0
 for(r in choices1h){
   for(s in choices2h){
@@ -5782,6 +5953,7 @@ for(r in choices1h){
                   temp8 <- function8(students0, states0, colleges0, "Plan H")
                   temp9 <- function9(students0, states0, colleges0, "Plan H")
                   temp10 <- function10(students0, states0, colleges0, "Plan H")
+                  temp11 <- function11(students0, states0, colleges0, "Plan H")
                   rm(students0, states0, colleges0)
                   
                   #### End ####
@@ -5799,6 +5971,7 @@ for(r in choices1h){
                     output8 <- specs(temp8, "H")
                     output9 <- specs(temp9, "H")
                     output10 <- specs(temp10, "H")
+                    output11 <- specs(temp11, "H")
                   }else{
                     output1 <- rbind(output1, specs(temp1, "H"))
                     output2 <- rbind(output2, specs(temp2, "H"))
@@ -5810,8 +5983,9 @@ for(r in choices1h){
                     output8 <- rbind(output8, specs(temp8, "H"))
                     output9 <- rbind(output9, specs(temp9, "H"))
                     output10 <- rbind(output10, specs(temp10, "H"))
+                    output11 <- rbind(output11, specs(temp11, "H"))
                   }
-                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+                  rm(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10, temp11)
 
                   #### End ####
 
@@ -5819,26 +5993,25 @@ for(r in choices1h){
 
 #### Write File H #### 
 
-setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Model-V2/Simulation results")
+setwd(paste(wdPrefix, "Model-V3/Simulation results", sep=""))
 
-sheetList <- list(
-  Sheet1 = output1,
-  Sheet2 = output2,
-  Sheet3 = output3,
-  Sheet4 = output4,
-  Sheet5 = output5,
-  Sheet6 = output6,
-  Sheet7 = output7,
-  Sheet8 = output8,
-  Sheet9 = output9,
-  Sheet10 = output10
-)
+write.csv(output1, "H-1.csv", row.names = FALSE)
+write.csv(output2, "H-2.csv", row.names = FALSE)
+write.csv(output3, "H-3.csv", row.names = FALSE)
+write.csv(output4, "H-4.csv", row.names = FALSE)
+write.csv(output5, "H-5.csv", row.names = FALSE)
+write.csv(output6, "H-6.csv", row.names = FALSE)
+write.csv(output7, "H-7.csv", row.names = FALSE)
+write.csv(output8, "H-8.csv", row.names = FALSE)
+write.csv(output9, "H-9.csv", row.names = FALSE)
+write.csv(output10, "H-10.csv", row.names = FALSE)
+write.csv(output11, "H-11.csv", row.names = FALSE)
 
-write_xlsx(sheetList, "Plan H.xlsx")
-rm(sheetList, output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, counter)
+rm(output1, output2, output3, output4, output5, output6, output7, output8, output9, output10, output11, counter)
 rm(choices1h, choices2h, choices3h, choices4h, choices5h, choices6h, choices7h, choices8h, choices9h)
+rm(r, s, t, u, v, w, x, y, z)
 
 #### End #### 
 
-
+}
 

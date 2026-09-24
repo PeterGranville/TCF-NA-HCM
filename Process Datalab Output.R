@@ -1093,18 +1093,36 @@ effyLabs <- data.frame(
 
 effy <- left_join(x=effy, y=effyLabs, by="Total name")
 rm(effyLabs)
+
 effy <- effy %>% mutate(
   `Enrollment intensity` = ifelse(
     `EFFYALEV` %in% c(
       24, #	Full-time students, Undergraduate, Degree/certificate-seeking, First-time
       39, #	Full-time students, Undergraduate, Other degree/certificate-seeking, Transfer-ins
-      40, #	Full-time students, Undergraduate, Other degree/certificate-seeking, Continuing
-      31  #	Full-time students, Undergraduate, Non-degree/certificate-seeking
+      40  #	Full-time students, Undergraduate, Other degree/certificate-seeking, Continuing
     ), 
     "Full-time", 
     "Part-time"
+  ), 
+  `Entering status` = ifelse(
+    `EFFYALEV` %in% c(
+      24, #	Full-time students, Undergraduate, Degree/certificate-seeking, First-time
+      39, #	Full-time students, Undergraduate, Other degree/certificate-seeking, Transfer-ins
+      44, #	Part-time students, Undergraduate, Degree/certificate-seeking, First-time
+      59  #	Part-time students, Undergraduate, Other degree/certificate-seeking, Transfer-ins
+    ), 
+    "Entering",
+    "Not entering"
+  ), 
+  `First-time status` = ifelse(
+    `EFFYALEV` %in% c(
+      24, #	Full-time students, Undergraduate, Degree/certificate-seeking, First-time
+      44  #	Part-time students, Undergraduate, Degree/certificate-seeking, First-time
+    ),
+    "First-time",
+    "Not first-time"
   )
-)
+) 
 
 # I've confirmed that there is no additional information gained from these categories: 
 effy <- effy %>% filter(
@@ -1202,6 +1220,8 @@ for(j in jValues){
     `Race` = character(), 
     `Gender` = character(), 
     `Enrollment intensity` = character(), 
+    `Entering status` = character(), 
+    `First-time status` = character(), 
     `Effy-student index` = character(),
     check.names=FALSE
   ) 
@@ -1218,6 +1238,8 @@ for(j in jValues){
         `Race` = rep(tempEFFY$`Race`[1], tempEFFY$`Student count`[1]), 
         `Gender` = rep(tempEFFY$`Gender`[1], tempEFFY$`Student count`[1]), 
         `Enrollment intensity` = rep(tempEFFY$`Enrollment intensity`[1], tempEFFY$`Student count`[1]), 
+        `Entering status` = rep(tempEFFY$`Entering status`[1], tempEFFY$`Student count`[1]), 
+        `First-time status` = rep(tempEFFY$`First-time status`[1], tempEFFY$`Student count`[1]),
         check.names=FALSE
       ) %>% mutate(
         `Effy-student index` = paste(`Effy index`, ":", `Student index`, sep="")
@@ -1230,6 +1252,8 @@ for(j in jValues){
         `Race` = character(), 
         `Gender` = character(), 
         `Enrollment intensity` = character(), 
+        `Entering status` = character(), 
+        `First-time status` = character(),
         `Effy-student index` = character(),
         check.names=FALSE
       ) 

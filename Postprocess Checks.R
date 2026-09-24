@@ -32,62 +32,62 @@ jValues <- c(
 
 #### End #### 
 
-# #### Load procesed output (LONG WAY: 30+ MIN) ####
-# 
-# setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Postprocessing data")
-# 
-# for(j in jValues){
-#   
-#   print(Sys.time())
-#   
-#   print(paste("Merging dataset ", j, ".", sep=""))
-#   
-#   if(j=="00"){
-#     studentDF <- read.csv(
-#       paste("Set-", j, ".csv", sep=""),
-#       header=TRUE,
-#       check.names=FALSE
-#     ) %>% mutate(
-#       `Source file number` = rep(j)
-#     )
-#   }else{
-#     tempDF <- read.csv(
-#       paste("Set-", j, ".csv", sep=""),
-#       header=TRUE,
-#       check.names=FALSE
-#     ) %>% mutate(
-#       `Source file number` = rep(j)
-#     )
-#     studentDF <- rbind(
-#       studentDF,
-#       tempDF
-#     )
-#     rm(tempDF)
-#   }
-#   
-# }
-# rm(j)
-# rm(jValues)
-# 
-# setwd("/Volumes/TOSHIBA EXT/Fed State Modeling")
-# 
-# write.csv(studentDF, "All merged student data.csv", row.names=FALSE)
-# 
-# #### End ####
+#### Load procesed output (LONG WAY: 30+ MIN) ####
 
-#### Load processed output (SHORT WAY: 6 MIN) ####
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Postprocessing data")
+
+for(j in jValues){
+
+  print(Sys.time())
+
+  print(paste("Merging dataset ", j, ".", sep=""))
+
+  if(j=="00"){
+    studentDF <- read.csv(
+      paste("Set-", j, ".csv", sep=""),
+      header=TRUE,
+      check.names=FALSE
+    ) %>% mutate(
+      `Source file number` = rep(j)
+    )
+  }else{
+    tempDF <- read.csv(
+      paste("Set-", j, ".csv", sep=""),
+      header=TRUE,
+      check.names=FALSE
+    ) %>% mutate(
+      `Source file number` = rep(j)
+    )
+    studentDF <- rbind(
+      studentDF,
+      tempDF
+    )
+    rm(tempDF)
+  }
+
+}
+rm(j)
+rm(jValues)
 
 setwd("/Volumes/TOSHIBA EXT/Fed State Modeling")
 
-Sys.time()
-studentDF <- read.csv(
-  "All merged student data.csv",
-  header=TRUE,
-  check.names=FALSE
-)
-Sys.time()
+write.csv(studentDF, "All merged student data.csv", row.names=FALSE)
 
 #### End ####
+
+# #### Load processed output (SHORT WAY: 6 MIN) ####
+# 
+# setwd("/Volumes/TOSHIBA EXT/Fed State Modeling")
+# 
+# Sys.time()
+# studentDF <- read.csv(
+#   "All merged student data.csv",
+#   header=TRUE,
+#   check.names=FALSE
+# )
+# Sys.time()
+# 
+# #### End ####
 
 ################################################
 #### Make adjustments and additions         ####
