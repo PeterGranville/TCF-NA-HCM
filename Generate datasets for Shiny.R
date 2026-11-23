@@ -4768,11 +4768,9 @@ choices4h <- c(
 
 #### Choice list 5 ####
 
-# EDIT MADE 09-18-2026 TO REDUCE COMBINATIONS: 
 choices5a <- c(
-  "Yes"
-  # ,
-  # "No"
+  "Yes",
+  "No"
 )
 
 choices5b <- choices5a
@@ -4878,12 +4876,10 @@ choices8h <- choices8a
 
 #### Choice list 9 ####
 
-# EDIT MADE 09-18-2026 TO REDUCE COMBINATIONS: 
 choices9a <- c(
   "5% and above",
-  "10% and above"
-  # ,
-  # "20% and above"
+  "10% and above",
+  "20% and above"
 )
 
 choices9b <- choices9a

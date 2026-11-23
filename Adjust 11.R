@@ -1,12 +1,103 @@
 
 #### Setup ####
 
+library(readxl)
 library(scales)
 library(tidyverse)
 
 quiet_numeric <- function(x) {
   suppressWarnings(as.numeric(x))
 }
+
+setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS data")
+
+#### End #### 
+
+#### Create SECTOR7 for 2010 Carnegie ####
+
+c10sector7 <- data.frame(
+  `Control` = numeric(), 
+  `Carnegie 2010` = numeric(), 
+  `SECTOR7` = character(), 
+  check.names=FALSE
+)
+
+for(i in c((1:8), 11, 33)){
+  c10sector7 <- c10sector7 %>% add_row(`Control` = 1, `Carnegie 2010` = i, `SECTOR7` = "Public 2-year")
+}
+for(i in c(9, 13, 23)){
+  c10sector7 <- c10sector7 %>% add_row(`Control` = 2, `Carnegie 2010` = i, `SECTOR7` = "Private nonprofit 2-year")
+}
+for(i in c(10, 14, 23)){
+  c10sector7 <- c10sector7 %>% add_row(`Control` = 3, `Carnegie 2010` = i, `SECTOR7` = "Private for-profit 2-year")
+}
+for(i in c(12, 23)){
+  c10sector7 <- c10sector7 %>% add_row(`Control` = 1, `Carnegie 2010` = i, `SECTOR7` = "Public PAB")
+}
+for(i in c((15:22), (24:32))){
+  c10sector7 <- c10sector7 %>% add_row(`Control` = 1, `Carnegie 2010` = i, `SECTOR7` = "Public 4-year")
+  c10sector7 <- c10sector7 %>% add_row(`Control` = 2, `Carnegie 2010` = i, `SECTOR7` = "Private nonprofit 4-year")
+  c10sector7 <- c10sector7 %>% add_row(`Control` = 3, `Carnegie 2010` = i, `SECTOR7` = "Private for-profit 4-year")
+}
+
+#### End #### 
+
+#### Create SECTOR7 for 2021 Carnegie ####
+
+c21sector7 <- data.frame(
+  `Control` = numeric(), 
+  `Carnegie 2021` = numeric(), 
+  `SECTOR7` = character(), 
+  check.names=FALSE
+)
+
+for(i in c((1:13), 33)){
+  c21sector7 <- c21sector7 %>% add_row(`Control` = 1, `Carnegie 2021` = i, `SECTOR7` = "Public 2-year")
+}
+for(i in c((1:14), 33)){
+  c21sector7 <- c21sector7 %>% add_row(`Control` = 2, `Carnegie 2021` = i, `SECTOR7` = "Private nonprofit 2-year")
+  c21sector7 <- c21sector7 %>% add_row(`Control` = 3, `Carnegie 2021` = i, `SECTOR7` = "Private for-profit 2-year")
+}
+for(i in c(14, 23)){
+  c21sector7 <- c21sector7 %>% add_row(`Control` = 1, `Carnegie 2021` = i, `SECTOR7` = "Public PAB")
+}
+for(i in c((15:22), (24:32))){
+  c21sector7 <- c21sector7 %>% add_row(`Control` = 1, `Carnegie 2021` = i, `SECTOR7` = "Public 4-year")
+}
+for(i in (15:32)){
+  c21sector7 <- c21sector7 %>% add_row(`Control` = 2, `Carnegie 2021` = i, `SECTOR7` = "Private nonprofit 4-year")
+  c21sector7 <- c21sector7 %>% add_row(`Control` = 3, `Carnegie 2021` = i, `SECTOR7` = "Private for-profit 4-year") 
+}
+
+rm(i)
+
+#### End #### 
+
+#### Assign SECTOR7 to each OPEID6 ####
+
+sector7byOPEID6 <- read.csv("Most-Recent-Cohorts-Institution-Apr2025.csv", header=TRUE) %>% filter(
+  is.na(`OPEID6`)==FALSE
+) %>% select(
+  `OPEID6`,
+  `CCBASIC`,
+  `CONTROL`,
+  `MAIN`
+) %>% arrange(
+  desc(`MAIN`)
+) %>% select(
+  -(`MAIN`)
+) %>% filter(
+  duplicated(`OPEID6`)==FALSE
+) 
+importSector7 <- c21sector7 %>% rename(
+  `CONTROL` = `Control`, 
+  `CCBASIC` = `Carnegie 2021`
+)
+sector7byOPEID6 <- left_join(x=sector7byOPEID6, y=importSector7, by=c("CONTROL", "CCBASIC")) %>% select(
+  -(`CONTROL`), 
+  -(`CCBASIC`)
+)
+rm(importSector7)
 
 #### End #### 
 
@@ -28,6 +119,7 @@ scorecard <- read.csv("Most-Recent-Cohorts-Institution-Apr2025.csv", header=TRUE
   OPEID6,
   CONTROL,
   PREDDEG,
+  CCBASIC,
   MAIN, 
   
   # Default statuses
@@ -61,26 +153,12 @@ scorecard <- read.csv("Most-Recent-Cohorts-Institution-Apr2025.csv", header=TRUE
   COUNT_WNE_P10,
   COUNT_WNE_P11,
   
-  PCT25_EARN_WNE_P6,
-  PCT25_EARN_WNE_P7,
-  PCT25_EARN_WNE_P8,
-  PCT25_EARN_WNE_P9,
-  PCT25_EARN_WNE_P10,
-  PCT25_EARN_WNE_P11,
-  
   MD_EARN_WNE_P6,
   MD_EARN_WNE_P7,
   MD_EARN_WNE_P8,
   MD_EARN_WNE_P9,
   MD_EARN_WNE_P10,
-  MD_EARN_WNE_P11,
-  
-  PCT75_EARN_WNE_P6,
-  PCT75_EARN_WNE_P7,
-  PCT75_EARN_WNE_P8,
-  PCT75_EARN_WNE_P9,
-  PCT75_EARN_WNE_P10,
-  PCT75_EARN_WNE_P11
+  MD_EARN_WNE_P11
   
 ) %>% arrange(
   desc(`MAIN`)
@@ -345,26 +423,12 @@ scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="BBRR2_FED_UGNOCOMP_DFL
 scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="BBRR3_FED_UGNOCOMP_DFLT", countCol="BBRR3_FED_UGNOCOMP_N")
 scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="BBRR4_FED_UGNOCOMP_DFLT", countCol="BBRR4_FED_UGNOCOMP_N")
 
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P6", countCol="COUNT_WNE_P6")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P7", countCol="COUNT_WNE_P7")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P8", countCol="COUNT_WNE_P8")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P9", countCol="COUNT_WNE_P9")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P10", countCol="COUNT_WNE_P10")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P11", countCol="COUNT_WNE_P11")
-
 scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="MD_EARN_WNE_P6", countCol="COUNT_WNE_P6")
 scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="MD_EARN_WNE_P7", countCol="COUNT_WNE_P7")
 scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="MD_EARN_WNE_P8", countCol="COUNT_WNE_P8")
 scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="MD_EARN_WNE_P9", countCol="COUNT_WNE_P9")
 scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="MD_EARN_WNE_P10", countCol="COUNT_WNE_P10")
 scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="MD_EARN_WNE_P11", countCol="COUNT_WNE_P11")
-
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P6", countCol="COUNT_WNE_P6")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P7", countCol="COUNT_WNE_P7")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P8", countCol="COUNT_WNE_P8")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P9", countCol="COUNT_WNE_P9")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P10", countCol="COUNT_WNE_P10")
-scorecard <- imputeNAsFirstTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P11", countCol="COUNT_WNE_P11")
 
 #### End #### 
 
@@ -434,27 +498,12 @@ scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="BBRR2_FED_UGNOCOMP_DF
 scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="BBRR3_FED_UGNOCOMP_DFLT", countCol="BBRR3_FED_UGNOCOMP_N")
 scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="BBRR4_FED_UGNOCOMP_DFLT", countCol="BBRR4_FED_UGNOCOMP_N")
 
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P6", countCol="COUNT_WNE_P6")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P7", countCol="COUNT_WNE_P7")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P8", countCol="COUNT_WNE_P8")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P9", countCol="COUNT_WNE_P9")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P10", countCol="COUNT_WNE_P10")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT25_EARN_WNE_P11", countCol="COUNT_WNE_P11")
-
 scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="MD_EARN_WNE_P6", countCol="COUNT_WNE_P6")
 scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="MD_EARN_WNE_P7", countCol="COUNT_WNE_P7")
 scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="MD_EARN_WNE_P8", countCol="COUNT_WNE_P8")
 scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="MD_EARN_WNE_P9", countCol="COUNT_WNE_P9")
 scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="MD_EARN_WNE_P10", countCol="COUNT_WNE_P10")
 scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="MD_EARN_WNE_P11", countCol="COUNT_WNE_P11")
-
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P6", countCol="COUNT_WNE_P6")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P7", countCol="COUNT_WNE_P7")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P8", countCol="COUNT_WNE_P8")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P9", countCol="COUNT_WNE_P9")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P10", countCol="COUNT_WNE_P10")
-scorecard <- imputeNAsSecondTry(data1=scorecard, valueCol="PCT75_EARN_WNE_P11", countCol="COUNT_WNE_P11")
-
 
 #### End #### 
 
@@ -464,6 +513,7 @@ scorecard <- scorecard %>% select(
 
   OPEID6,
   PREDDEG,
+  CCBASIC,
   CONTROL,
   
   # Default statuses
@@ -480,37 +530,23 @@ scorecard <- scorecard %>% select(
   
   # Years since entry: 
   
-  PCT25_EARN_WNE_P6,
-  PCT25_EARN_WNE_P7,
-  PCT25_EARN_WNE_P8,
-  PCT25_EARN_WNE_P9,
-  PCT25_EARN_WNE_P10,
-  PCT25_EARN_WNE_P11,
-  
   MD_EARN_WNE_P6,
   MD_EARN_WNE_P7,
   MD_EARN_WNE_P8,
   MD_EARN_WNE_P9,
   MD_EARN_WNE_P10,
-  MD_EARN_WNE_P11,
-  
-  PCT75_EARN_WNE_P6,
-  PCT75_EARN_WNE_P7,
-  PCT75_EARN_WNE_P8,
-  PCT75_EARN_WNE_P9,
-  PCT75_EARN_WNE_P10,
-  PCT75_EARN_WNE_P11
+  MD_EARN_WNE_P11
   
 )
 
 #### End #### 
 
-#### Inflation adjustments to 2024 ####
+#### Inflation adjustments to 2025 ####
 
 # July to July adjustments 
 
-coefficient2021 <- 1.152149
-coefficient2022 <- 1.061645
+coefficient2021 <- 1.1833130
+coefficient2022 <- 1.0903617
 
 # P6: 2022
 # P7: 2021
@@ -521,26 +557,12 @@ coefficient2022 <- 1.061645
 
 scorecard <- scorecard %>% mutate(
   
-  `PCT25_EARN_WNE_P6` = `PCT25_EARN_WNE_P6` * coefficient2022,
-  `PCT25_EARN_WNE_P7` = `PCT25_EARN_WNE_P7` * coefficient2021,
-  `PCT25_EARN_WNE_P8` = `PCT25_EARN_WNE_P8` * coefficient2022,
-  `PCT25_EARN_WNE_P9` = `PCT25_EARN_WNE_P9` * coefficient2021,
-  `PCT25_EARN_WNE_P10` = `PCT25_EARN_WNE_P10` * coefficient2022,
-  `PCT25_EARN_WNE_P11` = `PCT25_EARN_WNE_P11` * coefficient2021,
-  
   `MD_EARN_WNE_P6` = `MD_EARN_WNE_P6` * coefficient2022,
   `MD_EARN_WNE_P7` = `MD_EARN_WNE_P7` * coefficient2021,
   `MD_EARN_WNE_P8` = `MD_EARN_WNE_P8` * coefficient2022,
   `MD_EARN_WNE_P9` = `MD_EARN_WNE_P9` * coefficient2021,
   `MD_EARN_WNE_P10` = `MD_EARN_WNE_P10` * coefficient2022,
-  `MD_EARN_WNE_P11` = `MD_EARN_WNE_P11` * coefficient2021,
-  
-  `PCT75_EARN_WNE_P6` = `PCT75_EARN_WNE_P6` * coefficient2022,
-  `PCT75_EARN_WNE_P7` = `PCT75_EARN_WNE_P7` * coefficient2021,
-  `PCT75_EARN_WNE_P8` = `PCT75_EARN_WNE_P8` * coefficient2022,
-  `PCT75_EARN_WNE_P9` = `PCT75_EARN_WNE_P9` * coefficient2021,
-  `PCT75_EARN_WNE_P10` = `PCT75_EARN_WNE_P10` * coefficient2022,
-  `PCT75_EARN_WNE_P11` = `PCT75_EARN_WNE_P11` * coefficient2021
+  `MD_EARN_WNE_P11` = `MD_EARN_WNE_P11` * coefficient2021
   
 )
 
@@ -555,96 +577,124 @@ rm(
 #### BPS earnings data                     ####
 ###############################################
 
-#### Load files ####
+#### Load NSCRC data #### 
+
+nscrc <- read_excel(
+  path="YPC-DataAppendix2025.xlsx",
+  sheet="NT5",
+  skip=2
+) %>% filter(
+  `Cohort Year`==2011 # Using 2011 because its 8-year outcomes fall before the pandemic
+) %>% select(
+  `Starting Sector`,
+  `Enrollment Status at Entry`, 
+  `Outcome`,
+  `Eight-Year Count` # Using longest possible time frame
+) %>% group_by(
+  `Starting Sector`, 
+  `Outcome`
+) %>% summarize(
+  `Eight-Year Count` = sum(`Eight-Year Count`), 
+  .groups="drop"
+) %>% pivot_wider(
+  id_cols=c(`Starting Sector`),
+  names_from=`Outcome`, 
+  values_from=`Eight-Year Count`
+) %>% mutate(
+  `Graduation rate` = (`Graduated - Same School` + `Graduated - Different School`) / (`Graduated - Same School` + `Graduated - Different School` + `Enrolled - Same School` + `Enrolled - Different School` + `Not Enrolled After Transfer` + `Not Enrolled`)
+) %>% select(
+  `Starting Sector`,
+  `Graduation rate`
+)
+
+#### End #### 
+
+#### Impute remaining SECTOR7 values via BPS ####
+
+importBPS <- read.csv(
+  "PowerStats_syqnws.csv", 
+  header=FALSE, 
+  skip=12, 
+  nrow=9
+) %>% select(
+  `V1`, `V2`
+) %>% rename(
+  `Sector` = `V1`, 
+  `Completion rate` = `V2`
+) %>% filter(
+  `Sector` %in% c(
+    "Private for profit 4-year", 
+    "Private for profit 2-year",
+    "Private nonprofit 4-year", 
+    "Private nonprofit 2-year"
+  )
+) %>% mutate(
+  `Level` = ifelse(
+    grepl("4-year", `Sector`),
+    "4-year",
+    "2-year"
+  ), 
+  `Control` = ifelse(
+    grepl("nonprofit", `Sector`), 
+    "Nonprofit",
+    "For-profit"
+  )
+) %>% pivot_wider(
+  id_cols=c(`Control`),
+  names_from=`Level`,
+  values_from=`Completion rate`
+) %>% mutate(
+  `Ratio: 2yr to 4yr` = `2-year` / `4-year`
+) %>% select(
+  `Control`, 
+  `Ratio: 2yr to 4yr`
+)
+
+NPratio <- importBPS$`Ratio: 2yr to 4yr`[importBPS$`Control`=="Nonprofit"]
+FPratio <- importBPS$`Ratio: 2yr to 4yr`[importBPS$`Control`=="For-profit"]
+rm(importBPS)
+
+NPstart <- nscrc$`Graduation rate`[nscrc$`Starting Sector`=="Private nonprofit 4-year"]
+FPstart <- nscrc$`Graduation rate`[nscrc$`Starting Sector`=="Private for-profit 4-year"]
+
+nscrc <- nscrc %>% add_row(
+  `Starting Sector` = "Private nonprofit 2-year", 
+  `Graduation rate` = NPstart * NPratio
+) %>% add_row(
+  `Starting Sector` = "Private for-profit 2-year", 
+  `Graduation rate` = FPstart * FPratio
+)
+
+#### End #### 
+
+#### Load BPS files ####
 
 setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/IPEDS data")
 
-loadBPS <- function(fileName, programLevel, selectedPercentile){
+loadBPS <- function(fileName, sectorName){
   
-  overallDF <- read.csv(
-    file=fileName,
-    skip=10,
-    header=FALSE, 
-    nrows=1
-  ) %>% rename(
-    `Degree attained` = `V1`, 
-    `10th percentile salary` = `V2`,
-    `25th percentile salary` = `V3`, 
-    `50th percentile salary` = `V4`,
-    `75th percentile salary` = `V5`, 
-    `90th percentile salary` = `V6`
-  ) %>% mutate(
-    `10th percentile salary` = quiet_numeric(`10th percentile salary`),
-    `25th percentile salary` = quiet_numeric(`25th percentile salary`), 
-    `50th percentile salary` = quiet_numeric(`50th percentile salary`),
-    `75th percentile salary` = quiet_numeric(`75th percentile salary`), 
-    `90th percentile salary` = quiet_numeric(`90th percentile salary`)
-  ) %>% mutate(
-    `Starting program level` = rep(programLevel)
-  ) %>% mutate(
-    `Completion status` = rep("All students")
-  ) %>% select(
-    -(`Degree attained`)
-  )
-  
-  completionDF <- read.csv(
+  tempDF <- read.csv(
     file=fileName,
     skip=12,
     header=FALSE, 
-    nrows=4
+    nrows=2
   ) %>% rename(
-    `Degree attained` = `V1`, 
+    `Credential attained` = `V1`, 
     `10th percentile salary` = `V2`,
     `25th percentile salary` = `V3`, 
     `50th percentile salary` = `V4`,
     `75th percentile salary` = `V5`, 
     `90th percentile salary` = `V6`
-  ) %>% mutate(
-    `10th percentile salary` = quiet_numeric(`10th percentile salary`),
-    `25th percentile salary` = quiet_numeric(`25th percentile salary`), 
-    `50th percentile salary` = quiet_numeric(`50th percentile salary`),
-    `75th percentile salary` = quiet_numeric(`75th percentile salary`), 
-    `90th percentile salary` = quiet_numeric(`90th percentile salary`)
-  ) %>% mutate(
-    `Starting program level` = rep(programLevel)
-  ) %>% filter(
-    (`Degree attained`==`Starting program level`) | (`Degree attained`=="Not attained a degree")
-  ) %>% mutate(
-    `Completion status` = ifelse(
-      `Degree attained`=="Not attained a degree", 
-      "Non-completer", 
-      "Completer"
-    )
   ) %>% select(
-    -(`Degree attained`)
-  )
-  
-  tempDF <- rbind(
-    overallDF, 
-    completionDF
-  ) %>% select(
-    all_of(c(
-      "Starting program level",
-      "Completion status",
-      paste(selectedPercentile, " percentile salary", sep="")
-    ))
-  )
-  names(tempDF)[3] <- "Salary"
-  
-  tempDF <- tempDF %>% pivot_wider(
-    id_cols=c(`Starting program level`), 
-    names_from=`Completion status`, 
-    values_from=`Salary`
+    `Credential attained`, 
+    `50th percentile salary`
   ) %>% mutate(
-    `Ratio: Completers to overall` = `Completer` / `All students`, 
-    `Ratio: Non-completers to overall` = `Non-completer` / `All students`
-  ) %>% select(
-    `Starting program level`, 
-    `Ratio: Completers to overall`, 
-    `Ratio: Non-completers to overall`
+    `50th percentile salary` = quiet_numeric(`50th percentile salary`)
+  ) %>% rename(
+    `Salary` = `50th percentile salary`
   ) %>% mutate(
-    `Percentile` = rep(selectedPercentile)
-  )
+    `Sector` = rep(sectorName)
+  ) 
   
   return(tempDF)
   
@@ -652,59 +702,86 @@ loadBPS <- function(fileName, programLevel, selectedPercentile){
 
 bps <- rbind(
   
-  # 25th percentile
-  loadBPS(
-    fileName="PowerStats_pazjtp.csv", 
-    programLevel="Certificate",
-    selectedPercentile="25th"
-  ), 
-  loadBPS(
-    fileName="PowerStats_qipszr.csv", 
-    programLevel="Associate's degree",
-    selectedPercentile="25th"
-  ),
-  loadBPS(
-    fileName="PowerStats_xloamd.csv", 
-    programLevel="Bachelor's degree",
-    selectedPercentile="25th"
-  ),
+  loadBPS(fileName="Powerstats_hsybgl.csv", sectorName="Public 4-year"), 
+  loadBPS(fileName="Powerstats_tqreln.csv", sectorName="Public 2-year"), 
+  loadBPS(fileName="Powerstats_yecxva.csv", sectorName="Private nonprofit 4-year"), 
+  loadBPS(fileName="Powerstats_vrmjxn.csv", sectorName="Private nonprofit 2-year"), 
+  loadBPS(fileName="Powerstats_mvjazj.csv", sectorName="Private for-profit 4-year"), 
+  loadBPS(fileName="Powerstats_uwbykv.csv", sectorName="Private for-profit 2-year")
   
-  # 50th percentile
-  loadBPS(
-    fileName="PowerStats_pazjtp.csv", 
-    programLevel="Certificate",
-    selectedPercentile="50th"
-  ), 
-  loadBPS(
-    fileName="PowerStats_qipszr.csv", 
-    programLevel="Associate's degree",
-    selectedPercentile="50th"
-  ),
-  loadBPS(
-    fileName="PowerStats_xloamd.csv", 
-    programLevel="Bachelor's degree",
-    selectedPercentile="50th"
-  ), 
-  
-  # 75th percentile
-  loadBPS(
-    fileName="PowerStats_pazjtp.csv", 
-    programLevel="Certificate",
-    selectedPercentile="75th"
-  ), 
-  loadBPS(
-    fileName="PowerStats_qipszr.csv", 
-    programLevel="Associate's degree",
-    selectedPercentile="75th"
-  ),
-  loadBPS(
-    fileName="PowerStats_xloamd.csv", 
-    programLevel="Bachelor's degree",
-    selectedPercentile="75th"
+) %>% pivot_wider(
+  id_cols=c(`Sector`), 
+  names_from=`Credential attained`, 
+  values_from=`Salary`
+) %>% mutate(
+  `Ratio: Completers to non-completers` = `Any credential` / `No credential`
+) %>% select(
+  `Sector`, 
+  `Ratio: Completers to non-completers`
+) 
+
+bps <- bps %>% add_row(
+  `Sector` = "Public PAB", 
+  `Ratio: Completers to non-completers` = mean(c(
+    bps$`Ratio: Completers to non-completers`[bps$`Sector`=="Public 4-year"], 
+    bps$`Ratio: Completers to non-completers`[bps$`Sector`=="Public 2-year"]
+  ))
+)
+
+#### End #### 
+
+#### Import SECTOR7 into Scorecard ####
+
+scorecard <- left_join(x=scorecard, y=sector7byOPEID6, by="OPEID6")
+
+scorecard <- scorecard %>% mutate(
+  `SECTOR7` = ifelse(
+    is.na(`SECTOR7`), 
+    ifelse(
+      (`CONTROL`==1) & (`PREDDEG` %in% (3:4)), 
+      "Public 4-year",
+      ifelse(
+        (`CONTROL`==1) & (`PREDDEG` %in% (1:2)), 
+        "Public 2-year", 
+        ifelse(
+          (`CONTROL`==2) & (`PREDDEG` %in% (3:4)), 
+          "Private nonprofit 4-year",
+          ifelse(
+            (`CONTROL`==2) & (`PREDDEG` %in% (1:2)), 
+            "Private nonprofit 2-year",
+            ifelse(
+              (`CONTROL`==3) & (`PREDDEG` %in% (3:4)), 
+              "Private for-profit 4-year", 
+              ifelse(
+                (`CONTROL`==3) & (`PREDDEG` %in% (1:2)), 
+                "Private for-profit 2-year", 
+                NA
+              )
+            )
+          )
+        )
+      )
+    ), 
+    `SECTOR7`
+  )
+)
+
+# There's just one remaining, and it's a nonprofit, so I arbitrarily group it with N4Y: 
+scorecard <- scorecard %>% mutate(
+  `SECTOR7` = ifelse(
+    is.na(`SECTOR7`), 
+    "Private nonprofit 4-year",
+    `SECTOR7`
   )
 )
 
 #### End #### 
+
+
+# Pick up here (11-5-2026)
+
+
+
 
 #### Integrate BPS into Scorecard ####
 
@@ -736,19 +813,9 @@ integrateBPS <- function(scorecardData, bpsData, oldScorecardCol, bpsCol, newSco
   names(data1)[3] <- "Earnings"
   data1 <- left_join(x=data1, y=importPreddeg, by="PREDDEG") %>% select(-(`PREDDEG`))
   
-  if(grepl("PCT25", oldScorecardCol)){
-    bpsData <- bpsData %>% filter(
-      `Percentile` == "25th"
-    )
-  }
   if(grepl("MD", oldScorecardCol)){
     bpsData <- bpsData %>% filter(
       `Percentile` == "50th"
-    )
-  }
-  if(grepl("PCT75", oldScorecardCol)){
-    bpsData <- bpsData %>% filter(
-      `Percentile` == "75th"
     )
   }
   
@@ -777,13 +844,6 @@ integrateBPS <- function(scorecardData, bpsData, oldScorecardCol, bpsCol, newSco
   
 }
 
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P6", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT25_EARN_WNE_COMP_P6")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P7", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT25_EARN_WNE_COMP_P7")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P8", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT25_EARN_WNE_COMP_P8")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P9", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT25_EARN_WNE_COMP_P9")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P10", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT25_EARN_WNE_COMP_P10")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P11", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT25_EARN_WNE_COMP_P11")
-
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P6", bpsCol = "Ratio: Completers to overall", newScorecardCol = "MD_EARN_WNE_COMP_P6")
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P7", bpsCol = "Ratio: Completers to overall", newScorecardCol = "MD_EARN_WNE_COMP_P7")
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P8", bpsCol = "Ratio: Completers to overall", newScorecardCol = "MD_EARN_WNE_COMP_P8")
@@ -791,33 +851,12 @@ scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecard
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P10", bpsCol = "Ratio: Completers to overall", newScorecardCol = "MD_EARN_WNE_COMP_P10")
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P11", bpsCol = "Ratio: Completers to overall", newScorecardCol = "MD_EARN_WNE_COMP_P11")
 
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P6", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT75_EARN_WNE_COMP_P6")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P7", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT75_EARN_WNE_COMP_P7")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P8", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT75_EARN_WNE_COMP_P8")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P9", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT75_EARN_WNE_COMP_P9")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P10", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT75_EARN_WNE_COMP_P10")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P11", bpsCol = "Ratio: Completers to overall", newScorecardCol = "PCT75_EARN_WNE_COMP_P11")
-
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P6", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT25_EARN_WNE_NOCOMP_P6")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P7", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT25_EARN_WNE_NOCOMP_P7")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P8", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT25_EARN_WNE_NOCOMP_P8")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P9", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT25_EARN_WNE_NOCOMP_P9")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P10", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT25_EARN_WNE_NOCOMP_P10")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT25_EARN_WNE_P11", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT25_EARN_WNE_NOCOMP_P11")
-
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P6", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "MD_EARN_WNE_NOCOMP_P6")
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P7", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "MD_EARN_WNE_NOCOMP_P7")
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P8", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "MD_EARN_WNE_NOCOMP_P8")
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P9", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "MD_EARN_WNE_NOCOMP_P9")
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P10", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "MD_EARN_WNE_NOCOMP_P10")
 scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "MD_EARN_WNE_P11", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "MD_EARN_WNE_NOCOMP_P11")
-
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P6", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT75_EARN_WNE_NOCOMP_P6")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P7", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT75_EARN_WNE_NOCOMP_P7")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P8", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT75_EARN_WNE_NOCOMP_P8")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P9", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT75_EARN_WNE_NOCOMP_P9")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P10", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT75_EARN_WNE_NOCOMP_P10")
-scorecard <- integrateBPS(scorecardData = scorecard, bpsData = bps, oldScorecardCol = "PCT75_EARN_WNE_P11", bpsCol = "Ratio: Non-completers to overall", newScorecardCol = "PCT75_EARN_WNE_NOCOMP_P11")
 
 rm(importPreddeg)
 
@@ -1265,7 +1304,7 @@ setwd("/Volumes/TOSHIBA EXT/Fed State Modeling/Temp Folder/Weekend of September 
 
 set.seed(123)
 fullData <- read.csv("A-11.csv", header=TRUE, check.names=FALSE) %>% select(
-  -(`Participant`),      # Cohort is all participants 
+  -(`Participant`),      # Cohort is all participants
   -(`Entering status`),  # Cohort is all entering
   -(`First-time status`) # Cohort is all first-time
 ) %>% arrange(
